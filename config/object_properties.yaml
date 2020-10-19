@@ -1,0 +1,11 @@
+box/properties:
+  length: 1.0
+  breadth: 1.0
+  height: 1.0
+  mass: 1.0
+  density: 1.0
+  
+box/initial_position: [0.5, 0.5, 0.5]
+
+box/final_position: [1.0, 1.0, 1.0]
+  

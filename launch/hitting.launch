@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+
+<!--|
+    Copyright (C) 2019 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
+    Authors:  Harshit Khurana
+    email:    harshit.khurana@epfl.ch
+    website:  lasa.epfl.ch
+
+    This file is part of i_am_project EPFL (impact aware manipulation).
+|-->
+
+<launch>
+
+  <node name=""spawn_urdf" pkg="gazebo_ros" type="spawn_model" />
+  <node name = "hitting" pkg = "i_am_drop" type = "hitting" />
+
+</launch>
+

@@ -11,7 +11,7 @@
 
 <launch>
 
-  <node name=""spawn_urdf" pkg="gazebo_ros" type="spawn_model" />
+  <!-- <node name = "spawn_urdf" pkg="gazebo_ros" type="spawn_model" /> -->
   <node name = "hitting" pkg = "i_am_drop" type = "hitting" />
 
 </launch>

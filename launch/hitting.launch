@@ -22,7 +22,7 @@
   <!-- Here Let me add an object that can be added to the simulator -->
 
   <node name="spawn_box" pkg="gazebo_ros" type="spawn_model" 
-  args="-file $(find i_am_project)/object_models/box.urdf -urdf -z 1 -model box_model" />
+  args="-file $(find i_am_project)/object_models/box.urdf -x 0.5 -z 0.1 -urdf -model box_model" />
 
   <!-- <node name="spawn_box" pkg="gazebo" type="spawn_model" respawn="false" output="screen" 
   args="-urdf -model box_model -param box_description - z 0.01"

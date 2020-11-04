@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>i_am_drop</name>
+  <name>i_am_project</name>
   <version>0.0.0</version>
-  <description>The i_am_drop package</description>
+  <description>The i_am_project package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <maintainer email="harshit.khurana@epfl.ch">harshit</maintainer>

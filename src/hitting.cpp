@@ -36,24 +36,23 @@ int main (int argc, char** argv){
     ros::init(argc, argv, "hitting");
     ros::NodeHandle nh;
 
-    nh.getParam("/box/intial_position/", initialPosition);
-    nh.getParam("/box/final_position/", finalPosition);
+    //nh.getParam("/box/intial_position/", initialPosition);
+    //nh.getParam("/box/final_position/", finalPosition);
 
 
 
     ros::Publisher pubCommand; // publishes to robot command topic
     std_msgs::Float64MultiArray pubPose; // pose data to be published
 
-    pubCommand = nh.advertise<std_msgs::Float64MultiArray>("/iiwa/PositionController/command", 1);
+    pubCommand = nh.advertise<std_msgs::Float64MultiArray>("/iiwa/CustomControllers/command", 1);
 
     ros::Rate rate(200);
 
     pubPose.data.clear();
-    pubPose.data.push_back(1.0);
-    pubPose.data.push_back(1.0);
-    pubPose.data.push_back(1.0);
-    pubPose.data.push_back(1.0);
     pubPose.data.push_back(0.0);
+    pubPose.data.push_back(0.0);
+    pubPose.data.push_back(0.0);
+    pubPose.data.push_back(1.0);
     pubPose.data.push_back(0.0);
     pubPose.data.push_back(0.0);
 

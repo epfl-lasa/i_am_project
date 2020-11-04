@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(i_am_drop)
+project(i_am_project)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -123,7 +123,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/i_am_drop.cpp
+#   src/${PROJECT_NAME}/i_am_project.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -208,4 +208,4 @@ include_directories(
 
 add_executable(hitting src/hitting.cpp)
 target_link_libraries(hitting ${catkin_LIBRARIES})
-add_dependencies(hitting i_am_drop_generate_messages_cpp)
+add_dependencies(hitting i_am_project_generate_messages_cpp)

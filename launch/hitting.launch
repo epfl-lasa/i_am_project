@@ -19,8 +19,18 @@
       file = "$(find iiwa_gazebo)/launch/iiwa_gazebo.launch"
   />
 
+  <!-- Here Let me add an object that can be added to the simulator -->
+
+  <node name="spawn_box" pkg="gazebo_ros" type="spawn_model" 
+  args="-file $(find i_am_project)/object_models/box.urdf -urdf -z 1 -model box_model" />
+
+  <!-- <node name="spawn_box" pkg="gazebo" type="spawn_model" respawn="false" output="screen" 
+  args="-urdf -model box_model -param box_description - z 0.01"
+  /> -->
+
   <!-- Here is the node that allows me to hit the object in the iiwa simulator -->
-  <node  pkg = "i_am_drop" type = "hitting"  name = "hitting"/>
+  <node pkg = "i_am_project" type = "hitting"  name = "hitting"/>
+
 
 </launch>
 

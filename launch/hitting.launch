@@ -11,25 +11,27 @@
 
 <launch>
 
+
   <!-- <node name = "spawn_urdf" pkg="gazebo_ros" type="spawn_model" /> -->
 
   <!-- We include the iiwa gazebo simulation first here, so that we build up on that and do not really change that simulation -->
   
   <include
-      file = "$(find iiwa_gazebo)/launch/iiwa_gazebo.launch"
-  />
+      file = "$(find iiwa_gazebo)/launch/iiwa_gazebo.launch">
+      <arg name="paused" default="true"/>
+  </include>
 
   <!-- Here Let me add an object that can be added to the simulator -->
 
   <node name="spawn_box" pkg="gazebo_ros" type="spawn_model" 
-  args="-file $(find i_am_project)/object_models/box.urdf -x 0.5 -z 0.1 -urdf -model box_model" />
+  args="-file $(find i_am_project)/object_models/box.urdf -x 1.0 -z 0.2 -urdf -model box_model" />
 
   <!-- <node name="spawn_box" pkg="gazebo" type="spawn_model" respawn="false" output="screen" 
   args="-urdf -model box_model -param box_description - z 0.01"
   /> -->
 
   <!-- Here is the node that allows me to hit the object in the iiwa simulator -->
-  <node pkg = "i_am_project" type = "hitting"  name = "hitting"/>
+  <node pkg = "i_am_project" type = "hitting"  name = "hitting" output="screen"/>
 
 
 </launch>

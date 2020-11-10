@@ -2,6 +2,7 @@
 
 
 float calculate_distance(std::vector<float> point1, std::vector<float> point2){
+    
     return 0;
 }
 

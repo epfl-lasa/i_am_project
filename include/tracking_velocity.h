@@ -9,7 +9,7 @@
 
 #include <vector>
 #include <string>
-
+#include <Eigen/Dense>
 
 
 float calculate_distance(std::vector<float> point1, std::vector<float> point2);

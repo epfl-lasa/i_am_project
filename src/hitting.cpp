@@ -75,8 +75,6 @@ int main (int argc, char** argv){
 
   while(ros::ok()){
 
-    voila();
-
     //calculation of desired velocities now
 
     if(box_pose.position.x - iiwa_pose.position.x > 0.4){

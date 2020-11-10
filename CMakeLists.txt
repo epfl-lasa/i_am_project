@@ -206,6 +206,9 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(hitting src/hitting.cpp)
+include_directories(include)
+
+add_executable(hitting src/hitting.cpp src/tracking_velocity.cpp) 
 target_link_libraries(hitting ${catkin_LIBRARIES})
 add_dependencies(hitting i_am_project_generate_messages_cpp)
+

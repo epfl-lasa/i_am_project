@@ -12,6 +12,8 @@
 #include <gazebo_msgs/LinkStates.h>
 #include <geometry_msgs/Pose.h>
 
+#include "../include/tracking_velocity.h"
+
 #include <sstream>
 #include <time.h>
 
@@ -21,6 +23,7 @@ using namespace std;
 // Let us say that I am already in the position controller mode and then i try to just move the system to a specific point
 
 geometry_msgs::Pose box_pose, iiwa_pose;
+
 
 int getIndex(std::vector<std::string> v, std::string value)
 {
@@ -40,7 +43,7 @@ void objectPositionCallback(const gazebo_msgs::ModelStates model_states){
 
 
 void iiwaPositionCallback(const gazebo_msgs::LinkStates link_states){
-  int iiwa_index = getIndex(link_states.name, "iiwa::iiwa_link_7");
+  int iiwa_index = getIndex(link_states.name, "iiwa::iiwa_link_7"); // End effector is the 7th link in KUKA IIWA
 
   iiwa_pose = link_states.pose[iiwa_index];
 }
@@ -48,7 +51,10 @@ void iiwaPositionCallback(const gazebo_msgs::LinkStates link_states){
 
 int main (int argc, char** argv){
 
+  
+
 	std::vector<float> desiredVelocity;
+  float desiredSpeed = 3.0f;
 
 	//ROS Initialization
   ros::init(argc, argv, "hitting");
@@ -69,8 +75,9 @@ int main (int argc, char** argv){
 
   while(ros::ok()){
 
-    //calculation of desired velocities now
+    voila();
 
+    //calculation of desired velocities now
 
     if(box_pose.position.x - iiwa_pose.position.x > 0.4){
       vel_x = 1.0f*(box_pose.position.x - iiwa_pose.position.x - 0.4);
@@ -78,7 +85,7 @@ int main (int argc, char** argv){
       vel_z = 1.0f*(box_pose.position.z - iiwa_pose.position.z);
     }
     else{
-      vel_x = 3.0f;
+      vel_x = 10.0f;
       vel_y = 0.0f;
       vel_z = 0.0f;
     }
@@ -87,6 +94,8 @@ int main (int argc, char** argv){
     // calculate the desired velocity depending on where the object is
 
     ros::Rate rate(200);
+
+    
 
     pubPose.data.clear();
     pubPose.data.push_back(0.0);

@@ -208,7 +208,6 @@ include_directories(
 # catkin_add_nosetests(test)
 
 include_directories(include)
-include_directories(eigen-3.3.8)
 
 add_executable(hitting src/hitting.cpp src/tracking_velocity.cpp) 
 target_link_libraries(hitting ${catkin_LIBRARIES})

@@ -63,8 +63,8 @@ int main (int argc, char** argv){
 
   pubCommand = nh.advertise<std_msgs::Float64MultiArray>("/iiwa/CustomControllers/command", 1);
 
- 	std::vector<float> desired_hitting_velocity {3.0f, 0.0f, 0.0f};
-  std::vector<float> tracking_velocity {3.0f, 0.0f, 0.0f};
+ 	std::vector<float> desired_hitting_velocity {5.0f, 0.0f, 0.0f};
+  std::vector<float> tracking_velocity {5.0f, 0.0f, 0.0f};
   std::vector<float> end_effector_position;
   std::vector<float> box_position;
   std::vector<float> position_in_line;
@@ -104,25 +104,21 @@ int main (int argc, char** argv){
 
 
 
-    float sum = 0;
+    // float sum = 0;
 
-    for (unsigned int i = 0; i < end_effector_position.size(); i++){
-        sum += (end_effector_position[i] - box_position[i])*(end_effector_position[i] - box_position[i]);
-    }
+    // for (unsigned int i = 0; i < end_effector_position.size(); i++){
+    //     sum += (end_effector_position[i] - box_position[i])*(end_effector_position[i] - box_position[i]);
+    // }
 
-    float d = sqrt(sum);
-    std::cout << "distance is" << d << std::endl;
+    // float d = sqrt(sum);
+    // std::cout << "distance is" << d << std::endl;
+
+
+    float d = calculate_distance(end_effector_position, box_position);
 
     float hitting_speed = sqrt(std::inner_product(desired_hitting_velocity.begin(), desired_hitting_velocity.end(), desired_hitting_velocity.begin(), 0));
-    std::cout << "hitting speed" << hitting_speed << std::endl;
 
-    position_in_line.clear();
-    for (int i = 0; i < 3; i++){
-        float a = box_position[i] - (d/hitting_speed)*desired_hitting_velocity[i]; 
-        position_in_line.push_back(a);
-    }
-
-    std::cout << "position in line after: " << position_in_line[0] << ", " << position_in_line[1] << ", " << position_in_line[2] << std::endl;
+    get_position_in_line(position_in_line, box_position, end_effector_position, desired_hitting_velocity);
   
     //calculation of desired velocities now
     for(unsigned int i = 0; i < 3; i++){

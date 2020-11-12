@@ -20,7 +20,7 @@
   <!-- Here Let me add an object that can be added to the simulator -->
 
   <node name="spawn_box" pkg="gazebo_ros" type="spawn_model" 
-  args="-file $(find i_am_project)/object_models/box.urdf -x 1.0 -z 0.2 -urdf -model box_model" />
+  args="-file $(find i_am_project)/object_models/box.urdf -x 0.7 -y 0.0 -z 0.5 -urdf -model box_model" />
 
 
   <!-- Here is the node that allows me to hit the object in the iiwa simulator -->

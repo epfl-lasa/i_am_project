@@ -51,18 +51,6 @@ void iiwaPositionCallback(const gazebo_msgs::LinkStates link_states){
 
 int main (int argc, char** argv){
 
-	std::vector<float> desired_hitting_velocity {10.0f, 0.0f, 0.0f};
-  std::vector<float> tracking_velocity {5.0f, 0.0f, 0.0f};
-  std::vector<float> end_effector_position;
-  std::vector<float> box_position;
-  std::vector<float> position_in_line;
-
-  end_effector_position.reserve(3);
-  box_position.reserve(3);
-  position_in_line.reserve(3);
-
-  float velocityGain = 25.0f;
-
 	//ROS Initialization
   ros::init(argc, argv, "hitting");
   ros::NodeHandle nh;
@@ -75,51 +63,93 @@ int main (int argc, char** argv){
 
   pubCommand = nh.advertise<std_msgs::Float64MultiArray>("/iiwa/CustomControllers/command", 1);
 
-  while(ros::ok()){
+ 	std::vector<float> desired_hitting_velocity {3.0f, 0.0f, 0.0f};
+  std::vector<float> tracking_velocity {3.0f, 0.0f, 0.0f};
+  std::vector<float> end_effector_position;
+  std::vector<float> box_position;
+  std::vector<float> position_in_line;
+  float velocityGain = 25.0f;
 
+  // Fill the end-effector
+
+  while(ros::ok()){
 
     ros::Rate rate(100);
 
-    end_effector_position[0] = iiwa_pose.position.x;
-    end_effector_position[1] = iiwa_pose.position.y;
-    end_effector_position[2] = iiwa_pose.position.z;
+    end_effector_position.clear();
+    box_position.clear();
+
+    end_effector_position.push_back(iiwa_pose.position.x);
+    end_effector_position.push_back(iiwa_pose.position.y);
+    end_effector_position.push_back(iiwa_pose.position.z);
+
+    box_position.push_back(box_pose.position.x - 0.2f);
+    box_position.push_back(box_pose.position.y);
+    box_position.push_back(box_pose.position.z + 0.4f);
+
+    std::cout << "end effector: " << end_effector_position[0] << ", " << end_effector_position[1] << ", " << end_effector_position[2] << std::endl;
+    std::cout << "box: " << box_position[0] << ", " << box_position[1] << ", " << box_position[2] << std::endl;
 
 
-    box_position[0] = box_pose.position.x - 0.2f;
-    box_position[1] = box_pose.position.y;
-    box_position[2] = box_pose.position.z;
 
 
-    float d = calculate_distance(end_effector_position, box_position);
 
+
+
+
+
+
+
+
+
+
+
+    float sum = 0;
+
+    for (unsigned int i = 0; i < end_effector_position.size(); i++){
+        sum += (end_effector_position[i] - box_position[i])*(end_effector_position[i] - box_position[i]);
+    }
+
+    float d = sqrt(sum);
     std::cout << "distance is" << d << std::endl;
 
     float hitting_speed = sqrt(std::inner_product(desired_hitting_velocity.begin(), desired_hitting_velocity.end(), desired_hitting_velocity.begin(), 0));
-    
     std::cout << "hitting speed" << hitting_speed << std::endl;
 
-    for (int i = 0; i < position_in_line.capacity(); i++){
-        position_in_line[i] = box_position[i] - (d/hitting_speed)*desired_hitting_velocity[i];
+    position_in_line.clear();
+    for (int i = 0; i < 3; i++){
+        float a = box_position[i] - (d/hitting_speed)*desired_hitting_velocity[i]; 
+        position_in_line.push_back(a);
     }
-
-
-    // get_position_in_line(position_in_line, box_position, end_effector_position, desired_hitting_velocity);
 
     std::cout << "position in line after: " << position_in_line[0] << ", " << position_in_line[1] << ", " << position_in_line[2] << std::endl;
   
     //calculation of desired velocities now
-    for(unsigned int i = 0; i < tracking_velocity.capacity(); i++){
+    for(unsigned int i = 0; i < 3; i++){
       tracking_velocity[i] = velocityGain*(position_in_line[i] - end_effector_position[i]) + desired_hitting_velocity[i];
+      
     }
     float tracking_speed = sqrt(std::inner_product(tracking_velocity.begin(), tracking_velocity.end(), tracking_velocity.begin(), 0));
     
-    for(unsigned int i = 0; i < tracking_velocity.capacity(); i++){
+    for(unsigned int i = 0; i < tracking_velocity.size(); i++){
       tracking_velocity[i] *= hitting_speed/tracking_speed;
     }
 
     std::cout << "Tracking velocity: " << tracking_velocity[0] << ", " << tracking_velocity[1] << ", " << tracking_velocity[2] << std::endl;
 
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // Sending the tracking velocity commands in the node publisher
 

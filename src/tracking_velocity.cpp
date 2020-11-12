@@ -1,7 +1,7 @@
 #include "../include/tracking_velocity.h"
 
 
-float calculate_distance(std::vector<float> point1, std::vector<float> point2){
+float calculate_distance(std::vector<float> &point1, std::vector<float> &point2){
     float sum = 0;
 
     for (unsigned int i = 0; i < point1.size(); i++){

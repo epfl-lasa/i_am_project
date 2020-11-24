@@ -21,8 +21,6 @@ void get_position_in_line(std::vector<float> &position_in_line, std::vector<floa
 
     float hitting_speed = sqrt(std::inner_product(desired_impact_velocity.begin(), desired_impact_velocity.end(), desired_impact_velocity.begin(), 0));
     
-    std::cout << "hitting speed" << hitting_speed << std::endl;
-
     for (int i = 0; i < length; i++){
         float a = desired_hitting_position[i] - float(d/hitting_speed)*desired_impact_velocity[i];
         position_in_line.push_back(a);

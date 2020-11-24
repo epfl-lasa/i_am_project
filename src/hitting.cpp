@@ -15,6 +15,7 @@
 #include "../include/tracking_velocity.h"
 
 #include <sstream>
+#include <fstream>
 #include <time.h>
 
 using namespace std;
@@ -23,6 +24,7 @@ using namespace std;
 // Let us say that I am already in the position controller mode and then i try to just move the system to a specific point
 
 geometry_msgs::Pose box_pose, iiwa_pose;
+geometry_msgs::Twist iiwa_vel;
 
 
 int getIndex(std::vector<std::string> v, std::string value)
@@ -46,6 +48,7 @@ void iiwaPositionCallback(const gazebo_msgs::LinkStates link_states){
   int iiwa_index = getIndex(link_states.name, "iiwa::iiwa_link_7"); // End effector is the 7th link in KUKA IIWA
 
   iiwa_pose = link_states.pose[iiwa_index];
+  iiwa_vel = link_states.twist[iiwa_index];
 }
 
 
@@ -68,7 +71,11 @@ int main (int argc, char** argv){
   std::vector<float> end_effector_position;
   std::vector<float> box_position;
   std::vector<float> position_in_line;
+  std::vector<float> record_vel;
   float velocityGain = 25.0f;
+
+  std::ofstream myFile;
+  
 
   // Fill the end-effector
 
@@ -78,6 +85,7 @@ int main (int argc, char** argv){
 
     end_effector_position.clear();
     box_position.clear();
+    record_vel.clear();
 
     end_effector_position.push_back(iiwa_pose.position.x);
     end_effector_position.push_back(iiwa_pose.position.y);
@@ -87,31 +95,10 @@ int main (int argc, char** argv){
     box_position.push_back(box_pose.position.y);
     box_position.push_back(box_pose.position.z + 0.4f);
 
-    std::cout << "end effector: " << end_effector_position[0] << ", " << end_effector_position[1] << ", " << end_effector_position[2] << std::endl;
-    std::cout << "box: " << box_position[0] << ", " << box_position[1] << ", " << box_position[2] << std::endl;
+    record_vel.push_back(iiwa_vel.linear.x);
+    record_vel.push_back(iiwa_vel.linear.y);
+    record_vel.push_back(iiwa_vel.linear.z);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // float sum = 0;
-
-    // for (unsigned int i = 0; i < end_effector_position.size(); i++){
-    //     sum += (end_effector_position[i] - box_position[i])*(end_effector_position[i] - box_position[i]);
-    // }
-
-    // float d = sqrt(sum);
-    // std::cout << "distance is" << d << std::endl;
 
 
     float d = calculate_distance(end_effector_position, box_position);
@@ -130,22 +117,9 @@ int main (int argc, char** argv){
     for(unsigned int i = 0; i < tracking_velocity.size(); i++){
       tracking_velocity[i] *= hitting_speed/tracking_speed;
     }
+    myFile.open("recorded_vel.csv");
 
-    std::cout << "Tracking velocity: " << tracking_velocity[0] << ", " << tracking_velocity[1] << ", " << tracking_velocity[2] << std::endl;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    myFile << record_vel[0] << "," << record_vel[1] << "" << record_vel[2] << "\n";
 
     // Sending the tracking velocity commands in the node publisher
 
@@ -162,7 +136,7 @@ int main (int argc, char** argv){
     rate.sleep();
   
   }
-
+  myFile.close();
   return 0;
 
 

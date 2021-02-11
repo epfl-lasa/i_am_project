@@ -14,6 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
 )
 
+find_package(Eigen3 REQUIRED eigen3) 
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -208,8 +210,9 @@ include_directories(
 # catkin_add_nosetests(test)
 
 include_directories(include)
+include_directories(${EIGEN3_INCLUDE_DIR})
 
-add_executable(hitting src/hitting.cpp src/tracking_velocity.cpp) 
-target_link_libraries(hitting ${catkin_LIBRARIES})
+add_executable(hitting src/hitting_DS.cpp src/hitting_DS.cpp src/calculate_alpha.cpp src/nominal_DS_aux.cpp src/nominal_DS_main.cpp src/modulated_DS.cpp ) 
+target_link_libraries(hitting ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 add_dependencies(hitting i_am_project_generate_messages_cpp)
 

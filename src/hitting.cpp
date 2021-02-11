@@ -11,6 +11,7 @@
 #include <gazebo_msgs/ModelStates.h>
 #include <gazebo_msgs/LinkStates.h>
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Twist.h>
 
 #include "../include/tracking_velocity.h"
 
@@ -72,9 +73,8 @@ int main (int argc, char** argv){
   std::vector<float> box_position;
   std::vector<float> position_in_line;
   std::vector<float> record_vel;
+  
   float velocityGain = 25.0f;
-
-  std::ofstream myFile;
   
 
   // Fill the end-effector
@@ -117,10 +117,7 @@ int main (int argc, char** argv){
     for(unsigned int i = 0; i < tracking_velocity.size(); i++){
       tracking_velocity[i] *= hitting_speed/tracking_speed;
     }
-    myFile.open("recorded_vel.csv");
-
-    myFile << record_vel[0] << "," << record_vel[1] << "" << record_vel[2] << "\n";
-
+    
     // Sending the tracking velocity commands in the node publisher
 
     pubPose.data.clear();
@@ -136,7 +133,7 @@ int main (int argc, char** argv){
     rate.sleep();
   
   }
-  myFile.close();
+
   return 0;
 
 

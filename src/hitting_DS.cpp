@@ -12,6 +12,11 @@
 geometry_msgs::Pose box_pose, iiwa_pose;
 geometry_msgs::Twist iiwa_vel;
 
+Eigen::Vector3d object_position_from_source;
+Eigen::Vector4d object_orientation_from_source;
+Eigen::Vector3d iiwa_position_from_source;
+Eigen::Vector4d iiwa_orientation_from_source;
+
 using namespace std;
 
 int getIndex(std::vector<std::string> v, std::string value)
@@ -28,6 +33,8 @@ void objectPositionCallback_gazebo(const gazebo_msgs::ModelStates model_states){
   int box_index = getIndex(model_states.name, "box_model");
 
   box_pose = model_states.pose[box_index];
+  object_position_from_source << box_pose.position.x, box_pose.position.y, box_pose.position.z;
+  object_orientation_from_source << box_pose.orientation.x, box_pose.orientation.y, box_pose.orientation.z, box_pose.orientation.w;
 }
 
 
@@ -35,8 +42,22 @@ void iiwaPositionCallback_gazebo(const gazebo_msgs::LinkStates link_states){
   int iiwa_index = getIndex(link_states.name, "iiwa::iiwa_link_7"); // End effector is the 7th link in KUKA IIWA
 
   iiwa_pose = link_states.pose[iiwa_index];
+  iiwa_position_from_source << iiwa_pose.position.x, iiwa_pose.position.y, iiwa_pose.position.z;
   iiwa_vel = link_states.twist[iiwa_index];
 }
+
+void objectPositionCallback_normal(const geometry_msgs::PoseStamped::ConstPtr& msg){
+  
+  object_position_from_source << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
+  object_orientation_from_source << msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w;
+}
+
+void iiwaPositionCallback_normal(const geometry_msgs::Pose::ConstPtr& msg){
+  
+  iiwa_position_from_source << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
+  iiwa_orientation_from_source << msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w;
+}
+
 
 
 int main (int argc, char** argv){
@@ -44,9 +65,6 @@ int main (int argc, char** argv){
 	//ROS Initialization
   ros::init(argc, argv, "hitting_DS");
   ros::NodeHandle nh;
-
-  // ros::Subscriber object_position = nh.subscribe("/gazebo/model_states", 100 , objectPositionCallback);
-  // ros::Subscriber iiwa_position = nh.subscribe("/gazebo/link_states", 100, iiwaPositionCallback);
 
   ros::Subscriber object_position = nh.subscribe("/gazebo/model_states", 100 , objectPositionCallback_gazebo);
   ros::Subscriber iiwa_position = nh.subscribe("/gazebo/link_states", 100, iiwaPositionCallback_gazebo);  
@@ -96,11 +114,9 @@ int main (int argc, char** argv){
 
 
     if (init_flag == 0){
-      object_position_init = {(double)box_pose.position.x, (double)box_pose.position.y, (double)box_pose.position.z};
-      end_effector_position_init = {(double)iiwa_pose.position.x, (double)iiwa_pose.position.y, (double)iiwa_pose.position.z};
+      object_position_init = object_position_from_source;
+      end_effector_position_init = iiwa_position_from_source;
       
-      //std::cout << "iiwa is at: " << end_effector_position_init(0) << ", " << end_effector_position_init(1) << ", " << end_effector_position_init(2) << std::endl;
-
       desired_final_position = object_position_init + relative_displacement;
       attractor_main = desired_final_position;
       
@@ -119,10 +135,8 @@ int main (int argc, char** argv){
     if (init_flag == 1){
 
 
-      object_position_current << (double)box_pose.position.x ,(double)box_pose.position.y , (double)box_pose.position.z; 
-      end_effector_position << (double)iiwa_pose.position.x , (double)iiwa_pose.position.y , (double)iiwa_pose.position.z; 
-
-      //std::cout << "iiwa is now at: " << end_effector_position(0) << ", " << end_effector_position(1) << ", " << end_effector_position(2) << std::endl;
+      object_position_current = object_position_from_source; 
+      end_effector_position << iiwa_position_from_source; 
 
       double theta = atan2(desired_final_position(2) - object_position_init(2), desired_final_position(1) - object_position_init(1));
 

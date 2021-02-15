@@ -12,7 +12,7 @@
 <launch>
 
   <node name="spawn_big_box" pkg="gazebo_ros" type="spawn_model" 
-  args="-file $(find i_am_project)/object_models/big_box.urdf -x 1.3 -y 0.0 -z 0.5 -urdf -model table_model" />
+  args="-file $(find i_am_project)/object_models/big_box.urdf -x 1.3 -y 0.0 -z 0.2 -urdf -model table_model" />
 
 
   <node name="spawn_box" pkg="gazebo_ros" type="spawn_model" 

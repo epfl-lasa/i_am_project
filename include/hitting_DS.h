@@ -16,6 +16,7 @@
 #include <gazebo_msgs/ModelStates.h>
 #include <gazebo_msgs/LinkStates.h>
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Twist.h>
 #include <Eigen/Dense>
 

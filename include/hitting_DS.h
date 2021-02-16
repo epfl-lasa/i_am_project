@@ -19,5 +19,6 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Twist.h>
 #include <Eigen/Dense>
+#include <Eigen/Geometry>
 
 

@@ -16,7 +16,7 @@
 
 
   <node name="spawn_box" pkg="gazebo_ros" type="spawn_model" 
-  args="-file $(find i_am_project)/object_models/box.urdf -x 0.3 -y -0.6 -z 0.3 -urdf -model box_model" />
+  args="-file $(find i_am_project)/object_models/box.urdf -x 0.4 -y -0.6 -z 0.3 -urdf -model box_model" />
 
   
   <!-- Here is the node that allows me to hit the object in the iiwa simulator -->

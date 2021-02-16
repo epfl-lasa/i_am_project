@@ -98,7 +98,19 @@ int main (int argc, char** argv){
     std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
     std::cin >> des_speed;
   }
+
+  double theta;
+  std::cout << "Enter the desired direction of hitting (between -pi/2 and pi/2)" << std::endl;
+  std::cin >> theta;
+
+  while(theta < -M_PI_2 || theta > M_PI_2){
+    std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
+    std::cin >> theta;
+  }
   
+  Eigen::Quaterniond rot_quat;
+  Eigen::Quaterniond rot_quat_ee;
+  Eigen::Quaterniond initial_ee_quat;
   Eigen::Vector4d des_quat = Eigen::Vector4d::Zero();
   
   Eigen::Vector3d end_effector_position;
@@ -107,6 +119,7 @@ int main (int argc, char** argv){
   Eigen::Matrix3d gain_main;
   Eigen::Matrix3d gain_aux;
   Eigen::Matrix3d rotation;
+  Eigen::Matrix3d rotation_ee;
 
   Eigen::Vector3d object_position_init;
   Eigen::Vector3d end_effector_position_init;
@@ -122,33 +135,76 @@ int main (int argc, char** argv){
   gain_aux << -3.0, 0.0, 0.0,
                 0.0, -3.0, 0.0,
                 0.0, 0.0, -3.0;
-                
-  Eigen::Vector3d desired_final_position;
-  Eigen::Vector3d relative_displacement = {2.0, 0.0, 0.0};
+
+  Eigen::Vector3d ee_direction_x;
+  Eigen::Vector3d ee_direction_y;
+  Eigen::Vector3d ee_direction_z;
+
+  // Eigen::Vector3d desired_final_position;
+  // Eigen::Vector3d relative_displacement = {2.0, 0.0, 0.0};
 
 
-  double modulated_sigma = 2.0;
+  double modulated_sigma = 3.0;
   bool init_flag = 0;
+  Eigen::Vector3d unit_x = {1.0, 0.0, 0.0};
   
   while(ros::ok()){
 
 
     // Initialise all the position in the hitting of objects
 
+    rotation << cos(theta), -sin(theta), 0, 
+                  sin(theta), cos(theta), 0,
+                  0, 0, 1;
+
+    
+    // std::cout << "Quaternion: " << rot_quat.x() << ", " << rot_quat.y() << ", " << rot_quat.z() << ", " << rot_quat.w() << std::endl;
 
     if (init_flag == 0){
       object_position_init = object_position_from_source;
       end_effector_position_init = iiwa_position_from_source;
       
-      desired_final_position = object_position_init + relative_displacement;
-      attractor_main = desired_final_position;
+      // initial_ee_quat.x() = iiwa_orientation_from_source(0);
+      // initial_ee_quat.y() = iiwa_orientation_from_source(1);
+      // initial_ee_quat.z() = iiwa_orientation_from_source(2);
+      // initial_ee_quat.w() = iiwa_orientation_from_source(3);
       
-      attractor_aux = (5/4)*object_position_init - (1/4)*attractor_main;
+      
       if (object_position_init(0)!=0 && object_position_init(1)!=0 && object_position_init(2)!=0 && end_effector_position_init(0) != 0 && end_effector_position_init(1) != 0 && end_effector_position_init(2) != 0){
         init_flag = 1;
       }
 
+      attractor_main = object_position_init + 2*rotation*unit_x;
+      attractor_aux = (5.0/4.0)*object_position_init - (1.0/4.0)*attractor_main;
+    
+      ee_direction_z = attractor_main - object_position_init;
+      ee_direction_y = {0.0, 0.0, 1.0};
+      ee_direction_x = ee_direction_y.cross(ee_direction_z);
+
+      ee_direction_z = ee_direction_z/ee_direction_z.norm();
+      ee_direction_y = ee_direction_y/ee_direction_y.norm();
+      ee_direction_x = ee_direction_x/ee_direction_x.norm();
+  
     }
+    
+
+    // std::cout << "main attractor is: " << attractor_main(0) << ", " << attractor_main(1) << ", " << attractor_main(2) << std::endl;
+    
+    // std::cout << "aux attractor is: " << attractor_aux(0) << ", " << attractor_aux(1) << ", " << attractor_aux(2) << std::endl;
+
+    // rotation_ee << 1, 0, 0, 
+    //               0, cos(-theta), -sin(-theta),
+    //               0, sin(-theta), cos(-theta);
+
+    rotation_ee.col(0) = ee_direction_x;
+    rotation_ee.col(1) = ee_direction_y;
+    rotation_ee.col(2) = ee_direction_z;
+
+    // std::cout<< rotation_ee << std::endl;
+
+    // rot_quat_ee = rotation_ee;
+    rot_quat =  rotation_ee;
+    des_quat << rot_quat.x(), rot_quat.y(), rot_quat.z(), rot_quat.w();
 
     ros::Rate rate(100);
     
@@ -160,14 +216,6 @@ int main (int argc, char** argv){
 
       object_position_current = object_position_from_source; 
       end_effector_position = iiwa_position_from_source; 
-
-      // std::cout << "object is at: " << object_position_current(0) << ", " << object_position_current(1) << ", " << object_position_current(2) << std::endl;
-      double theta = atan2(desired_final_position(2) - object_position_init(2), desired_final_position(1) - object_position_init(1));
-
-      rotation << cos(theta), -sin(theta), 0, 
-                  sin(theta), cos(theta), 0,
-                  0, 0, 1;
-
 
       double alpha = calculate_alpha(end_effector_position, end_effector_position_init, object_position_init, attractor_main);
 

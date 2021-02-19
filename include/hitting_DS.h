@@ -9,6 +9,7 @@
 #include "math.h"
 #include <vector>
 #include <string>
+#include <fstream>
 
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Float64MultiArray.h>

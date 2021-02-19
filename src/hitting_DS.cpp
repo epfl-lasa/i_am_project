@@ -9,11 +9,17 @@
 #include "../include/nominal_DS_main.h"
 #include "../include/modulated_DS.h"
 
+#include <experimental/filesystem>
+
 geometry_msgs::Pose box_pose, iiwa_pose;
 geometry_msgs::Twist iiwa_vel;
 
 Eigen::Vector3d object_position_from_source;
 Eigen::Vector4d object_orientation_from_source;
+Eigen::Vector3d object_position_mocap;
+Eigen::Vector4d object_orientation_mocap;
+Eigen::Vector3d iiwa_base_position_from_source;
+Eigen::Vector4d iiwa_base_orientation_from_source;
 Eigen::Vector3d iiwa_position_from_source;
 Eigen::Vector3d iiwa_vel_from_source;
 Eigen::Vector4d iiwa_orientation_from_source;
@@ -49,8 +55,14 @@ void iiwaPositionCallback_gazebo(const gazebo_msgs::LinkStates link_states){
 
 void objectPositionCallback_normal(const geometry_msgs::PoseStamped::ConstPtr& msg){
   
-  object_position_from_source << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
-  object_orientation_from_source << msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w;
+  object_position_mocap << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
+  object_orientation_mocap << msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w;
+}
+
+void iiwaBasePositionCallback_normal(const geometry_msgs::PoseStamped::ConstPtr& msg){
+  
+  iiwa_base_position_from_source << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
+  iiwa_base_orientation_from_source << msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w;
 }
 
 void iiwaPositionCallback_source(const geometry_msgs::Pose::ConstPtr& msg){
@@ -71,9 +83,10 @@ int main (int argc, char** argv){
   ros::init(argc, argv, "hitting_DS");
   ros::NodeHandle nh;
 
-  ros::Subscriber object_position = nh.subscribe("/gazebo/model_states", 100 , objectPositionCallback_gazebo);
-  //ros::Subscriber iiwa_position = nh.subscribe("/gazebo/link_states", 100, iiwaPositionCallback_gazebo);  
-
+  // ros::Subscriber object_position = nh.subscribe("/gazebo/model_states", 100 , objectPositionCallback_gazebo);
+  ros::Subscriber object_position = nh.subscribe("/Point_1/pose", 100 , objectPositionCallback_normal);
+  ros::Subscriber iiwa_base_position = nh.subscribe("/Point_2/pose", 100 , iiwaBasePositionCallback_normal);
+  
   ros::Subscriber iiwa_position = nh.subscribe("/iiwa/ee_info/Pose", 100, iiwaPositionCallback_source);
   ros::Subscriber iiwa_velocity = nh.subscribe("/iiwa/ee_info/Vel", 100, iiwaVelocityCallback_source);
   
@@ -124,31 +137,49 @@ int main (int argc, char** argv){
   Eigen::Vector3d object_position_init;
   Eigen::Vector3d end_effector_position_init;
 
+  Eigen::Vector3d object_offset = {0.0, 0.0, 0.06};
+
   Eigen::Vector3d attractor_main;
   Eigen::Vector3d attractor_aux;
 
-  gain_main << -0.1, 0.0, 0.0,
-                0.0, -0.9, 0.0,
+  gain_main << -0.9, 0.0, 0.0,
+                0.0, -0.1, 0.0,
                 0.0, 0.0, -0.9;
 
 
-  gain_aux << -3.0, 0.0, 0.0,
-                0.0, -3.0, 0.0,
-                0.0, 0.0, -3.0;
+  gain_aux << -0.1, 0.0, 0.0,
+                0.0, -0.1, 0.0,
+                0.0, 0.0, -0.1;
+
+  Eigen::Matrix3d world_to_base;
+
+  // world_to_base << -1.0, 0.0,  0.0,
+  //                 0.0,  1.0,  0.0,
+  //                 0.0,  0.0, -1.0 ;
+
+
+  world_to_base << -1.0, 0.0,  0.0,
+                  0.0,  0.0,  -1.0,
+                  0.0,  -1.0, 0.0 ;
 
   Eigen::Vector3d ee_direction_x;
   Eigen::Vector3d ee_direction_y;
   Eigen::Vector3d ee_direction_z;
 
-  // Eigen::Vector3d desired_final_position;
-  // Eigen::Vector3d relative_displacement = {2.0, 0.0, 0.0};
-
-
   double modulated_sigma = 3.0;
   bool init_flag = 0;
-  Eigen::Vector3d unit_x = {1.0, 0.0, 0.0};
+  // Eigen::Vector3d unit_x = {1.0, 0.0, 0.0};
+  Eigen::Vector3d unit_x = {0.0, 1.0, 0.0};
+
+  std::ofstream object_data;
+
+  bool store_data = 0;
   
   while(ros::ok()){
+
+    object_position_from_source = world_to_base * (object_position_mocap - iiwa_base_position_from_source);
+
+    std::cout << "object is at: " << object_position_from_source <<std::endl;
 
 
     // Initialise all the position in the hitting of objects
@@ -157,64 +188,48 @@ int main (int argc, char** argv){
                   sin(theta), cos(theta), 0,
                   0, 0, 1;
 
-    
-    // std::cout << "Quaternion: " << rot_quat.x() << ", " << rot_quat.y() << ", " << rot_quat.z() << ", " << rot_quat.w() << std::endl;
+    // rotation << cos(theta), 0, sin(theta), 
+    //               0, 1, 0,
+    //               -sin(theta), 0, cos(theta);
 
     if (init_flag == 0){
-      object_position_init = object_position_from_source;
+      object_position_init = object_position_from_source - object_offset;
       end_effector_position_init = iiwa_position_from_source;
-      
-      // initial_ee_quat.x() = iiwa_orientation_from_source(0);
-      // initial_ee_quat.y() = iiwa_orientation_from_source(1);
-      // initial_ee_quat.z() = iiwa_orientation_from_source(2);
-      // initial_ee_quat.w() = iiwa_orientation_from_source(3);
-      
       
       if (object_position_init(0)!=0 && object_position_init(1)!=0 && object_position_init(2)!=0 && end_effector_position_init(0) != 0 && end_effector_position_init(1) != 0 && end_effector_position_init(2) != 0){
         init_flag = 1;
       }
 
-      attractor_main = object_position_init + 2*rotation*unit_x;
-      attractor_aux = (5.0/4.0)*object_position_init - (1.0/4.0)*attractor_main;
+      attractor_main = object_position_init + 1*rotation*unit_x;
+      attractor_aux = (4.0/3.0)*object_position_init - (1.0/3.0)*attractor_main;
     
       ee_direction_z = attractor_main - object_position_init;
-      ee_direction_y = {0.0, 0.0, 1.0};
-      ee_direction_x = ee_direction_y.cross(ee_direction_z);
+      ee_direction_x = {0.0, 0.0, 1.0};
+      ee_direction_y = ee_direction_z.cross(ee_direction_x);
 
       ee_direction_z = ee_direction_z/ee_direction_z.norm();
       ee_direction_y = ee_direction_y/ee_direction_y.norm();
       ee_direction_x = ee_direction_x/ee_direction_x.norm();
   
     }
-    
-
-    // std::cout << "main attractor is: " << attractor_main(0) << ", " << attractor_main(1) << ", " << attractor_main(2) << std::endl;
-    
-    // std::cout << "aux attractor is: " << attractor_aux(0) << ", " << attractor_aux(1) << ", " << attractor_aux(2) << std::endl;
-
-    // rotation_ee << 1, 0, 0, 
-    //               0, cos(-theta), -sin(-theta),
-    //               0, sin(-theta), cos(-theta);
 
     rotation_ee.col(0) = ee_direction_x;
     rotation_ee.col(1) = ee_direction_y;
     rotation_ee.col(2) = ee_direction_z;
 
-    // std::cout<< rotation_ee << std::endl;
-
-    // rot_quat_ee = rotation_ee;
     rot_quat =  rotation_ee;
     des_quat << rot_quat.x(), rot_quat.y(), rot_quat.z(), rot_quat.w();
 
     ros::Rate rate(100);
     
+
     // Create the hitting motion here and init values do not change
 
 
     if (init_flag == 1){
 
 
-      object_position_current = object_position_from_source; 
+      object_position_current = object_position_from_source - object_offset; 
       end_effector_position = iiwa_position_from_source; 
 
       double alpha = calculate_alpha(end_effector_position, end_effector_position_init, object_position_init, attractor_main);
@@ -248,13 +263,29 @@ int main (int argc, char** argv){
         pub_pos_quat.publish(pos_quat);
       }
       
+      // std::cout << "store data: " << store_data << std::endl;
+      // std::cout << "iiwa_vel: " << iiwa_vel_from_source.norm() << std::endl;
+
+      object_data.open("/home/ros/ros_overlay_ws/src/i_am_project/data/object_data.csv", std::ofstream::out | std::ofstream::app);
       
+      if(!object_data.is_open())
+      {
+        std::cerr << "Error opening output file.\n";
+        std::cout << "Current path is " << std::experimental::filesystem::current_path() << '\n';
+      }
+
+      object_data << des_speed << ", " << theta << ", " << object_position_init(0) << ", " << object_position_init(1) << ", " << object_position_init(2) << ", " << object_position_current(0) << ", " << object_position_current(1) << ", " << object_position_current(2) << "\n";
+      
+      object_data.close();      
       
     }
+
     ros::spinOnce();
     rate.sleep();
   
   }
+
+  
 
   return 0;
 

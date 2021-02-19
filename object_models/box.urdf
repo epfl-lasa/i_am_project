@@ -1,9 +1,9 @@
 <robot name="simple_box">
   <link name="my_box">
     
-    <gazebo reference="world">
-      <static>true</static>
-    </gazebo>
+    <!-- <gazebo reference="world">
+      <static>false</static>
+    </gazebo> -->
     <gazebo reference = "world">
       <turnGravityOff>true</turnGravityOff>
     </gazebo>
@@ -15,21 +15,21 @@
     <visual>
       <origin xyz="0.0 0 0"/>
       <geometry>
-        <box size="0.2 0.2 0.2" />
+        <box size="0.23 0.26 0.26" />
       </geometry>
     </visual>
     <surface>
         <friction>
           <ode>
-            <mu>0.15</mu>
-            <mu2>0.10</mu2>
+            <mu>0.01</mu>
+            <mu2>0.01</mu2>
           </ode>
         </friction>
-      </surface>
+    </surface>
     <collision>
       <origin xyz="0.0 0 0"/>
       <geometry>
-        <box size="0.2 0.2 0.2" />
+        <box size="0.23 0.26 0.26" />
       </geometry>
     </collision>
   </link>

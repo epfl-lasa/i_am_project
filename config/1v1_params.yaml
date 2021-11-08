@@ -1,0 +1,40 @@
+box:
+  properties:
+    size:
+      x: 0.2
+      y: 0.2
+      z: 0.2
+    COM:            #relative to geometric center
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    mass: 0.3
+    mu: 0.03
+    mu2: 0.03
+  initial_pos:
+    x: 0.0
+    y: -0.6
+    z: 0.15
+  
+
+table:
+  properties:
+    size:
+      x: 0.8
+      y: 1.6
+      z: 0.05
+    COM:
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    mass: 100
+    mu: 0.1
+    mu2: 0.1
+  initial_pos:
+    x: 0.0
+    y: 0.0
+    z: 0.025
+
+#hit:
+#  speed: 1.0
+#  direction: 0.0

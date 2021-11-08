@@ -3,7 +3,7 @@
 //|    email:   harshit.khurana@epfl.ch
 //|    website: lasa.epfl.ch
 
-#include "../include/hitting_DS.h"
+#include "../include/hitting_DS.h" 
 #include "../include/calculate_alpha.h"
 #include "../include/nominal_DS_aux.h"
 #include "../include/nominal_DS_main.h"
@@ -83,9 +83,9 @@ int main (int argc, char** argv){
   ros::init(argc, argv, "hitting_DS");
   ros::NodeHandle nh;
 
-  // ros::Subscriber object_position = nh.subscribe("/gazebo/model_states", 100 , objectPositionCallback_gazebo);
-  ros::Subscriber object_position = nh.subscribe("/Point_1/pose", 100 , objectPositionCallback_normal);
-  ros::Subscriber iiwa_base_position = nh.subscribe("/Point_2/pose", 100 , iiwaBasePositionCallback_normal);
+  ros::Subscriber object_position = nh.subscribe("/gazebo/model_states", 100 , objectPositionCallback_gazebo);
+  //ros::Subscriber object_position = nh.subscribe("/Point_1/pose", 100 , objectPositionCallback_normal);
+  //ros::Subscriber iiwa_base_position = nh.subscribe("/Point_2/pose", 100 , iiwaBasePositionCallback_normal);
   
   ros::Subscriber iiwa_position = nh.subscribe("/iiwa/ee_info/Pose", 100, iiwaPositionCallback_source);
   ros::Subscriber iiwa_velocity = nh.subscribe("/iiwa/ee_info/Vel", 100, iiwaVelocityCallback_source);
@@ -177,7 +177,7 @@ int main (int argc, char** argv){
   
   while(ros::ok()){
 
-    object_position_from_source = world_to_base * (object_position_mocap - iiwa_base_position_from_source);
+    //object_position_from_source = world_to_base * (object_position_mocap - iiwa_base_position_from_source);
 
     std::cout << "object is at: " << object_position_from_source <<std::endl;
 

@@ -14,16 +14,16 @@
       file = "$(find dual_iiwa_toolkit)/launch/passive_track_gazebo.launch">
   </include>
 
-  <rosparam file="$(find i_am_1v1)/config/1v1_params.yaml" />
+  <rosparam file="$(find i_am_project)/config/1v1_params.yaml" />
 
-  <node name="initialization" pkg="i_am_1v1" type="1v1_init" />
+  <node name="initialization" pkg="i_am_project" type="1v1_init" />
 
   <!--node name="motion_gen" pkg="iiwa_test_motion" type="motion_gen_dual" />
   <node name="mode_control" pkg="iiwa_test_motion" type="mode_ctrl" /-->        <!--manual control-->
 
   
   <!-- Here is the node that allows me to hit the object in the iiwa simulator -->
-  <node name="hitting_1v1" pkg="i_am_1v1" type="1v1_hitting"   output="screen"/>
+  <node name="hitting_1v1" pkg="i_am_project" type="1v1_hitting"   output="screen"/>
 
 
 </launch>

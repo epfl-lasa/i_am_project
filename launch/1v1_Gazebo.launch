@@ -11,7 +11,7 @@
 
 <launch>
   <include
-      file = "$(find dual_iiwa_toolkit)/launch/passive_track_gazebo.launch">
+      file = "$(find iiwa_toolkit)/launch/passive_track_gazebo.launch">
   </include>
 
   <rosparam file="$(find i_am_project)/config/1v1_params.yaml" />

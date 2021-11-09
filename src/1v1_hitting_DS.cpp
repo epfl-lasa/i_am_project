@@ -11,17 +11,15 @@
 
 #include <experimental/filesystem>
 
-geometry_msgs::Pose box_pose, ee1_pose, ee2_pose, iiwa1_base_pose, iiwa2_base_pose;
-geometry_msgs::Twist box_vel, ee1_vel, ee2_vel;
-Eigen::Vector3d object_pos, object_vel, ee_pos;
+geometry_msgs::Pose box_pose, ee_pose, iiwa_base_pose;
+geometry_msgs::Twist box_twist, ee_twist;
+Eigen::Vector3d object_pos, object_vel, ee_pos, ee_vel;
 
 double des_speed;
 double theta;
 
-Eigen::Vector3d rest1_pos = {0.0, -1.0, 0.4};
-Eigen::Vector3d rest2_pos = {0.0, 1.0, -0.4};
-Eigen::Vector4d rest1_quat = {-0.707, 0.0, 0.0, 0.707};
-Eigen::Vector4d rest2_quat = {0.707, 0.0, 0.0, 0.707};
+Eigen::Vector3d rest_pos = {0.4, 0.0, 0.4};
+Eigen::Vector4d rest_quat = {-0.707, 0.0, 0.0, 0.707};
 
 
 using namespace std;
@@ -40,19 +38,20 @@ void objectCallback(const gazebo_msgs::ModelStates model_states){
   int box_index = getIndex(model_states.name, "my_box");
 
   box_pose = model_states.pose[box_index];
-  box_vel = model_states.twist[box_index];
+  box_twist = model_states.twist[box_index];
   object_pos << box_pose.position.x, box_pose.position.y, box_pose.position.z;
-  object_vel << box_vel.linear.x, box_vel.linear.y, box_vel.linear.z;
+  object_vel << box_twist.linear.x, box_twist.linear.y, box_twist.linear.z;
 }
 
 
 void iiwaCallback(const gazebo_msgs::LinkStates link_states){
-  int ee_index = getIndex(link_states.name, "iiwa1::iiwa1_link_7"); // End effector is the 7th link in KUKA IIWA
-  int iiwa_base_index = getIndex(link_states.name, "iiwa1::iiwa1_link_0");
+  int ee_index = getIndex(link_states.name, "iiwa::iiwa_link_7"); // End effector is the 7th link in KUKA IIWA
+  int iiwa_base_index = getIndex(link_states.name, "iiwa::iiwa_link_0");
 
   ee_pose = link_states.pose[ee_index];
+  ee_twist = link_states.twist[ee_index];
   ee_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
-  ee_vel = link_states.twist[ee_index];
+  ee_vel << ee_twist.linear.x, ee_twist.linear.y, ee_twist.linear.z;
 
   iiwa_base_pose = link_states.pose[iiwa_base_index];
 }
@@ -65,13 +64,13 @@ int modeCheck(const int prev_mode){
   int mode = prev_mode;
   switch (prev_mode){
     case 1:   //track
-      if (object_pos[1] < 0 && object_vel.norm() < 0.01) {mode = 2;}    //if object is on your side and not moving, go to hit
+      if (object_pos[1] < 1.0 && object_vel.norm() < 0.01) {mode = 2;}    //if object is on your side and not moving, go to hit
       break;
     case 2:   //hit
       if (object_vel.norm() > 0.01) {mode = 3;}                          //if object starts moving because it is hit, go to post hit
       break;
     case 3:   //post hit
-      if (object_pos[1] > 0) {mode = 4;}                                //if object has left the range of arm, go to rest
+      if (object_pos[1] > 1.0) {mode = 4;}                                //if object has left the range of arm, go to rest
       break;
     case 4:   //rest
       if (object_vel[1] < 0) {mode = 1;}                                //if object moves toward arm again, go to track
@@ -208,12 +207,13 @@ int main (int argc, char** argv){
   
   
   ros::Publisher pub_vel_quat; // publishes to robot command topic
-  pub_vel_quat = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/vel_quat", 1);
+  pub_vel_quat = nh.advertise<geometry_msgs::Pose>("/passive_control/vel_quat", 1);
 
   ros::Publisher pub_pos_quat; // publishes to robot command topic
-  pub_pos_quat = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/pos_quat", 1);
+  pub_pos_quat = nh.advertise<geometry_msgs::Pose>("/passive_control/pos_quat", 1);
 
-  
+  rate.sleep();
+  pub_pos_quat.publish(rest());
   
   
   std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;

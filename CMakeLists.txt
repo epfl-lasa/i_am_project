@@ -30,6 +30,6 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 add_executable(1v1_init src/1v1_init.cpp) 
 target_link_libraries(1v1_init ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 
-add_executable(1v1_hitting src/hitting_DS.cpp src/tools/calculate_alpha.cpp src/tools/nominal_DS_aux.cpp src/tools/nominal_DS_main.cpp src/tools/modulated_DS.cpp) 
+add_executable(1v1_hitting src/1v1_hitting_DS.cpp src/tools/calculate_alpha.cpp src/tools/nominal_DS_aux.cpp src/tools/nominal_DS_main.cpp src/tools/modulated_DS.cpp) 
 target_link_libraries(1v1_hitting ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs")
 add_dependencies(1v1_hitting i_am_project_generate_messages_cpp)

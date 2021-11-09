@@ -11,26 +11,18 @@
 
 #include <experimental/filesystem>
 
-geometry_msgs::Pose box_pose, ee_pose, iiwa_base_pose;
-geometry_msgs::Twist box_vel, ee_vel;
+geometry_msgs::Pose box_pose, ee1_pose, ee2_pose, iiwa1_base_pose, iiwa2_base_pose;
+geometry_msgs::Twist box_vel, ee1_vel, ee2_vel;
 Eigen::Vector3d object_pos, object_vel, ee_pos;
 
 double des_speed;
 double theta;
 
-Eigen::Vector3d rest_pos = {0.0, -1.0, 0.4};
-Eigen::Vector4d rest_quat = {-0.707, 0.0, 0.0, 0.707};
+Eigen::Vector3d rest1_pos = {0.0, -1.0, 0.4};
+Eigen::Vector3d rest2_pos = {0.0, 1.0, -0.4};
+Eigen::Vector4d rest1_quat = {-0.707, 0.0, 0.0, 0.707};
+Eigen::Vector4d rest2_quat = {0.707, 0.0, 0.0, 0.707};
 
-/*
-Eigen::Vector3d object_position_from_source;
-Eigen::Vector4d object_orientation_from_source;
-Eigen::Vector3d object_position_mocap;
-Eigen::Vector4d object_orientation_mocap;
-Eigen::Vector3d iiwa_base_position_from_source;
-Eigen::Vector4d iiwa_base_orientation_from_source;
-Eigen::Vector3d iiwa_position_from_source;
-Eigen::Vector3d iiwa_vel_from_source;
-Eigen::Vector4d iiwa_orientation_from_source;*/
 
 using namespace std;
 

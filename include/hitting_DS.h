@@ -10,6 +10,7 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <sstream>
 
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Float64MultiArray.h>

@@ -87,24 +87,24 @@ std::stringstream sdfGenerator(const modelProperties model){
         sdf << sdf1 << name_ss.str() << sdf2 << com_ss.str() << mass_ss.str() << sdf3 << size_ss.str() << sdf4 << mu_ss.str() << sdf5 << size_ss.str() << sdf6 << "</link> </model> </sdf>";
     }
     else { //table gets a border so the sdf code has to be extended
-        double extr = 0.05;
+        double extr = 0.02;
         std::stringstream part1;
         std::stringstream border1;
         std::stringstream part2;
         std::stringstream border2;
-        /*std::stringstream part3;
+        std::stringstream part3;
         std::stringstream border3;
         std::stringstream part4;
-        std::stringstream border4;*/
-        part1 << " <pose>" << -model.size_x/2-0.01 << " " << 0 << " " << (model.size_z)/2 << " 0 0 0</pose> <geometry> <box> <size> " << 0.02 << " " << model.size_y << " " << model.size_z+extr << "</size> </box> </geometry> ";
+        std::stringstream border4;
+        part1 << " <pose>" << -model.size_x/2-0.01 << " " << 0 << " " << (model.size_z)/2-0.015 << " 0 0 0</pose> <geometry> <box> <size> " << 0.02 << " " << model.size_y + 0.04 << " " << model.size_z+extr << "</size> </box> </geometry> ";
         border1 << "<collision name=\"collision1\">" << part1.str() << "</collision> <visual name=\"visual1\">" << part1.str() << "</visual>";
-        part2 << " <pose>" <<  model.size_x/2+0.01 << " " << 0 << " " << (model.size_z)/2 << " 0 0 0</pose> <geometry> <box> <size> " << 0.02 << " " << model.size_y << " " << model.size_z+extr << "</size> </box> </geometry> ";
+        part2 << " <pose>" <<  model.size_x/2+0.01 << " " << 0 << " " << (model.size_z)/2-0.015 << " 0 0 0</pose> <geometry> <box> <size> " << 0.02 << " " << model.size_y + 0.04 << " " << model.size_z+extr << "</size> </box> </geometry> ";
         border2 << "<collision name=\"collision2\">" << part2.str() << "</collision> <visual name=\"visual2\">" << part2.str() << "</visual>";
-        /*part3 << " <pose>" << 0 << " " << -model.size_y/2-0.01 << " " << (model.size_z+extr)/2 << " 0 0 0</pose> <geometry> <box> <size> " << model.size_x << " " << 0.02 << " " << model.size_z+extr << "</size> </box> </geometry> ";
+        part3 << " <pose>" << 0 << " " << -model.size_y/2-0.01 << " " << (model.size_z)/2-0.015 << " 0 0 0</pose> <geometry> <box> <size> " << model.size_x << " " << 0.02 << " " << model.size_z+extr << "</size> </box> </geometry> ";
         border3 << "<collision name=\"collision3\">" << part3.str() << "</collision> <visual name=\"visual3\">" << part3.str() << "</visual>";
-        part4 << " <pose>" << 0 << " " <<  model.size_y/2+0.01 << " " << (model.size_z+extr)/2 << " 0 0 0</pose> <geometry> <box> <size> " << model.size_x << " " << 0.02 << " " << model.size_z+extr << "</size> </box> </geometry> ";
-        border4 << "<collision name=\"collision4\">" << part4.str() << "</collision> <visual name=\"visual4\">" << part4.str() << "</visual>";*/
-        sdf << sdf1 << name_ss.str() << sdf2 << com_ss.str() << mass_ss.str() << sdf3 << size_ss.str() << sdf4 << mu_ss.str() << sdf5 << size_ss.str() << sdf6 << border1.str() << border2.str() /*<< border3.str() << border4.str()*/ << "</link> </model> </sdf>";
+        part4 << " <pose>" << 0 << " " <<  model.size_y/2+0.01 << " " << (model.size_z)/2-0.015 << " 0 0 0</pose> <geometry> <box> <size> " << model.size_x << " " << 0.02 << " " << model.size_z+extr << "</size> </box> </geometry> ";
+        border4 << "<collision name=\"collision4\">" << part4.str() << "</collision> <visual name=\"visual4\">" << part4.str() << "</visual>";
+        sdf << sdf1 << name_ss.str() << sdf2 << com_ss.str() << mass_ss.str() << sdf3 << size_ss.str() << sdf4 << mu_ss.str() << sdf5 << size_ss.str() << sdf6 << border1.str() << border2.str() << border3.str() << border4.str() << "</link> </model> </sdf>";
     }
     
     return sdf;

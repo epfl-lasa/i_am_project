@@ -19,10 +19,10 @@ Eigen::Vector3d object_pos, object_vel, ee1_pos, ee2_pos, ee1_vel, ee2_vel;
 double des_speed;
 double theta;
 
-Eigen::Vector3d rest1_pos = {0.0, -1.2, 0.4};
-Eigen::Vector3d rest2_pos = {0.0, 1.2, 0.4};
+Eigen::Vector3d rest1_pos = {0.5, -0.2, 0.4};           //relative to iiwa base
+Eigen::Vector3d rest2_pos = {0.5, -0.2, 0.4};
 Eigen::Vector4d rest1_quat = {-0.707, 0.0, 0.0, 0.707};
-Eigen::Vector4d rest2_quat = {0.707, 0.0, 0.0, 0.707};
+Eigen::Vector4d rest2_quat = {-0.707, 0.0, 0.0, 0.707};
 
 
 using namespace std;
@@ -72,12 +72,12 @@ void iiwaCallback(const gazebo_msgs::LinkStates link_states){
 
 
 
-int modeCheck(const int iiwa_no, const int prev_mode){
+int modeCheck(const int prev_mode, const int iiwa_no){
   int iiwa_sel = 3-2*iiwa_no;        // multiplier used in conditional statements. iiwa = 1 -> selector = 1, iiwa = 2 -> selector = -1. This allows for directions to flip
   int mode = prev_mode;           // if none of the conditions are met, mode remains the same
   switch (prev_mode){
     case 1:   //track
-      if (object_pos[1]*iiwa_sel < 0 && object_vel.norm() < 0.01) {mode = 2;}    //if object is on your side and not moving, go to hit
+      if (object_pos[1]*iiwa_sel < -0.5 && object_vel.norm() < 0.01) {mode = 2;}    //if object is close enough and not moving, go to hit
       break;
     case 2:   //hit
       if (object_vel.norm() > 0.05) {mode = 3;}                          //if object starts moving because it is hit, go to post hit
@@ -100,79 +100,86 @@ geometry_msgs::Pose trackDS(){
 }
 
 
-geometry_msgs::Pose hitDS(const int iiwa_no, Eigen::Vector3d ee_pos, Eigen::Vector3d ee_pos_init){
+geometry_msgs::Pose hitDS(Eigen::Vector3d ee_pos, Eigen::Vector3d ee_pos_init, const int iiwa_no){
+  geometry_msgs::Pose vel_quat;
+  Eigen::Vector3d object_offset = {0.0, 0.0, 0.025};
+
   int iiwa_sel = 3-2*iiwa_no;
   Eigen::Matrix3d sel_mat;
   sel_mat << iiwa_sel, 0.0,      0.0,
              0.0,      iiwa_sel, 0.0,
              0.0,      0.0,      1.0;
 
-  geometry_msgs::Pose vel_quat;
+  //instead of flipping direction of attractor and such, make use of the fact that iiwa2 is exactly the same as iiwa1 but rotated around the worlds z-axis with pi
+  //if then the only parameters that are defined w.r.t. the world frame are rotated also, the whole situation becomes identical
+  //(passive_track gives cmds w.r.t. respective iiwa frame)
+  Eigen::Vector3d object_pos2  = sel_mat*(object_pos+object_offset); 
+  Eigen::Vector3d ee_pos2      = sel_mat*ee_pos;
+  Eigen::Vector3d ee_pos_init2 = sel_mat*ee_pos_init;
 
 
-  Eigen::Vector3d des_vel = {0.0, 0.0, 0.0};
-  Eigen::Vector4d des_quat = Eigen::Vector4d::Zero();
+  
 
-  Eigen::Vector3d object_offset = {0.0, 0.0, 0.0};
+  Eigen::Matrix3d gain_main;
+  Eigen::Matrix3d gain_aux;
+  gain_main << -0.9,  0.0, 0.0,
+                0.0, -0.1, 0.0,
+                0.0, 0.0, -0.9;
+
+  gain_aux << -0.1,  0.0, 0.0,
+               0.0, -0.1, 0.0,
+               0.0, 0.0, -0.1;
+
+  double modulated_sigma = 3.0;
+
+
 
   Eigen::Matrix3d rot_mat;
   rot_mat << cos(theta), -sin(theta), 0, 
              sin(theta), cos(theta), 0,
              0, 0, 1;
-  rot_mat = rot_mat*sel_mat;
+  
 
+  
+  Eigen::Vector3d unit_x = {0.0, 1.0, 0.0};
+
+  Eigen::Vector3d attractor_main;
+  Eigen::Vector3d attractor_aux;
+  
+  attractor_main = object_pos2 + 1*rot_mat*unit_x;
+  attractor_aux = (4.0/3.0)*object_pos2 - (1.0/3.0)*attractor_main;
+  
+  
+
+  Eigen::Vector4d des_quat = Eigen::Vector4d::Zero();
   Eigen::Vector3d ee_direction_x;
   Eigen::Vector3d ee_direction_y;
   Eigen::Vector3d ee_direction_z;
   Eigen::Matrix3d rot_ee;
   Eigen::Quaterniond rot_quat;
-
-  Eigen::Vector3d unit_x = {0.0, 1.0, 0.0};
-
-  Eigen::Vector3d attractor_main;
-  Eigen::Vector3d attractor_aux;
-  Eigen::Matrix3d gain_main;
-  Eigen::Matrix3d gain_aux;
-
-  gain_main << -0.9,  0.0, 0.0,
-                0.0, -0.1, 0.0,
-                0.0, 0.0, -0.9;
-
-  gain_aux << -0.2,  0.0, 0.0,
-               0.0, -0.2, 0.0,
-               0.0, 0.0, -0.1;
-
-  double modulated_sigma = 3.0;
   
-
-  
-  attractor_main = object_pos + 1*rot_mat*unit_x;
-  attractor_aux = (4.0/3.0)*object_pos - (1.0/3.0)*attractor_main;
-
-  
-
-  ee_direction_z = attractor_main - object_pos;
+  ee_direction_z = attractor_main - object_pos2; 
   ee_direction_x = {0.0, 0.0, 1.0};
   ee_direction_y = ee_direction_z.cross(ee_direction_x);
-
   ee_direction_z = ee_direction_z/ee_direction_z.norm();
   ee_direction_y = ee_direction_y/ee_direction_y.norm();
   ee_direction_x = ee_direction_x/ee_direction_x.norm();
-
   rot_ee.col(0) = ee_direction_x;
   rot_ee.col(1) = ee_direction_y;
   rot_ee.col(2) = ee_direction_z;
-
   rot_quat =  rot_ee;
   des_quat << rot_quat.x(), rot_quat.y(), rot_quat.z(), rot_quat.w();
 
   
-  double alpha = calculate_alpha(ee_pos, ee_pos_init, object_pos, attractor_main);
 
-  des_vel = alpha*nominal_aux(rot_mat, gain_aux, ee_pos, attractor_aux) + (1 - alpha)*nominal_main(rot_mat, gain_main, ee_pos, attractor_main)
-            + modulated_DS(attractor_main, object_pos, ee_pos, modulated_sigma);
+  Eigen::Vector3d des_vel = {0.0, 0.0, 0.0};
+  double alpha = calculate_alpha(ee_pos2, ee_pos_init2, object_pos2, attractor_main);
+  
+  des_vel = alpha*nominal_aux(rot_mat, gain_aux, ee_pos2, attractor_aux) + (1 - alpha)*nominal_main(rot_mat, gain_main, ee_pos2, attractor_main)
+            + modulated_DS(attractor_main, object_pos2, ee_pos2, modulated_sigma);
 
   des_vel = des_vel*des_speed / des_vel.norm();
+
 
   vel_quat.position.x = des_vel(0);
   vel_quat.position.y = des_vel(1);
@@ -186,10 +193,11 @@ geometry_msgs::Pose hitDS(const int iiwa_no, Eigen::Vector3d ee_pos, Eigen::Vect
 }
 
 
-geometry_msgs::Pose postHit(const Eigen::Vector3d object_pos_init, const Eigen::Vector4d rest_quat, const geometry_msgs::Pose iiwa_base_pose){
+geometry_msgs::Pose postHit(const Eigen::Vector3d object_pos_init, const Eigen::Vector4d rest_quat, const geometry_msgs::Pose iiwa_base_pose, const int iiwa_no){
   geometry_msgs::Pose pos_quat;
-  pos_quat.position.x = object_pos_init[0] - iiwa_base_pose.position.x;
-  pos_quat.position.y = object_pos_init[1] - iiwa_base_pose.position.y;
+  int iiwa_sel = 3-2*iiwa_no;
+  pos_quat.position.x = (object_pos_init[0] - iiwa_base_pose.position.x)*iiwa_sel;
+  pos_quat.position.y = (object_pos_init[1] - iiwa_base_pose.position.y)*iiwa_sel;
   pos_quat.position.z = object_pos_init[2] - iiwa_base_pose.position.z;
   pos_quat.orientation.x = rest_quat[0];
   pos_quat.orientation.y = rest_quat[1];
@@ -199,11 +207,11 @@ geometry_msgs::Pose postHit(const Eigen::Vector3d object_pos_init, const Eigen::
 }
 
 
-geometry_msgs::Pose rest(const Eigen::Vector3d rest_pos, const Eigen::Vector4d rest_quat, const geometry_msgs::Pose iiwa_base_pose){
+geometry_msgs::Pose rest(const Eigen::Vector3d rest_pos, const Eigen::Vector4d rest_quat){
   geometry_msgs::Pose pos_quat;
-  pos_quat.position.x = rest_pos[0] - iiwa_base_pose.position.x;
-  pos_quat.position.y = rest_pos[1] - iiwa_base_pose.position.y;
-  pos_quat.position.z = rest_pos[2] - iiwa_base_pose.position.z;
+  pos_quat.position.x = rest_pos[0];
+  pos_quat.position.y = rest_pos[1];
+  pos_quat.position.z = rest_pos[2];
   pos_quat.orientation.x = rest_quat[0];
   pos_quat.orientation.y = rest_quat[1];
   pos_quat.orientation.z = rest_quat[2];
@@ -277,41 +285,41 @@ int main (int argc, char** argv){
 
 
 
-    mode1 = modeCheck(1, prev_mode1);
+    mode1 = modeCheck(prev_mode1, 1);
     switch (mode1) {
       case 1: //track
         pub_vel_quat1.publish(trackDS());
         ee1_pos_init = ee1_pos;
         break;
       case 2: //hit
-        pub_vel_quat1.publish(hitDS(1, ee1_pos, ee1_pos_init));
+        pub_vel_quat1.publish(hitDS(ee1_pos, ee1_pos_init, 1));
         object_pos_init1 = object_pos;
         break;
       case 3: //post hit
-        pub_pos_quat1.publish(postHit(object_pos_init1, rest1_quat, iiwa1_base_pose));
+        pub_pos_quat1.publish(postHit(object_pos_init1, rest1_quat, iiwa1_base_pose, 1));
         break;
       case 4: //rest
-        pub_pos_quat1.publish(rest(rest1_pos, rest1_quat, iiwa1_base_pose));
+        pub_pos_quat1.publish(rest(rest1_pos, rest1_quat));
         break;
     }
     prev_mode1 = mode1;
 
 
-    mode2 = modeCheck(2, prev_mode2);
+    mode2 = modeCheck(prev_mode2, 2);
     switch (mode2) {
       case 1: //track
         pub_vel_quat2.publish(trackDS());
         ee2_pos_init = ee2_pos;
         break;
       case 2: //hit
-        pub_vel_quat2.publish(hitDS(2, ee2_pos, ee2_pos_init));
+        pub_vel_quat2.publish(hitDS(ee2_pos, ee2_pos_init, 2));
         object_pos_init2 = object_pos;
         break;
       case 3: //post hit
-        pub_pos_quat2.publish(postHit(object_pos_init2, rest2_quat, iiwa2_base_pose));
+        pub_pos_quat2.publish(postHit(object_pos_init2, rest2_quat, iiwa2_base_pose, 2));
         break;
       case 4: //rest
-        pub_pos_quat2.publish(rest(rest2_pos, rest2_quat, iiwa2_base_pose));
+        pub_pos_quat2.publish(rest(rest2_pos, rest2_quat));
         break;
     }
     prev_mode2 = mode2;

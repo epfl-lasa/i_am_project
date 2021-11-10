@@ -1,20 +1,20 @@
 box:
   properties:
     size:
-      x: 0.2
-      y: 0.2
-      z: 0.2
+      x: 0.25
+      y: 0.25
+      z: 0.25
     COM:            #relative to geometric center
       x: 0.0
       y: 0.0
       z: 0.0
     mass: 0.3
-    mu: 0.025
-    mu2: 0.025
+    mu: 0.023
+    mu2: 0.023
   initial_pos:
     x: 0.0
     y: -0.8
-    z: 0.15
+    z: 0.175
   
 
 table:

@@ -8,13 +8,14 @@
 #include "../include/nominal_DS_aux.h"
 #include "../include/nominal_DS_main.h"
 #include "../include/modulated_DS.h"
+#include "../include/kalman.h"
 
 #include <experimental/filesystem>
 
 geometry_msgs::Pose box_pose, ee1_pose, ee2_pose, iiwa1_base_pose, iiwa2_base_pose;
 geometry_msgs::Twist box_twist, ee1_twist, ee2_twist;
 
-Eigen::Vector3d object_pos, object_vel, ee1_pos, ee2_pos, ee1_vel, ee2_vel;
+Eigen::Vector3d object_pos, object_vel, ee1_pos, ee2_pos, ee1_vel, ee2_vel, iiwa1_base_pos, iiwa2_base_pos;
 
 double des_speed;
 double theta;
@@ -23,6 +24,10 @@ Eigen::Vector3d rest1_pos = {0.5, -0.2, 0.4};           //relative to iiwa base
 Eigen::Vector3d rest2_pos = {0.5, -0.2, 0.4};
 Eigen::Vector4d rest1_quat = {-0.707, 0.0, 0.0, 0.707};
 Eigen::Vector4d rest2_quat = {-0.707, 0.0, 0.0, 0.707};
+
+Eigen::Matrix<double, 6,1> state = Eigen::Matrix<double, 6,1>::Zero();
+Eigen::Matrix<double, 6,6> P = Eigen::Matrix<double, 6,6>::Zero();
+
 
 
 using namespace std;
@@ -66,28 +71,51 @@ void iiwaCallback(const gazebo_msgs::LinkStates link_states){
 
   iiwa1_base_pose = link_states.pose[iiwa1_base_index];
   iiwa2_base_pose = link_states.pose[iiwa2_base_index];
+  iiwa1_base_pos << iiwa1_base_pose.position.x,iiwa1_base_pose.position.y,iiwa1_base_pose.position.z;
+  iiwa2_base_pos << iiwa2_base_pose.position.x,iiwa2_base_pose.position.y,iiwa2_base_pose.position.z;
 }
 
 
 
 
 
-int modeCheck(const int prev_mode, const int iiwa_no){
+
+int modeCheck(const int prev_mode, const int iiwa_no, Eigen::Vector3d ee_pos, Eigen::Vector3d rest_pos, Eigen::Vector3d iiwa_base_pos){
   int iiwa_sel = 3-2*iiwa_no;        // multiplier used in conditional statements. iiwa = 1 -> selector = 1, iiwa = 2 -> selector = -1. This allows for directions to flip
   int mode = prev_mode;           // if none of the conditions are met, mode remains the same
+  bool hittable;
+  bool still;
+  if (object_pos[1]*iiwa_sel < -0.5 && object_pos[1]*iiwa_sel > -0.9){hittable = true;}
+  else {hittable = false;}
+  if (object_vel.norm() < 0.03){still = true;}
+  else {still = false;}
+
+
   switch (prev_mode){
     case 1:   //track
-      if (object_pos[1]*iiwa_sel < -0.5 && object_vel.norm() < 0.01) {mode = 2;}    //if object is close enough and not moving, go to hit
+      if (hittable == true && still == true) {mode = 2;}    //if object is in feasible position and not moving, go to hit
+      if (hittable == false && still == true) {mode = 4;}
       break;
+
     case 2:   //hit
-      if (object_vel.norm() > 0.05) {mode = 3;}                          //if object starts moving because it is hit, go to post hit
+      if (still == false) {mode = 3;}                          //if object starts moving because it is hit, go to post hit
       break;
+
     case 3:   //post hit
-      if (object_pos[1]*iiwa_sel > 0) {mode = 4;}                                //if object has left the range of arm, go to rest
+      if (hittable == false) {mode = 4;}                                //if object has left the range of arm, go to rest
       break;
+
     case 4:   //rest
-      if (object_vel[1]*iiwa_sel < 0) {mode = 1;}                                //if object moves toward arm again, go to track
+      if (object_vel[1]*iiwa_sel < -0.4) {         //if object moves toward arm again and rest position has been achieved, go to track
+        mode = 1;
+        state = Eigen::Matrix<double,6,1>::Zero();
+        state << object_vel[0],object_vel[1],object_vel[2],0.0,0.03*9.81*0.3*iiwa_sel,0.0;
+        P = Eigen::Matrix<double, 6,6>::Zero();
+        }                                
+      if (hittable == true && still == true && (ee_pos-rest_pos-iiwa_base_pos).norm()<0.05) {mode = 2;}
       break;
+
+
   }
   return mode;
 }
@@ -95,6 +123,43 @@ int modeCheck(const int prev_mode, const int iiwa_no){
 
 geometry_msgs::Pose trackDS(){
   geometry_msgs::Pose vel_quat;
+
+  
+  P = covarUpdate(P);
+  state = stateUpdate(object_vel,state,P);
+
+  /*syst << I3, -I3*dt/0.3, Z3, I3;
+  for (int i = 0; i < 500; i++){
+    s_plus = syst*state;
+    if (((s_plus[4]>0)-(s_plus[4]<0)) != ((s[4]>0)-(s[4]<0))) {
+      s_plus[3] = 0;
+      s_plus[4] = 0;
+      s_plus[5] = 0;
+      s_plus[6] = 0;
+      s_plus[7] = 0;
+      s_plus[8] = 0;
+    }
+    s = s_plus;
+  }*/
+  
+
+  Eigen::Vector3d predict_pos;
+  for (int i = 0; i < 3; i++) {
+    predict_pos[i] = object_pos[i] - 0.5*0.3*state[i]*state[i]/state[i+3];
+  }
+
+
+  std::stringstream ss1;
+  std::stringstream ss2;
+  std::stringstream ss3;
+
+  ss1 << "final  : " << predict_pos[1];
+  ss2 << "current: " << object_pos[1];
+  ss3 << "f_est  : " << state[4];
+
+  ROS_INFO("%s",ss1.str().c_str());
+  ROS_INFO("%s",ss2.str().c_str());
+  ROS_INFO("%s",ss3.str().c_str());
 
   return vel_quat;
 }
@@ -264,16 +329,15 @@ int main (int argc, char** argv){
 
 
 
-  int mode1 = 1;
+  int mode1 = 4;
   int prev_mode1 = mode1;
-  int mode2 = 1;
+  int mode2 = 4;
   int prev_mode2 = mode2;
 
   Eigen::Vector3d object_pos_init1 = object_pos;
   Eigen::Vector3d object_pos_init2 = object_pos;
   Eigen::Vector3d ee1_pos_init = ee1_pos;
   Eigen::Vector3d ee2_pos_init = ee2_pos;
-
 
 
   std::ofstream object_data;
@@ -284,8 +348,7 @@ int main (int argc, char** argv){
     //std::cout << "object is at: " << object_pos <<std::endl;
 
 
-
-    mode1 = modeCheck(prev_mode1, 1);
+    mode1 = modeCheck(prev_mode1, 1, ee1_pos, rest1_pos, iiwa1_base_pos);
     switch (mode1) {
       case 1: //track
         pub_vel_quat1.publish(trackDS());
@@ -300,12 +363,13 @@ int main (int argc, char** argv){
         break;
       case 4: //rest
         pub_pos_quat1.publish(rest(rest1_pos, rest1_quat));
+        ee1_pos_init = ee1_pos;
         break;
     }
     prev_mode1 = mode1;
 
 
-    mode2 = modeCheck(prev_mode2, 2);
+    mode2 = modeCheck(prev_mode2, 2, ee2_pos, rest2_pos, iiwa2_base_pos);
     switch (mode2) {
       case 1: //track
         pub_vel_quat2.publish(trackDS());
@@ -320,14 +384,21 @@ int main (int argc, char** argv){
         break;
       case 4: //rest
         pub_pos_quat2.publish(rest(rest2_pos, rest2_quat));
+        ee2_pos_init = ee2_pos;
         break;
     }
     prev_mode2 = mode2;
     
-    std::stringstream ss;
-    ss << "object z: " << object_pos[2];
 
-    ROS_INFO("%s",ss.str().c_str());
+    
+    std::stringstream ss1;
+    std::stringstream ss2;
+
+    ss1 << "mode1: " << mode1;
+    ss2 << "mode2: " << mode2;
+
+    ROS_INFO("%s",ss1.str().c_str());
+    ROS_INFO("%s",ss2.str().c_str());
 
     /*
     object_data.open("/home/ros/ros_overlay_ws/src/i_am_project/data/object_data.csv", std::ofstream::out | std::ofstream::app);

@@ -9,8 +9,8 @@ box:
       y: 0.0
       z: 0.0
     mass: 0.3
-    mu: 0.023
-    mu2: 0.023
+    mu: 0.03
+    mu2: 0.03
   initial_pos:
     x: 0.0
     y: -0.8
@@ -21,7 +21,7 @@ table:
   properties:
     size:
       x: 0.8
-      y: 2.0
+      y: 3.0
       z: 0.05
     COM:
       x: 0.0

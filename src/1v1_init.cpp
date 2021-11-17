@@ -87,6 +87,8 @@ std::stringstream sdfGenerator(const modelProperties model){
         sdf << sdf1 << name_ss.str() << sdf2 << com_ss.str() << mass_ss.str() << sdf3 << size_ss.str() << sdf4 << mu_ss.str() << sdf5 << size_ss.str() << sdf6 << "</link> </model> </sdf>";
     }
     else { //table gets a border so the sdf code has to be extended
+        std::stringstream name_ss;
+        name_ss << model.name << "\"> <pose>0 0 0 0 0 0 </pose> <static>true</static> <link name=\"" << model.name;
         double extr = 0.02;
         std::stringstream part1;
         std::stringstream border1;

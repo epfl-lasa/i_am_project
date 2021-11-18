@@ -31,7 +31,6 @@ Eigen::Matrix<double, 6,1> state = Eigen::Matrix<double, 6,1>::Zero();
 Eigen::Matrix<double, 6,6> P = Eigen::Matrix<double, 6,6>::Zero();
 
 
-
 using namespace std;
 
 int getIndex(std::vector<std::string> v, std::string value){
@@ -74,6 +73,7 @@ void iiwaCallback(const gazebo_msgs::LinkStates link_states){
   iiwa1_base_pos << iiwa1_base_pose.position.x,iiwa1_base_pose.position.y,iiwa1_base_pose.position.z;
   iiwa2_base_pos << iiwa2_base_pose.position.x,iiwa2_base_pose.position.y,iiwa2_base_pose.position.z;
 }
+
 
 
 
@@ -341,7 +341,6 @@ int main (int argc, char** argv){
   ros::Subscriber object_subs = nh.subscribe("/gazebo/model_states", 100 , objectCallback);
   ros::Subscriber iiwa_subs = nh.subscribe("/gazebo/link_states", 100, iiwaCallback);
   
-  
   ros::Publisher pub_vel_quat1 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/vel_quat", 1);
   ros::Publisher pub_pos_quat1 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/pos_quat", 1);
   ros::Publisher pub_vel_quat2 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/vel_quat", 1);
@@ -352,6 +351,8 @@ int main (int argc, char** argv){
   gazebo_msgs::SetModelState setmodelstate;
   
   
+
+
   std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;
   std::cin >> des_speed;
 
@@ -383,18 +384,35 @@ int main (int argc, char** argv){
   Eigen::Vector3d ee2_pos_init = ee2_pos;
 
 
+  std::queue<Eigen::Vector3d> object_pos_q;
+  std::queue<Eigen::Vector3d> predict_pos_q;
+  std::queue<Eigen::Vector3d> ee1_pos_q;
+  std::queue<Eigen::Vector3d> ee1_vel_q;
+  std::queue<Eigen::Vector3d> ee2_pos_q;
+  std::queue<Eigen::Vector3d> ee2_vel_q;
+
+  bool once11 = true;
+  bool once12 = true;
+  bool once21 = false;
+  bool once22 = false;
   std::ofstream object_data;
   bool store_data = 0;
-
+  object_data.open("/home/daan/catkin_ws/src/i_am_project/data/hitting/object_data.csv", std::ofstream::out | std::ofstream::app);
+    if(!object_data.is_open())
+    {
+      std::cerr << "Error opening output file.\n";
+      std::cout << "Current path is " << std::experimental::filesystem::current_path() << '\n';
+    }
+  object_data << "initial_object_x, y, z, ee_pos_x, y, z, ee_vel_x, y, z, final_object_x, y, z, stopped_by_receiver \n";
+  object_data.close();
+  
   while(ros::ok()){
-    //object_position_from_source = world_to_base * (object_position_mocap - iiwa_base_position_from_source);
-    //std::cout << "object is at: " << object_pos <<std::endl;
-
+    // Predict the future
     Eigen::Vector3d predict_pos;
     double ETA;
     tie(predict_pos, ETA) = predictPos();
     
-
+    // Select correct operating mode for both arms based on conditions on (predicted) object position and velocity and ee position
     mode1 = modeSelektor(predict_pos, ETA, ee1_pos, prev_mode1, 1);
     switch (mode1) {
       case 1: //track
@@ -417,7 +435,6 @@ int main (int argc, char** argv){
         break;
     }
     prev_mode1 = mode1;
-
 
     mode2 = modeSelektor(predict_pos, ETA, ee2_pos, prev_mode2, 2);
     switch (mode2) {
@@ -443,29 +460,7 @@ int main (int argc, char** argv){
     prev_mode2 = mode2;
     
 
-
-    std::stringstream ss1;
-    std::stringstream ss2;
-
-    ss1 << "mode1: " << mode1;
-    ss2 << "mode2: " << mode2;
-
-    ROS_INFO("%s",ss1.str().c_str());
-    ROS_INFO("%s",ss2.str().c_str());
-
-    std::stringstream ss3;
-    std::stringstream ss4;
-    std::stringstream ss5;
-
-    ss3 << "final  : " << predict_pos[1];
-    ss4 << "current: " << object_pos[1];
-    ss5 << "ETA  : " << ETA*5.0;
-
-    ROS_INFO("%s",ss3.str().c_str());
-    ROS_INFO("%s",ss4.str().c_str());
-    ROS_INFO("%s",ss5.str().c_str());
-
-
+    // Reset object position once out of reach
     if (object_vel.norm()<0.01 && (object_pos[1] < -0.9 || (object_pos[1] > -0.5 && object_pos[1] < 0.5) || object_pos[1] > 0.9)) {
       geometry_msgs::Pose new_object_pose;
       new_object_pose.position.x = 0.0;
@@ -484,17 +479,105 @@ int main (int argc, char** argv){
       setmodelstate.request.model_state = modelstate;
       set_state_client.call(setmodelstate);
       ROS_INFO("Resetting object pose");
-    } //reset object position once out of reach
-    /*
-    object_data.open("/home/ros/ros_overlay_ws/src/i_am_project/data/object_data.csv", std::ofstream::out | std::ofstream::app);
+    } 
+
+
+    // Some infos
+      std::stringstream ss1;
+      std::stringstream ss2;
+
+      ss1 << "mode1: " << mode1;
+      ss2 << "mode2: " << mode2;
+
+      ROS_INFO("%s",ss1.str().c_str());
+      ROS_INFO("%s",ss2.str().c_str());
+
+      std::stringstream ss3;
+      std::stringstream ss4;
+      std::stringstream ss5;
+
+      ss3 << "final  : " << predict_pos[1];
+      ss4 << "current: " << object_pos[1];
+      ss5 << "ETA  : " << ETA*5.0;
+
+      ROS_INFO("%s",ss3.str().c_str());
+      ROS_INFO("%s",ss4.str().c_str());
+      ROS_INFO("%s",ss5.str().c_str());
+
+    
+    
+    object_pos_q.push(object_pos);
+    predict_pos_q.push(predict_pos);
+    ee1_pos_q.push(ee1_pos);
+    ee1_vel_q.push(ee1_vel);
+    ee2_pos_q.push(ee2_pos);
+    ee2_vel_q.push(ee2_vel);
+
+    while (object_pos_q.size() > 5){object_pos_q.pop();}
+    while (predict_pos_q.size() > 5){predict_pos_q.pop();}
+    while (ee1_pos_q.size() > 5){ee1_pos_q.pop();}
+    while (ee1_vel_q.size() > 5){ee1_vel_q.pop();}
+    while (ee2_pos_q.size() > 5){ee2_pos_q.pop();}
+    while (ee2_vel_q.size() > 5){ee2_vel_q.pop();}
+
+
+
+
+    object_data.open("/home/daan/catkin_ws/src/i_am_project/data/hitting/object_data.csv", std::ofstream::out | std::ofstream::app);
     if(!object_data.is_open())
     {
       std::cerr << "Error opening output file.\n";
       std::cout << "Current path is " << std::experimental::filesystem::current_path() << '\n';
     }
-    object_data << des_speed << ", " << theta << ", " << object_pos_init1(0) << ", " << object_pos_init1(1) << ", " << object_pos_init1(2) << ", " << object_pos(0) << ", " << object_pos(1) << ", " << object_pos(2) << "\n";
+
+
+    if (mode1 == 4 && once11 == true){  //store data right before hit
+      once11 = false;
+      object_data << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << object_pos_q.front()[2] << ", " << ee1_pos_q.front()[0] << ", " << ee1_pos_q.front()[1] << ", " << ee1_pos_q.front()[2] << ", " << ee1_vel_q.front()[0] << ", " << ee1_vel_q.front()[1] << ", " << ee1_vel_q.front()[2] << ", ";
+    }
+
+    if (mode2 == 2 && object_pos[1] > 0.5 && once12 == true){  //store predicted pos if it will be stopped
+      once12 = false;
+      object_data << predict_pos_q.front()[0] << ", " << predict_pos_q.front()[1] << ", " << predict_pos_q.front()[2] << " stopped" << "\n";
+      once21 = true;
+      once22 = true;
+    }
+
+    if (mode2 == 3 && once12 == true){  //or if it will be hit back just before it came to a halt
+      once12 = false;
+      object_data << predict_pos_q.front()[0] << ", " << predict_pos_q.front()[1] << ", " << predict_pos_q.front()[2] << " free" << "\n";
+      once21 = true;
+      once22 = true;
+    }
+
+    
+    
+    if (mode2 == 4 && once21 == true){
+      once21 = false;
+      object_data << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << object_pos_q.front()[2] << ", " << ee2_pos_q.front()[0] << ", " << ee2_pos_q.front()[1] << ", " << ee2_pos_q.front()[2] << ", " << ee2_vel_q.front()[0] << ", " << ee2_vel_q.front()[1] << ", " << ee2_vel_q.front()[2] << ", ";
+    }
+
+    if (mode1 == 2 && object_pos[1] < -0.5 && once22 == true){
+      once22 = false;
+      object_data << predict_pos_q.front()[0] << ", " << predict_pos_q.front()[1] << ", " << predict_pos_q.front()[2] << " stopped" << "\n";
+      once11 = true;
+      once12 = true;
+    }
+
+    if (mode1 == 3 && once22 == true){
+      once22 = false;
+      object_data << predict_pos_q.front()[0] << ", " << predict_pos_q.front()[1] << ", " << predict_pos_q.front()[2] << " free" << "\n";
+      once11 = true;
+      once12 = true;
+    }
+    
     object_data.close();
-    */
+    
+    
+
+
+
+
 
     ros::spinOnce();
     rate.sleep();

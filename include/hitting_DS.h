@@ -11,6 +11,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <queue>
 
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Float64MultiArray.h>

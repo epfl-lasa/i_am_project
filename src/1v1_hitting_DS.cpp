@@ -25,6 +25,8 @@ Eigen::Vector3d rest2_pos = {0.5, -0.2, 0.4};
 Eigen::Vector4d rest1_quat = {-0.707, 0.0, 0.0, 0.707};
 Eigen::Vector4d rest2_quat = {-0.707, 0.0, 0.0, 0.707};
 
+Eigen::Vector3d ee_offset = {0.0, -0.4, 0.225};         //relative to object
+
 Eigen::Matrix<double, 6,1> state = Eigen::Matrix<double, 6,1>::Zero();
 Eigen::Matrix<double, 6,6> P = Eigen::Matrix<double, 6,6>::Zero();
 
@@ -32,8 +34,7 @@ Eigen::Matrix<double, 6,6> P = Eigen::Matrix<double, 6,6>::Zero();
 
 using namespace std;
 
-int getIndex(std::vector<std::string> v, std::string value)
-{
+int getIndex(std::vector<std::string> v, std::string value){
     for(int i = 0; i < v.size(); i++)
     {
         if(v[i].compare(value) == 0)
@@ -50,7 +51,6 @@ void objectCallback(const gazebo_msgs::ModelStates model_states){
   object_pos << box_pose.position.x, box_pose.position.y, box_pose.position.z;
   object_vel << box_twist.linear.x, box_twist.linear.y, box_twist.linear.z;
 }
-
 
 void iiwaCallback(const gazebo_msgs::LinkStates link_states){
   int ee1_index = getIndex(link_states.name, "iiwa1::iiwa1_link_7"); // End effector is the 7th link in KUKA IIWA
@@ -77,98 +77,132 @@ void iiwaCallback(const gazebo_msgs::LinkStates link_states){
 
 
 
-
-
-
-int modeCheck(const int prev_mode, const int iiwa_no, Eigen::Vector3d ee_pos, Eigen::Vector3d rest_pos, Eigen::Vector3d iiwa_base_pos){
-  int iiwa_sel = 3-2*iiwa_no;        // multiplier used in conditional statements. iiwa = 1 -> selector = 1, iiwa = 2 -> selector = -1. This allows for directions to flip
-  int mode = prev_mode;           // if none of the conditions are met, mode remains the same
-  bool hittable;
-  bool still;
-  if (object_pos[1]*iiwa_sel < -0.5 && object_pos[1]*iiwa_sel > -0.9){hittable = true;}
-  else {hittable = false;}
-  if (object_vel.norm() < 0.03){still = true;}
-  else {still = false;}
-
-
-  switch (prev_mode){
-    case 1:   //track
-      if (hittable == true && still == true) {mode = 2;}    //if object is in feasible position and not moving, go to hit
-      if (hittable == false && still == true) {mode = 4;}
-      break;
-
-    case 2:   //hit
-      if (still == false) {mode = 3;}                          //if object starts moving because it is hit, go to post hit
-      break;
-
-    case 3:   //post hit
-      if (hittable == false) {mode = 4;}                                //if object has left the range of arm, go to rest
-      break;
-
-    case 4:   //rest
-      if (object_vel[1]*iiwa_sel < -0.4) {         //if object moves toward arm again and rest position has been achieved, go to track
-        mode = 1;
-        state = Eigen::Matrix<double,6,1>::Zero();
-        state << object_vel[0],object_vel[1],object_vel[2],0.0,0.03*9.81*0.3*iiwa_sel,0.0;
-        P = Eigen::Matrix<double, 6,6>::Zero();
-        }                                
-      if (hittable == true && still == true && (ee_pos-rest_pos-iiwa_base_pos).norm()<0.05) {mode = 2;}
-      break;
-
-
-  }
-  return mode;
-}
-
-
-geometry_msgs::Pose trackDS(){
-  geometry_msgs::Pose vel_quat;
-
-  
+std::tuple<Eigen::Vector3d, double> predictPos(){
   P = covarUpdate(P);
   state = stateUpdate(object_vel,state,P);
 
   Eigen::Vector3d vel_est;
   Eigen::Vector3d f_est;
-  double t_est;
+  double ETA;
 
   vel_est << state[0], state[1], state[2];
   f_est << state[3], state[4], state[5];
-  t_est = 0.3*vel_est.norm()/f_est.norm();
-  /*syst << I3, -I3*dt/0.3, Z3, I3;
-  for (int i = 0; i < 500; i++){
-    s_plus = syst*state;
-    if (((s_plus[4]>0)-(s_plus[4]<0)) != ((s[4]>0)-(s[4]<0))) {
-      s_plus[3] = 0;
-      s_plus[4] = 0;
-      s_plus[5] = 0;
-      s_plus[6] = 0;
-      s_plus[7] = 0;
-      s_plus[8] = 0;
-    }
-    s = s_plus;
-  }*/
+  ETA = 0.3*vel_est.norm()/f_est.norm();
   
 
   Eigen::Vector3d predict_pos;
   for (int i = 0; i < 3; i++) {
     predict_pos[i] = object_pos[i] - 0.5*0.3*vel_est[i]*vel_est[i]/f_est[i];
   }
+
+
+  return std::make_tuple(predict_pos,ETA);
+}
+
+
+
+
+int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos, const int prev_mode, const int iiwa_no){
+  int mode = prev_mode;           // if none of the conditions are met, mode remains the same
+  
+  int iiwa_sel = 3-2*iiwa_no;        // multiplier used in conditional statements. iiwa = 1 -> selector = 1, iiwa = 2 -> selector = -1. This allows for directions to flip
+  Eigen::Matrix3d sel_mat;
+  sel_mat << iiwa_sel, 0.0,      0.0,
+             0.0,      iiwa_sel, 0.0,
+             0.0,      0.0,      1.0;
   
 
-  std::stringstream ss1;
-  std::stringstream ss2;
-  std::stringstream ss3;
+  
+  bool cur_hittable;
+  if (object_pos[1]*iiwa_sel < -0.5 && object_pos[1]*iiwa_sel > -0.9){cur_hittable = true;}
+  else {cur_hittable = false;}
 
-  ss1 << "final  : " << predict_pos[1];
-  ss2 << "current: " << object_pos[1];
-  ss3 << "t_est  : " << t_est*5.0;
+  bool pred_hittable;
+  if (predict_pos[1]*iiwa_sel < -0.5 && predict_pos[1]*iiwa_sel > -0.9){pred_hittable = true;}
+  else {pred_hittable = false;}
 
-  ROS_INFO("%s",ss1.str().c_str());
-  ROS_INFO("%s",ss2.str().c_str());
-  ROS_INFO("%s",ss3.str().c_str());
+  bool too_far;
+  if (predict_pos[1]*iiwa_sel < -0.9){too_far = true;}
+  else {too_far = false;}
 
-  return vel_quat;
+  bool too_close;
+  if (predict_pos[1]*iiwa_sel > -0.5){too_close = true;}
+  else {too_close = false;}
+
+  bool moving;
+  if (object_vel.norm() > 0.03){moving = true;}
+  else {moving = false;}
+
+  bool towards;
+  if (object_vel[1]*iiwa_sel < -0.01){towards = true;}
+  else {towards = false;}
+
+  bool ee_ready;
+  if ((ee_pos-(predict_pos+sel_mat*ee_offset)).norm() < 0.1){ee_ready = true;}
+  else {ee_ready = false;}
+
+
+
+  switch (prev_mode){
+    case 1:   //track
+      if (too_far == true && ETA < 3) {mode = 2;}                                         //if object will go too far, try to stop it
+      if (pred_hittable == true && ETA < 1.0 && ee_ready == true) {mode = 3;}             //if object will be in feasible position and stops in 0.5s and ee is in correct position, go to hit
+      if (too_close == true && ETA < 3) {mode = 5;}                                       //if object will not make it into reach, give up and go to rest
+      break;
+
+    case 2:   //stop
+      if (towards == false || pred_hittable == true) {mode = 1;}                            //if the object no longer moves towards, it has been stopped succesfully so go to track for correct ee
+    
+    case 3:   //hit
+      if (towards == false && moving == true) {mode = 4;                                    //if object starts moving because it is hit, go to post hit and initialize kalman
+        state = Eigen::Matrix<double,6,1>::Zero();
+        state << object_vel[0],object_vel[1],object_vel[2],0.0,0.03*9.81*0.3*iiwa_sel,0.0;
+        P = Eigen::Matrix<double, 6,6>::Zero();
+      }                                           
+      break;
+
+    case 4:   //post hit
+      if (cur_hittable == false || towards == false) {mode = 5;}                            //if object has left the range of arm, go to rest
+      break;
+
+    case 5:   //rest
+      if (too_far == true && ETA < 3) {mode = 2;}                               //if object will go too far, try to stop it
+      if (pred_hittable == true && ETA < 1.0 && ee_ready == true) {mode = 3;}   //same as when being in tracking mode, since mode is initialized in rest
+      if (pred_hittable == true && ETA < 3 && ee_ready == false) {mode = 1;}    //if object is going to be hittable but ee is not in the right position, lets track!                               
+      break;
+  }
+  return mode;
+}
+
+
+geometry_msgs::Pose trackDS(Eigen::Vector3d predict_pos, Eigen::Vector4d rest_quat, Eigen::Vector3d iiwa_base_pos, const int iiwa_no){
+  geometry_msgs::Pose pos_quat;
+  int iiwa_sel = 3-2*iiwa_no;
+  
+  pos_quat.position.x = (predict_pos[0] - iiwa_base_pos[0])*iiwa_sel + ee_offset[0];
+  pos_quat.position.y = (predict_pos[1] - iiwa_base_pos[1])*iiwa_sel + ee_offset[1];
+  pos_quat.position.z = predict_pos[2] - iiwa_base_pos[2] + ee_offset[2];
+  pos_quat.orientation.x = rest_quat[0];
+  pos_quat.orientation.y = rest_quat[1];
+  pos_quat.orientation.z = rest_quat[2];
+  pos_quat.orientation.w = rest_quat[3];
+
+  return pos_quat;
+}
+
+
+geometry_msgs::Pose stopDS(Eigen::Vector3d predict_pos, Eigen::Vector4d rest_quat, Eigen::Vector3d iiwa_base_pos, const int iiwa_no){
+  geometry_msgs::Pose pos_quat;
+  int iiwa_sel = 3-2*iiwa_no;
+
+  pos_quat.position.x = (predict_pos[0] - iiwa_base_pos[0])*iiwa_sel;
+  pos_quat.position.y = -1*iiwa_base_pos[1]*iiwa_sel -1.0;
+  pos_quat.position.z = predict_pos[2];
+  pos_quat.orientation.x = rest_quat[0];
+  pos_quat.orientation.y = rest_quat[1];
+  pos_quat.orientation.z = rest_quat[2];
+  pos_quat.orientation.w = rest_quat[3];
+  return pos_quat;
 }
 
 
@@ -338,9 +372,9 @@ int main (int argc, char** argv){
 
 
 
-  int mode1 = 4;
+  int mode1 = 5;
+  int mode2 = 5;
   int prev_mode1 = mode1;
-  int mode2 = 4;
   int prev_mode2 = mode2;
 
   Eigen::Vector3d object_pos_init1 = object_pos;
@@ -356,21 +390,28 @@ int main (int argc, char** argv){
     //object_position_from_source = world_to_base * (object_position_mocap - iiwa_base_position_from_source);
     //std::cout << "object is at: " << object_pos <<std::endl;
 
+    Eigen::Vector3d predict_pos;
+    double ETA;
+    tie(predict_pos, ETA) = predictPos();
+    
 
-    mode1 = modeCheck(prev_mode1, 1, ee1_pos, rest1_pos, iiwa1_base_pos);
+    mode1 = modeSelektor(predict_pos, ETA, ee1_pos, prev_mode1, 1);
     switch (mode1) {
       case 1: //track
-        pub_vel_quat1.publish(trackDS());
+        pub_pos_quat1.publish(trackDS(predict_pos, rest1_quat, iiwa1_base_pos, 1));
         ee1_pos_init = ee1_pos;
         break;
-      case 2: //hit
+      case 2: //stop
+        pub_pos_quat1.publish(stopDS(predict_pos, rest1_quat, iiwa1_base_pos, 1));
+        break;
+      case 3: //hit
         pub_vel_quat1.publish(hitDS(ee1_pos, ee1_pos_init, 1));
         object_pos_init1 = object_pos;
         break;
-      case 3: //post hit
+      case 4: //post hit
         pub_pos_quat1.publish(postHit(object_pos_init1, rest1_quat, iiwa1_base_pose, 1));
         break;
-      case 4: //rest
+      case 5: //rest
         pub_pos_quat1.publish(rest(rest1_pos, rest1_quat));
         ee1_pos_init = ee1_pos;
         break;
@@ -378,20 +419,23 @@ int main (int argc, char** argv){
     prev_mode1 = mode1;
 
 
-    mode2 = modeCheck(prev_mode2, 2, ee2_pos, rest2_pos, iiwa2_base_pos);
+    mode2 = modeSelektor(predict_pos, ETA, ee2_pos, prev_mode2, 2);
     switch (mode2) {
       case 1: //track
-        pub_vel_quat2.publish(trackDS());
+        pub_pos_quat2.publish(trackDS(predict_pos, rest2_quat, iiwa2_base_pos, 2));
         ee2_pos_init = ee2_pos;
         break;
-      case 2: //hit
+      case 2: //stop
+        pub_pos_quat2.publish(stopDS(predict_pos, rest2_quat, iiwa2_base_pos, 2));
+        break;
+      case 3: //hit
         pub_vel_quat2.publish(hitDS(ee2_pos, ee2_pos_init, 2));
         object_pos_init2 = object_pos;
         break;
-      case 3: //post hit
+      case 4: //post hit
         pub_pos_quat2.publish(postHit(object_pos_init2, rest2_quat, iiwa2_base_pose, 2));
         break;
-      case 4: //rest
+      case 5: //rest
         pub_pos_quat2.publish(rest(rest2_pos, rest2_quat));
         ee2_pos_init = ee2_pos;
         break;
@@ -409,7 +453,17 @@ int main (int argc, char** argv){
     ROS_INFO("%s",ss1.str().c_str());
     ROS_INFO("%s",ss2.str().c_str());
 
+    std::stringstream ss3;
+    std::stringstream ss4;
+    std::stringstream ss5;
 
+    ss3 << "final  : " << predict_pos[1];
+    ss4 << "current: " << object_pos[1];
+    ss5 << "ETA  : " << ETA*5.0;
+
+    ROS_INFO("%s",ss3.str().c_str());
+    ROS_INFO("%s",ss4.str().c_str());
+    ROS_INFO("%s",ss5.str().c_str());
 
 
     if (object_vel.norm()<0.01 && (object_pos[1] < -0.9 || (object_pos[1] > -0.5 && object_pos[1] < 0.5) || object_pos[1] > 0.9)) {
@@ -430,7 +484,7 @@ int main (int argc, char** argv){
       setmodelstate.request.model_state = modelstate;
       set_state_client.call(setmodelstate);
       ROS_INFO("Resetting object pose");
-    }
+    } //reset object position once out of reach
     /*
     object_data.open("/home/ros/ros_overlay_ws/src/i_am_project/data/object_data.csv", std::ofstream::out | std::ofstream::app);
     if(!object_data.is_open())

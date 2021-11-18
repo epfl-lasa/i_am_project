@@ -9,8 +9,8 @@ box:
       y: 0.0
       z: 0.0
     mass: 0.3
-    mu: 0.03
-    mu2: 0.03
+    mu: 0.025
+    mu2: 0.025
   initial_pos:
     x: 0.0
     y: -0.8

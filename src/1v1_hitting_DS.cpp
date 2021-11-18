@@ -128,6 +128,13 @@ geometry_msgs::Pose trackDS(){
   P = covarUpdate(P);
   state = stateUpdate(object_vel,state,P);
 
+  Eigen::Vector3d vel_est;
+  Eigen::Vector3d f_est;
+  double t_est;
+
+  vel_est << state[0], state[1], state[2];
+  f_est << state[3], state[4], state[5];
+  t_est = 0.3*vel_est.norm()/f_est.norm();
   /*syst << I3, -I3*dt/0.3, Z3, I3;
   for (int i = 0; i < 500; i++){
     s_plus = syst*state;
@@ -145,9 +152,9 @@ geometry_msgs::Pose trackDS(){
 
   Eigen::Vector3d predict_pos;
   for (int i = 0; i < 3; i++) {
-    predict_pos[i] = object_pos[i] - 0.5*0.3*state[i]*state[i]/state[i+3];
+    predict_pos[i] = object_pos[i] - 0.5*0.3*vel_est[i]*vel_est[i]/f_est[i];
   }
-
+  
 
   std::stringstream ss1;
   std::stringstream ss2;
@@ -155,7 +162,7 @@ geometry_msgs::Pose trackDS(){
 
   ss1 << "final  : " << predict_pos[1];
   ss2 << "current: " << object_pos[1];
-  ss3 << "f_est  : " << state[4];
+  ss3 << "t_est  : " << t_est*5.0;
 
   ROS_INFO("%s",ss1.str().c_str());
   ROS_INFO("%s",ss2.str().c_str());
@@ -306,7 +313,9 @@ int main (int argc, char** argv){
   ros::Publisher pub_vel_quat2 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/vel_quat", 1);
   ros::Publisher pub_pos_quat2 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/pos_quat", 1);
 
-  
+  ros::service::waitForService("gazebo/set_model_state");
+  ros::ServiceClient set_state_client = nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
+  gazebo_msgs::SetModelState setmodelstate;
   
   
   std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;
@@ -390,7 +399,7 @@ int main (int argc, char** argv){
     prev_mode2 = mode2;
     
 
-    
+
     std::stringstream ss1;
     std::stringstream ss2;
 
@@ -400,6 +409,28 @@ int main (int argc, char** argv){
     ROS_INFO("%s",ss1.str().c_str());
     ROS_INFO("%s",ss2.str().c_str());
 
+
+
+
+    if (object_vel.norm()<0.01 && (object_pos[1] < -0.9 || (object_pos[1] > -0.5 && object_pos[1] < 0.5) || object_pos[1] > 0.9)) {
+      geometry_msgs::Pose new_object_pose;
+      new_object_pose.position.x = 0.0;
+      new_object_pose.position.y = -0.8;
+      new_object_pose.position.z = 0.175;
+      new_object_pose.orientation.x = 0.0;
+      new_object_pose.orientation.y = 0.0;
+      new_object_pose.orientation.z = 0.0;
+      new_object_pose.orientation.w = 0.0;
+
+      gazebo_msgs::ModelState modelstate;
+      modelstate.model_name = (std::string) "my_box";
+      modelstate.reference_frame = (std::string) "world";
+      modelstate.pose = new_object_pose;
+
+      setmodelstate.request.model_state = modelstate;
+      set_state_client.call(setmodelstate);
+      ROS_INFO("Resetting object pose");
+    }
     /*
     object_data.open("/home/ros/ros_overlay_ws/src/i_am_project/data/object_data.csv", std::ofstream::out | std::ofstream::app);
     if(!object_data.is_open())

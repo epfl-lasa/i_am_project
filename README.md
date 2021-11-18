@@ -1,4 +1,5 @@
 # i_am_project
+## Dependencies/branches
 ### For single arm setup:
 * iiwa_ros      -> master
 * iiwa_toolkit  -> master
@@ -16,6 +17,6 @@
 
 ## Change parameters for environment:
     
-[i_am_project/config/1v1_params.yaml]
+Go to "i_am_project/config/1v1_params.yaml"
 
 Keep in mind for the single setup, the iiwa base is at (x,y)=(0,0) while for the dual setup, the center of the table is at (x,y)=(0,0)

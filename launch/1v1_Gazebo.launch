@@ -23,7 +23,7 @@
 
   
   <!-- Here is the node that allows me to hit the object in the iiwa simulator -->
-  <node name="hitting_1v1" pkg="i_am_project" type="1v1_hitting"   output="screen"/>
+  <node name="master" pkg="i_am_project" type="1v1_master"   output="screen"/>
 
 
 </launch>

@@ -3,22 +3,28 @@
 //|    email:   harshit.khurana@epfl.ch
 //|    website: lasa.epfl.ch
 
-#include "../include/hitting_DS.h" 
-#include "../include/calculate_alpha.h"
-#include "../include/nominal_DS_aux.h"
-#include "../include/nominal_DS_main.h"
-#include "../include/modulated_DS.h"
+#include "../include/1v1_master.h"
+
+#include "../include/track.h"
+#include "../include/block.h"
+#include "../include/hit_DS.h"
+#include "../include/post_hit.h"
+#include "../include/rest.h"
+
 #include "../include/kalman.h"
 
 #include <experimental/filesystem>
+
+using namespace std;
+
+
+double des_speed;
+double theta;
 
 geometry_msgs::Pose box_pose, ee1_pose, ee2_pose, iiwa1_base_pose, iiwa2_base_pose;
 geometry_msgs::Twist box_twist, ee1_twist, ee2_twist;
 
 Eigen::Vector3d object_pos, object_vel, ee1_pos, ee2_pos, ee1_vel, ee2_vel, iiwa1_base_pos, iiwa2_base_pos;
-
-double des_speed;
-double theta;
 
 Eigen::Vector3d rest1_pos = {0.5, -0.2, 0.4};           //relative to iiwa base
 Eigen::Vector3d rest2_pos = {0.5, -0.2, 0.4};
@@ -27,11 +33,15 @@ Eigen::Vector4d rest2_quat = {-0.707, 0.0, 0.0, 0.707};
 
 Eigen::Vector3d ee_offset = {0.0, -0.4, 0.225};         //relative to object
 
-Eigen::Matrix<double, 6,1> state = Eigen::Matrix<double, 6,1>::Zero();
+//State estimation initialization
 Eigen::Matrix<double, 6,6> P = Eigen::Matrix<double, 6,6>::Zero();
+Eigen::Matrix<double, 6,1> state = Eigen::Matrix<double, 6,1>::Zero();
+Eigen::Vector3d predict_pos;
+double ETA;
 
 
-using namespace std;
+
+
 
 int getIndex(std::vector<std::string> v, std::string value){
     for(int i = 0; i < v.size(); i++)
@@ -73,32 +83,6 @@ void iiwaCallback(const gazebo_msgs::LinkStates link_states){
   iiwa1_base_pos << iiwa1_base_pose.position.x,iiwa1_base_pose.position.y,iiwa1_base_pose.position.z;
   iiwa2_base_pos << iiwa2_base_pose.position.x,iiwa2_base_pose.position.y,iiwa2_base_pose.position.z;
 }
-
-
-
-
-std::tuple<Eigen::Vector3d, double> predictPos(){
-  P = covarUpdate(P);
-  state = stateUpdate(object_vel,state,P);
-
-  Eigen::Vector3d vel_est;
-  Eigen::Vector3d f_est;
-  double ETA;
-
-  vel_est << state[0], state[1], state[2];
-  f_est << state[3], state[4], state[5];
-  ETA = 0.3*vel_est.norm()/f_est.norm();
-  
-
-  Eigen::Vector3d predict_pos;
-  for (int i = 0; i < 3; i++) {
-    predict_pos[i] = object_pos[i] - 0.5*0.3*vel_est[i]*vel_est[i]/f_est[i];
-  }
-
-
-  return std::make_tuple(predict_pos,ETA);
-}
-
 
 
 
@@ -146,7 +130,7 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
   switch (prev_mode){
     case 1:   //track
       if (too_far == true && ETA < 3) {mode = 2;}                                         //if object will go too far, try to stop it
-      if (pred_hittable == true && ETA < 1.0 && ee_ready == true) {mode = 3;}             //if object will be in feasible position and stops in 0.5s and ee is in correct position, go to hit
+      if (pred_hittable == true && ETA < 0.8 && ee_ready == true) {mode = 3;}             //if object will be in feasible position and stops in 0.8s and ee is in correct position, go to hit
       if (too_close == true && ETA < 3) {mode = 5;}                                       //if object will not make it into reach, give up and go to rest
       break;
 
@@ -167,167 +151,12 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
 
     case 5:   //rest
       if (too_far == true && ETA < 3) {mode = 2;}                               //if object will go too far, try to stop it
-      if (pred_hittable == true && ETA < 1.0 && ee_ready == true) {mode = 3;}   //same as when being in tracking mode, since mode is initialized in rest
+      if (pred_hittable == true && ETA < 0.8 && ee_ready == true) {mode = 3;}   //same as when being in tracking mode, since mode is initialized in rest
       if (pred_hittable == true && ETA < 3 && ee_ready == false) {mode = 1;}    //if object is going to be hittable but ee is not in the right position, lets track!                               
       break;
   }
   return mode;
 }
-
-
-geometry_msgs::Pose trackDS(Eigen::Vector3d predict_pos, Eigen::Vector4d rest_quat, Eigen::Vector3d iiwa_base_pos, const int iiwa_no){
-  geometry_msgs::Pose pos_quat;
-  int iiwa_sel = 3-2*iiwa_no;
-  
-  pos_quat.position.x = (predict_pos[0] - iiwa_base_pos[0])*iiwa_sel + ee_offset[0];
-  pos_quat.position.y = (predict_pos[1] - iiwa_base_pos[1])*iiwa_sel + ee_offset[1];
-  pos_quat.position.z = predict_pos[2] - iiwa_base_pos[2] + ee_offset[2];
-  pos_quat.orientation.x = rest_quat[0];
-  pos_quat.orientation.y = rest_quat[1];
-  pos_quat.orientation.z = rest_quat[2];
-  pos_quat.orientation.w = rest_quat[3];
-
-  return pos_quat;
-}
-
-
-geometry_msgs::Pose stopDS(Eigen::Vector3d predict_pos, Eigen::Vector4d rest_quat, Eigen::Vector3d iiwa_base_pos, const int iiwa_no){
-  geometry_msgs::Pose pos_quat;
-  int iiwa_sel = 3-2*iiwa_no;
-
-  pos_quat.position.x = (predict_pos[0] - iiwa_base_pos[0])*iiwa_sel;
-  pos_quat.position.y = -1*iiwa_base_pos[1]*iiwa_sel -1.0;
-  pos_quat.position.z = predict_pos[2];
-  pos_quat.orientation.x = rest_quat[0];
-  pos_quat.orientation.y = rest_quat[1];
-  pos_quat.orientation.z = rest_quat[2];
-  pos_quat.orientation.w = rest_quat[3];
-  return pos_quat;
-}
-
-
-geometry_msgs::Pose hitDS(Eigen::Vector3d ee_pos, Eigen::Vector3d ee_pos_init, const int iiwa_no){
-  geometry_msgs::Pose vel_quat;
-  Eigen::Vector3d object_offset = {0.0, 0.0, 0.025};
-
-  int iiwa_sel = 3-2*iiwa_no;
-  Eigen::Matrix3d sel_mat;
-  sel_mat << iiwa_sel, 0.0,      0.0,
-             0.0,      iiwa_sel, 0.0,
-             0.0,      0.0,      1.0;
-
-  //instead of flipping direction of attractor and such, make use of the fact that iiwa2 is exactly the same as iiwa1 but rotated around the worlds z-axis with pi
-  //if then the only parameters that are defined w.r.t. the world frame are rotated also, the whole situation becomes identical
-  //(passive_track gives cmds w.r.t. respective iiwa frame)
-  Eigen::Vector3d object_pos2  = sel_mat*(object_pos+object_offset); 
-  Eigen::Vector3d ee_pos2      = sel_mat*ee_pos;
-  Eigen::Vector3d ee_pos_init2 = sel_mat*ee_pos_init;
-
-
-  
-
-  Eigen::Matrix3d gain_main;
-  Eigen::Matrix3d gain_aux;
-  gain_main << -0.9,  0.0, 0.0,
-                0.0, -0.1, 0.0,
-                0.0, 0.0, -0.9;
-
-  gain_aux << -0.1,  0.0, 0.0,
-               0.0, -0.1, 0.0,
-               0.0, 0.0, -0.1;
-
-  double modulated_sigma = 3.0;
-
-
-
-  Eigen::Matrix3d rot_mat;
-  rot_mat << cos(theta), -sin(theta), 0, 
-             sin(theta), cos(theta), 0,
-             0, 0, 1;
-  
-
-  
-  Eigen::Vector3d unit_x = {0.0, 1.0, 0.0};
-
-  Eigen::Vector3d attractor_main;
-  Eigen::Vector3d attractor_aux;
-  
-  attractor_main = object_pos2 + 1*rot_mat*unit_x;
-  attractor_aux = (4.0/3.0)*object_pos2 - (1.0/3.0)*attractor_main;
-  
-  
-
-  Eigen::Vector4d des_quat = Eigen::Vector4d::Zero();
-  Eigen::Vector3d ee_direction_x;
-  Eigen::Vector3d ee_direction_y;
-  Eigen::Vector3d ee_direction_z;
-  Eigen::Matrix3d rot_ee;
-  Eigen::Quaterniond rot_quat;
-  
-  ee_direction_z = attractor_main - object_pos2; 
-  ee_direction_x = {0.0, 0.0, 1.0};
-  ee_direction_y = ee_direction_z.cross(ee_direction_x);
-  ee_direction_z = ee_direction_z/ee_direction_z.norm();
-  ee_direction_y = ee_direction_y/ee_direction_y.norm();
-  ee_direction_x = ee_direction_x/ee_direction_x.norm();
-  rot_ee.col(0) = ee_direction_x;
-  rot_ee.col(1) = ee_direction_y;
-  rot_ee.col(2) = ee_direction_z;
-  rot_quat =  rot_ee;
-  des_quat << rot_quat.x(), rot_quat.y(), rot_quat.z(), rot_quat.w();
-
-  
-
-  Eigen::Vector3d des_vel = {0.0, 0.0, 0.0};
-  double alpha = calculate_alpha(ee_pos2, ee_pos_init2, object_pos2, attractor_main);
-  
-  des_vel = alpha*nominal_aux(rot_mat, gain_aux, ee_pos2, attractor_aux) + (1 - alpha)*nominal_main(rot_mat, gain_main, ee_pos2, attractor_main)
-            + modulated_DS(attractor_main, object_pos2, ee_pos2, modulated_sigma);
-
-  des_vel = des_vel*des_speed / des_vel.norm();
-
-
-  vel_quat.position.x = des_vel(0);
-  vel_quat.position.y = des_vel(1);
-  vel_quat.position.z = des_vel(2);
-  vel_quat.orientation.x = des_quat(0);
-  vel_quat.orientation.y = des_quat(1);
-  vel_quat.orientation.z = des_quat(2);
-  vel_quat.orientation.w = des_quat(3);
-
-  return vel_quat;
-}
-
-
-geometry_msgs::Pose postHit(const Eigen::Vector3d object_pos_init, const Eigen::Vector4d rest_quat, const geometry_msgs::Pose iiwa_base_pose, const int iiwa_no){
-  geometry_msgs::Pose pos_quat;
-  int iiwa_sel = 3-2*iiwa_no;
-  pos_quat.position.x = (object_pos_init[0] - iiwa_base_pose.position.x)*iiwa_sel;
-  pos_quat.position.y = (object_pos_init[1] - iiwa_base_pose.position.y)*iiwa_sel;
-  pos_quat.position.z = object_pos_init[2] - iiwa_base_pose.position.z;
-  pos_quat.orientation.x = rest_quat[0];
-  pos_quat.orientation.y = rest_quat[1];
-  pos_quat.orientation.z = rest_quat[2];
-  pos_quat.orientation.w = rest_quat[3];
-  return pos_quat;
-}
-
-
-geometry_msgs::Pose rest(const Eigen::Vector3d rest_pos, const Eigen::Vector4d rest_quat){
-  geometry_msgs::Pose pos_quat;
-  pos_quat.position.x = rest_pos[0];
-  pos_quat.position.y = rest_pos[1];
-  pos_quat.position.z = rest_pos[2];
-  pos_quat.orientation.x = rest_quat[0];
-  pos_quat.orientation.y = rest_quat[1];
-  pos_quat.orientation.z = rest_quat[2];
-  pos_quat.orientation.w = rest_quat[3];
-  return pos_quat;
-}
-
-
-
-
 
 
 
@@ -338,38 +167,61 @@ int main (int argc, char** argv){
   ros::NodeHandle nh;
   ros::Rate rate(100);
 
+  //Subscribers to object and IIWA states
   ros::Subscriber object_subs = nh.subscribe("/gazebo/model_states", 100 , objectCallback);
   ros::Subscriber iiwa_subs = nh.subscribe("/gazebo/link_states", 100, iiwaCallback);
   
+  //Publishers for position and velocity commands for IIWA end-effectors
   ros::Publisher pub_vel_quat1 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/vel_quat", 1);
   ros::Publisher pub_pos_quat1 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/pos_quat", 1);
   ros::Publisher pub_vel_quat2 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/vel_quat", 1);
   ros::Publisher pub_pos_quat2 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/pos_quat", 1);
 
+  //Client to reset object pose
   ros::service::waitForService("gazebo/set_model_state");
   ros::ServiceClient set_state_client = nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
   gazebo_msgs::SetModelState setmodelstate;
   
+  //Object properties from param file
+  struct modelProperties {
+    double size_x;
+    double size_y;
+    double size_z;
+    double com_x;
+    double com_y;
+    double com_z;
+    double mass;
+    double mu;
+    double mu2;
+};
+  struct modelProperties box;
+    nh.getParam("box/properties/size/x", box.size_x);
+    nh.getParam("box/properties/size/y", box.size_y);
+    nh.getParam("box/properties/size/z", box.size_z);
+    nh.getParam("box/properties/COM/x", box.com_x);
+    nh.getParam("box/properties/COM/y", box.com_y);
+    nh.getParam("box/properties/COM/z", box.com_z);
+    nh.getParam("box/properties/mass", box.mass);
+    nh.getParam("box/properties/mu", box.mu);
+  nh.getParam("box/properties/mu2", box.mu2);
+
   
-
-
-  std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;
-  std::cin >> des_speed;
-
-  while(des_speed < 0 || des_speed > 1){
-    std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
+  //Set hitting speed and direction. Once we change attractor to something more related to the game, we no longer need this
+    std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;
     std::cin >> des_speed;
-  }
 
-  std::cout << "Enter the desired direction of hitting (between -pi/2 and pi/2)" << std::endl;
-  std::cin >> theta;
+    while(des_speed < 0 || des_speed > 1){
+      std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
+      std::cin >> des_speed;
+    }
 
-  while(theta < -M_PI_2 || theta > M_PI_2){
-    std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
+    std::cout << "Enter the desired direction of hitting (between -pi/2 and pi/2)" << std::endl;
     std::cin >> theta;
+
+    while(theta < -M_PI_2 || theta > M_PI_2){
+      std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
+      std::cin >> theta;
   }
-
-
 
 
 
@@ -384,6 +236,7 @@ int main (int argc, char** argv){
   Eigen::Vector3d ee2_pos_init = ee2_pos;
 
 
+  //Storing data to get the right values in time. The data we want is actually from right before events that we can recognize (e.g. speed right before hitting)
   std::queue<Eigen::Vector3d> object_pos_q;
   std::queue<Eigen::Vector3d> predict_pos_q;
   std::queue<Eigen::Vector3d> ee1_pos_q;
@@ -397,41 +250,34 @@ int main (int argc, char** argv){
   bool once22 = false;
   std::ofstream object_data;
   bool store_data = 0;
-  object_data.open("/home/daan/catkin_ws/src/i_am_project/data/hitting/object_data.csv", std::ofstream::out | std::ofstream::app);
-    if(!object_data.is_open())
-    {
-      std::cerr << "Error opening output file.\n";
-      std::cout << "Current path is " << std::experimental::filesystem::current_path() << '\n';
-    }
-  object_data << "initial_object_x, y, z, ee_pos_x, y, z, ee_vel_x, y, z, final_object_x, y, z, stopped_by_receiver \n";
-  object_data.close();
-  
+
+
+
+
   while(ros::ok()){
     // Predict the future
-    Eigen::Vector3d predict_pos;
-    double ETA;
-    tie(predict_pos, ETA) = predictPos();
+    tie(P, state, predict_pos, ETA) = predictPos(P, state, object_pos, object_vel, 0.3);
     
     // Select correct operating mode for both arms based on conditions on (predicted) object position and velocity and ee position
     mode1 = modeSelektor(predict_pos, ETA, ee1_pos, prev_mode1, 1);
     switch (mode1) {
       case 1: //track
-        pub_pos_quat1.publish(trackDS(predict_pos, rest1_quat, iiwa1_base_pos, 1));
-        ee1_pos_init = ee1_pos;
+        pub_pos_quat1.publish(track(predict_pos, rest1_quat, ee_offset, iiwa1_base_pos, 1));
+        ee1_pos_init = ee1_pos; //we can go from track to hit. For hit, we need initial
         break;
       case 2: //stop
-        pub_pos_quat1.publish(stopDS(predict_pos, rest1_quat, iiwa1_base_pos, 1));
+        pub_pos_quat1.publish(block(predict_pos, rest1_quat, iiwa1_base_pos, 1));
         break;
       case 3: //hit
-        pub_vel_quat1.publish(hitDS(ee1_pos, ee1_pos_init, 1));
-        object_pos_init1 = object_pos;
+        pub_vel_quat1.publish(hitDS(des_speed, theta, object_pos, ee1_pos, ee1_pos_init, 1));
+        object_pos_init1 = object_pos; //need this for post-hit to guide the arm right after hit
         break;
       case 4: //post hit
-        pub_pos_quat1.publish(postHit(object_pos_init1, rest1_quat, iiwa1_base_pose, 1));
+        pub_pos_quat1.publish(postHit(object_pos_init1, rest1_quat, iiwa1_base_pos, 1));
         break;
       case 5: //rest
         pub_pos_quat1.publish(rest(rest1_pos, rest1_quat));
-        ee1_pos_init = ee1_pos;
+        ee1_pos_init = ee1_pos; //we can also go from rest to hit..
         break;
     }
     prev_mode1 = mode1;
@@ -439,18 +285,18 @@ int main (int argc, char** argv){
     mode2 = modeSelektor(predict_pos, ETA, ee2_pos, prev_mode2, 2);
     switch (mode2) {
       case 1: //track
-        pub_pos_quat2.publish(trackDS(predict_pos, rest2_quat, iiwa2_base_pos, 2));
+        pub_pos_quat2.publish(track(predict_pos, rest2_quat, ee_offset, iiwa2_base_pos, 2));
         ee2_pos_init = ee2_pos;
         break;
       case 2: //stop
-        pub_pos_quat2.publish(stopDS(predict_pos, rest2_quat, iiwa2_base_pos, 2));
+        pub_pos_quat2.publish(block(predict_pos, rest2_quat, iiwa2_base_pos, 2));
         break;
       case 3: //hit
-        pub_vel_quat2.publish(hitDS(ee2_pos, ee2_pos_init, 2));
+        pub_vel_quat2.publish(hitDS(des_speed, theta, object_pos, ee2_pos, ee2_pos_init, 2));
         object_pos_init2 = object_pos;
         break;
       case 4: //post hit
-        pub_pos_quat2.publish(postHit(object_pos_init2, rest2_quat, iiwa2_base_pose, 2));
+        pub_pos_quat2.publish(postHit(object_pos_init2, rest2_quat, iiwa2_base_pos, 2));
         break;
       case 5: //rest
         pub_pos_quat2.publish(rest(rest2_pos, rest2_quat));
@@ -459,6 +305,11 @@ int main (int argc, char** argv){
     }
     prev_mode2 = mode2;
     
+
+
+
+
+
 
     // Reset object position once out of reach
     if (object_vel.norm()<0.01 && (object_pos[1] < -0.9 || (object_pos[1] > -0.5 && object_pos[1] < 0.5) || object_pos[1] > 0.9)) {
@@ -482,6 +333,7 @@ int main (int argc, char** argv){
     } 
 
 
+
     // Some infos
       std::stringstream ss1;
       std::stringstream ss2;
@@ -502,10 +354,11 @@ int main (int argc, char** argv){
 
       ROS_INFO("%s",ss3.str().c_str());
       ROS_INFO("%s",ss4.str().c_str());
-      ROS_INFO("%s",ss5.str().c_str());
+    ROS_INFO("%s",ss5.str().c_str());
 
     
-    
+
+    //Store the actual data for three time steps. This turns out to be the right time. In other words, post-hit is initiated three time steps after the step right before impact, which is the step we want data from.
     object_pos_q.push(object_pos);
     predict_pos_q.push(predict_pos);
     ee1_pos_q.push(ee1_pos);
@@ -513,14 +366,12 @@ int main (int argc, char** argv){
     ee2_pos_q.push(ee2_pos);
     ee2_vel_q.push(ee2_vel);
 
-    while (object_pos_q.size() > 5){object_pos_q.pop();}
-    while (predict_pos_q.size() > 5){predict_pos_q.pop();}
-    while (ee1_pos_q.size() > 5){ee1_pos_q.pop();}
-    while (ee1_vel_q.size() > 5){ee1_vel_q.pop();}
-    while (ee2_pos_q.size() > 5){ee2_pos_q.pop();}
-    while (ee2_vel_q.size() > 5){ee2_vel_q.pop();}
-
-
+    while (object_pos_q.size() > 3){object_pos_q.pop();}
+    while (predict_pos_q.size() > 3){predict_pos_q.pop();}
+    while (ee1_pos_q.size() > 3){ee1_pos_q.pop();}
+    while (ee1_vel_q.size() > 3){ee1_vel_q.pop();}
+    while (ee2_pos_q.size() > 3){ee2_pos_q.pop();}
+    while (ee2_vel_q.size() > 3){ee2_vel_q.pop();}
 
 
     object_data.open("/home/daan/catkin_ws/src/i_am_project/data/hitting/object_data.csv", std::ofstream::out | std::ofstream::app);
@@ -533,6 +384,7 @@ int main (int argc, char** argv){
 
     if (mode1 == 4 && once11 == true){  //store data right before hit
       once11 = false;
+      object_data << box.size_x << ", " << box.size_y << ", " << box.size_z << ", " << box.com_x << ", " << box.com_y << ", " << box.com_z << ", " << box.mass << ", " << box.mu << ", " << box.mu2 << ", ";
       object_data << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << object_pos_q.front()[2] << ", " << ee1_pos_q.front()[0] << ", " << ee1_pos_q.front()[1] << ", " << ee1_pos_q.front()[2] << ", " << ee1_vel_q.front()[0] << ", " << ee1_vel_q.front()[1] << ", " << ee1_vel_q.front()[2] << ", ";
     }
 
@@ -554,6 +406,7 @@ int main (int argc, char** argv){
     
     if (mode2 == 4 && once21 == true){
       once21 = false;
+      object_data << box.size_x << ", " << box.size_y << ", " << box.size_z << ", " << box.com_x << ", " << box.com_y << ", " << box.com_z << ", " << box.mass << ", " << box.mu << ", " << box.mu2 << ", ";
       object_data << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << object_pos_q.front()[2] << ", " << ee2_pos_q.front()[0] << ", " << ee2_pos_q.front()[1] << ", " << ee2_pos_q.front()[2] << ", " << ee2_vel_q.front()[0] << ", " << ee2_vel_q.front()[1] << ", " << ee2_vel_q.front()[2] << ", ";
     }
 
@@ -573,7 +426,12 @@ int main (int argc, char** argv){
     
     object_data.close();
     
-    
+    /*std_msgs::Float32 posfloat;
+    posfloat.data = (float) ee1_pos[1];
+    std_msgs::Float32 velfloat;
+    velfloat.data = (float) ee1_vel[1];
+    pub_ee1_pos.publish(posfloat);
+    pub_ee1_vel.publish(velfloat);*/
 
 
 

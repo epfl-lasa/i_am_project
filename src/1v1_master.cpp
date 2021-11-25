@@ -25,6 +25,7 @@ geometry_msgs::Pose box_pose, ee1_pose, ee2_pose, iiwa1_base_pose, iiwa2_base_po
 geometry_msgs::Twist box_twist, ee1_twist, ee2_twist;
 
 Eigen::Vector3d object_pos, object_vel, ee1_pos, ee2_pos, ee1_vel, ee2_vel, iiwa1_base_pos, iiwa2_base_pos;
+Eigen::Vector4d object_ori, ee1_ori, ee2_ori;
 
 Eigen::Vector3d rest1_pos = {0.5, -0.2, 0.4};           //relative to iiwa base
 Eigen::Vector3d rest2_pos = {0.5, -0.2, 0.4};
@@ -59,6 +60,8 @@ void objectCallback(const gazebo_msgs::ModelStates model_states){
   box_twist = model_states.twist[box_index];
   object_pos << box_pose.position.x, box_pose.position.y, box_pose.position.z;
   object_vel << box_twist.linear.x, box_twist.linear.y, box_twist.linear.z;
+
+  object_ori << box_pose.orientation.x, box_pose.orientation.y, box_pose.orientation.z, box_pose.orientation.w;
 }
 
 void iiwaCallback(const gazebo_msgs::LinkStates link_states){
@@ -130,7 +133,7 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
   switch (prev_mode){
     case 1:   //track
       if (too_far == true && ETA < 3) {mode = 2;}                                         //if object will go too far, try to stop it
-      if (pred_hittable == true && ETA < 0.8 && ee_ready == true) {mode = 3;}             //if object will be in feasible position and stops in 0.8s and ee is in correct position, go to hit
+      if (pred_hittable == true && ETA < 0.5 && ee_ready == true) {mode = 3;}             //if object will be in feasible position and stops in 0.8s and ee is in correct position, go to hit
       if (too_close == true && ETA < 3) {mode = 5;}                                       //if object will not make it into reach, give up and go to rest
       break;
 
@@ -151,7 +154,7 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
 
     case 5:   //rest
       if (too_far == true && ETA < 3) {mode = 2;}                               //if object will go too far, try to stop it
-      if (pred_hittable == true && ETA < 0.8 && ee_ready == true) {mode = 3;}   //same as when being in tracking mode, since mode is initialized in rest
+      if (pred_hittable == true && ETA < 0.5 && ee_ready == true) {mode = 3;}   //same as when being in tracking mode, since mode is initialized in rest
       if (pred_hittable == true && ETA < 3 && ee_ready == false) {mode = 1;}    //if object is going to be hittable but ee is not in the right position, lets track!                               
       break;
   }
@@ -160,10 +163,11 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
 
 
 
+
 int main (int argc, char** argv){
 
 	//ROS Initialization
-  ros::init(argc, argv, "hitting_DS");
+  ros::init(argc, argv, "AH_master");
   ros::NodeHandle nh;
   ros::Rate rate(100);
 
@@ -313,22 +317,42 @@ int main (int argc, char** argv){
 
     // Reset object position once out of reach
     if (object_vel.norm()<0.01 && (object_pos[1] < -0.9 || (object_pos[1] > -0.5 && object_pos[1] < 0.5) || object_pos[1] > 0.9)) {
-      geometry_msgs::Pose new_object_pose;
-      new_object_pose.position.x = 0.0;
-      new_object_pose.position.y = -0.8;
-      new_object_pose.position.z = 0.175;
-      new_object_pose.orientation.x = 0.0;
-      new_object_pose.orientation.y = 0.0;
-      new_object_pose.orientation.z = 0.0;
-      new_object_pose.orientation.w = 0.0;
+      //Set new pose of box
+      geometry_msgs::Pose new_box_pose;
+      nh.getParam("box/initial_pos/x",new_box_pose.position.x);
+      nh.getParam("box/initial_pos/y",new_box_pose.position.y);
+      nh.getParam("box/initial_pos/z",new_box_pose.position.z);
+      new_box_pose.orientation.x = 0.0;
+      new_box_pose.orientation.y = 0.0;
+      new_box_pose.orientation.z = 0.0;
+      new_box_pose.orientation.w = 0.0;
 
       gazebo_msgs::ModelState modelstate;
       modelstate.model_name = (std::string) "my_box";
       modelstate.reference_frame = (std::string) "world";
-      modelstate.pose = new_object_pose;
-
+      modelstate.pose = new_box_pose;
       setmodelstate.request.model_state = modelstate;
       set_state_client.call(setmodelstate);
+
+
+      //Set new pose of minibox
+      geometry_msgs::Pose new_mini_pose;
+      nh.getParam("mini/initial_pos/x", new_mini_pose.position.x);
+      nh.getParam("mini/initial_pos/y", new_mini_pose.position.y);
+      nh.getParam("mini/initial_pos/z", new_mini_pose.position.z);
+      new_mini_pose.position.x += new_box_pose.position.x;
+      new_mini_pose.position.y += new_box_pose.position.y;
+      new_mini_pose.position.z += new_box_pose.position.z;
+      new_mini_pose.orientation.x = 0.0;
+      new_mini_pose.orientation.y = 0.0;
+      new_mini_pose.orientation.z = 0.0;
+      new_mini_pose.orientation.w = 0.0;
+
+      modelstate.model_name = (std::string) "my_mini";
+      modelstate.pose = new_mini_pose;
+      setmodelstate.request.model_state = modelstate;
+      set_state_client.call(setmodelstate);
+
       ROS_INFO("Resetting object pose");
     } 
 
@@ -388,7 +412,7 @@ int main (int argc, char** argv){
       object_data << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << object_pos_q.front()[2] << ", " << ee1_pos_q.front()[0] << ", " << ee1_pos_q.front()[1] << ", " << ee1_pos_q.front()[2] << ", " << ee1_vel_q.front()[0] << ", " << ee1_vel_q.front()[1] << ", " << ee1_vel_q.front()[2] << ", ";
     }
 
-    if (mode2 == 2 && object_pos[1] > 0.5 && once12 == true){  //store predicted pos if it will be stopped
+    if (mode2 == 2 && object_pos[1] > 0.75 && once12 == true){  //store predicted pos if it will be stopped
       once12 = false;
       object_data << predict_pos_q.front()[0] << ", " << predict_pos_q.front()[1] << ", " << predict_pos_q.front()[2] << " stopped" << "\n";
       once21 = true;
@@ -410,7 +434,7 @@ int main (int argc, char** argv){
       object_data << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << object_pos_q.front()[2] << ", " << ee2_pos_q.front()[0] << ", " << ee2_pos_q.front()[1] << ", " << ee2_pos_q.front()[2] << ", " << ee2_vel_q.front()[0] << ", " << ee2_vel_q.front()[1] << ", " << ee2_vel_q.front()[2] << ", ";
     }
 
-    if (mode1 == 2 && object_pos[1] < -0.5 && once22 == true){
+    if (mode1 == 2 && object_pos[1] < -0.75 && once22 == true){
       once22 = false;
       object_data << predict_pos_q.front()[0] << ", " << predict_pos_q.front()[1] << ", " << predict_pos_q.front()[2] << " stopped" << "\n";
       once11 = true;

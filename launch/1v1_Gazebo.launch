@@ -16,14 +16,15 @@
 
   <rosparam file="$(find i_am_project)/config/1v1_params.yaml" />
 
-  <node name="initialization" pkg="i_am_project" type="1v1_init" />
+  <node name="initialization" pkg="i_am_project" type="AH_init" output="screen"/>
+
 
   <!--node name="motion_gen" pkg="iiwa_test_motion" type="motion_gen_dual" />
   <node name="mode_control" pkg="iiwa_test_motion" type="mode_ctrl" /-->        <!--manual control-->
 
   
   <!-- Here is the node that allows me to hit the object in the iiwa simulator -->
-  <node name="master" pkg="i_am_project" type="1v1_master"   output="screen"/>
+  <node name="master" pkg="i_am_project" type="AH_master"   output="screen"/>
 
 
 </launch>

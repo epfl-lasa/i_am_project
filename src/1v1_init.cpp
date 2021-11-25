@@ -1,4 +1,5 @@
 #include "ros/ros.h"
+#include "ros/package.h"
 #include "gazebo_msgs/SpawnModel.h"
 #include "geometry_msgs/Pose.h"
 #include <iostream>
@@ -7,6 +8,28 @@
 #include <cmath>
 
 
+//Container for all necessary properties of a model
+struct modelProperties {
+    const char* name;
+
+    double size_x;
+    double size_y;
+    double size_z;
+    double com_x;
+    double com_y;
+    double com_z;
+    double mass;
+    double mu;
+    double mu2;
+
+    double ixx;
+    double iyy;
+    double izz;
+
+    geometry_msgs::Pose pose;
+};
+
+//Some standard sdf bits which will be reused for each sdf file
 const char* sdf1 = R"(<?xml version="1.0" ?>
     <sdf version="1.4">
         <model name=")";
@@ -49,26 +72,7 @@ const char* sdf6 = R"(          </size>
                     </visual>)"
 ;
 
-struct modelProperties {
-    const char* name;
-
-    double size_x;
-    double size_y;
-    double size_z;
-    double com_x;
-    double com_y;
-    double com_z;
-    double mass;
-    double mu;
-    double mu2;
-
-    double ixx;
-    double iyy;
-    double izz;
-
-    geometry_msgs::Pose pose;
-};
-
+//Generate the actual sdf files
 std::stringstream sdfGenerator(const modelProperties model){
     //this is the meticulous bit: create a model sdf code for the spawner by adding sections together such that the variables can be squeezed inbetween
     std::stringstream name_ss;
@@ -113,21 +117,21 @@ std::stringstream sdfGenerator(const modelProperties model){
 };
 
 
+
+
 int main (int argc, char** argv){
-    ros::init(argc, argv, "1v1_init");
+    ros::init(argc, argv, "AH_init");
     ros::NodeHandle nh;
-    //system("rosparam load $(rospack find i_am_1v1)/config/1v1_params.yaml");
+    //system("rosparam load $(rospack find i_am_project)/config/1v1_params.yaml");
 
-
-
-    //spawn service
+    //Spawn service
     ros::service::waitForService("gazebo/spawn_sdf_model");
     ros::ServiceClient model_spawner = nh.serviceClient<gazebo_msgs::SpawnModel>("/gazebo/spawn_sdf_model");
     gazebo_msgs::SpawnModel model_spawn;
-    
 
 
-    //get parameters for table
+    //Get parameters for the models
+    //Table:
     struct modelProperties table;
         table.name = "my_table";
         nh.getParam("table/properties/size/x", table.size_x);
@@ -152,7 +156,7 @@ int main (int argc, char** argv){
         table.pose.orientation.z = 0.0;
         table.pose.orientation.w = 1.0;
     
-    //get parameters for box
+    //Box:
     struct modelProperties box;
         box.name = "my_box";
         nh.getParam("box/properties/size/x", box.size_x);
@@ -177,20 +181,70 @@ int main (int argc, char** argv){
         box.pose.orientation.z = 0.0;
         box.pose.orientation.w = 1.0;
 
+    //Minibox:
+    struct modelProperties mini;
+        mini.name = "my_mini";
+        nh.getParam("mini/properties/size/x", mini.size_x);
+        nh.getParam("mini/properties/size/y", mini.size_y);
+        nh.getParam("mini/properties/size/z", mini.size_z);
+        nh.getParam("mini/properties/COM/x", mini.com_x);
+        nh.getParam("mini/properties/COM/y", mini.com_y);
+        nh.getParam("mini/properties/COM/z", mini.com_z);
+        nh.getParam("mini/properties/mass", mini.mass);
+        nh.getParam("mini/properties/mu", mini.mu);
+        nh.getParam("mini/properties/mu2", mini.mu2);
 
-    //finally add all information together in the service message (model_spawn) and call the service
+        mini.ixx = 1.0/12* mini.mass* (pow(mini.size_y,2) + pow(mini.size_z,2));
+        mini.iyy = 1.0/12* mini.mass* (pow(mini.size_x,2) + pow(mini.size_z,2));
+        mini.izz = 1.0/12* mini.mass* (pow(mini.size_x,2) + pow(mini.size_y,2));
+        
+        nh.getParam("mini/initial_pos/x", mini.pose.position.x);
+        nh.getParam("mini/initial_pos/y", mini.pose.position.y);
+        nh.getParam("mini/initial_pos/z", mini.pose.position.z);
+        mini.pose.position.x += box.pose.position.x;
+        mini.pose.position.y += box.pose.position.y;
+        mini.pose.position.z += box.pose.position.z;
+        mini.pose.orientation.x = 0.0;
+        mini.pose.orientation.y = 0.0;
+        mini.pose.orientation.z = 0.0;
+        mini.pose.orientation.w = 1.0;
+    bool hollow;
+    nh.getParam("hollow",hollow);
+
+
+    //Finally add all information together in the service message (model_spawn) and call the service
+    //Table:
     model_spawn.request.model_name = table.name;
     model_spawn.request.model_xml = sdfGenerator(table).str();
     model_spawn.request.robot_namespace = "1v1_Gazebo";
     model_spawn.request.initial_pose = table.pose;
-    
     model_spawner.call(model_spawn); 
 
-    //and for the box
-    model_spawn.request.model_name = box.name;
-    model_spawn.request.model_xml = sdfGenerator(box).str();
-    model_spawn.request.robot_namespace = "1v1_Gazebo";
-    model_spawn.request.initial_pose = box.pose;
     
+    //Box:
+    if (hollow == false) {
+        model_spawn.request.model_name = box.name;
+        model_spawn.request.model_xml = sdfGenerator(box).str();
+        model_spawn.request.robot_namespace = "1v1_Gazebo";
+        model_spawn.request.initial_pose = box.pose;
+    }
+    else{//or hollow box:
+        //Hollow box is the only model that still uses fixed external sdf file
+        std::stringstream hollow_path;      hollow_path << ros::package::getPath("i_am_project") << "/object_models/hollow_box.sdf";
+        std::ifstream hollow_box(hollow_path.str()); if(!hollow_box){std::cerr <<"Unable to open hollow_box.txt";}
+        std::stringstream hollow_box_sdf;   hollow_box_sdf << hollow_box.rdbuf(); hollow_box.close();
+
+        model_spawn.request.model_name = box.name;
+        model_spawn.request.model_xml = hollow_box_sdf.str();
+        model_spawn.request.robot_namespace = "1v1_Gazebo";
+        model_spawn.request.initial_pose = box.pose;
+        model_spawner.call(model_spawn);
+
+        //and mini box:
+        model_spawn.request.model_name = mini.name;
+        model_spawn.request.model_xml = sdfGenerator(mini).str();
+        model_spawn.request.robot_namespace = "1v1_Gazebo";
+        model_spawn.request.initial_pose = mini.pose;
+    }
     model_spawner.call(model_spawn); 
 }

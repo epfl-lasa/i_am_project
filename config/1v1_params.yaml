@@ -1,21 +1,4 @@
-box:
-  properties:
-    size:
-      x: 0.25
-      y: 0.25
-      z: 0.25
-    COM:            #relative to geometric center
-      x: 0.0
-      y: 0.0
-      z: 0.0
-    mass: 0.3
-    mu: 0.025
-    mu2: 0.025
-  initial_pos:
-    x: 0.0
-    y: -0.8
-    z: 0.175
-  
+hollow: false
 
 table:
   properties:
@@ -34,6 +17,44 @@ table:
     x: 0.0
     y: 0.0
     z: 0.025
+
+box:
+  properties:
+    size:
+      x: 0.25
+      y: 0.25
+      z: 0.25
+    COM:            #relative to geometric center
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    mass: 0.3
+    mu: 0.025
+    mu2: 0.025
+  initial_pos:
+    x: 0.0
+    y: -0.8
+    z: 0.175
+  
+mini:
+  properties:
+    size:
+      x: 0.1
+      y: 0.1
+      z: 0.1
+    COM:            #relative to geometric center
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    mass: 0.3
+    mu: 0.03
+    mu2: 0.03
+  initial_pos:      #relative to big box center
+    x: 0.0
+    y: -0.065
+    z: -0.065
+
+
 
 #hit:
 #  speed: 1.0

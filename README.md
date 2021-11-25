@@ -19,4 +19,6 @@
     
 Go to "i_am_project/config/1v1_params.yaml"
 
+To use hollow box, change parameter 'hollow' to true in parameter file
+
 Keep in mind for the single setup, the iiwa base is at (x,y)=(0,0) while for the dual setup, the center of the table is at (x,y)=(0,0)

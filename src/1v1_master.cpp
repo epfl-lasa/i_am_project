@@ -49,54 +49,48 @@ Eigen::Vector3d predict_pos;
 double ETA;
 
 
-Eigen::Vector3d quatToRPY(geometry_msgs::Quaternion q) {
+Eigen::Vector4d quatProd(Eigen::Vector4d a, Eigen::Vector4d b){
+  Eigen::Vector4d p;
+  p[0] = a[0]*b[0] - a[1]*b[1] - a[2]*b[2] - a[3]*b[3];
+  p[1] = a[0]*b[1] + a[1]*b[0] + a[2]*b[3] - a[3]*b[2];
+  p[2] = a[0]*b[2] - a[1]*b[3] + a[2]*b[0] + a[3]*b[1];
+  p[3] = a[0]*b[3] + a[1]*b[2] - a[2]*b[1] + a[3]*b[0];
+  return p;
+}
+
+Eigen::Vector3d quatToRPY(Eigen::Vector4d q) {
     Eigen::Vector3d angles;
 
     // roll (x-axis rotation)
-    double sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
-    double cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+    double sinr_cosp = 2 * (q[0] * q[1] + q[2] * q[3]);
+    double cosr_cosp = 1 - 2 * (q[1] * q[1] + q[2] * q[2]);
     angles[0] = std::atan2(sinr_cosp, cosr_cosp);
 
     // pitch (y-axis rotation)
-    double sinp = 2 * (q.w * q.y - q.z * q.x);
+    double sinp = 2 * (q[0] * q[2] - q[3] * q[1]);
     if (std::abs(sinp) >= 1)
         angles[1] = std::copysign(M_PI / 2, sinp); // use 90 degrees if out of range
     else
         angles[1] = std::asin(sinp);
 
     // yaw (z-axis rotation)
-    double siny_cosp = 2 * (q.w * q.z + q.x * q.y);
-    double cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+    double siny_cosp = 2 * (q[0] * q[3] + q[1] * q[2]);
+    double cosy_cosp = 1 - 2 * (q[2] * q[2] + q[3] * q[3]);
     angles[2] = std::atan2(siny_cosp, cosy_cosp);
 
     return angles;
 }
 
-Eigen::Vector4d rpyToQuat(const Eigen::Vector3d& rpy){
-    Eigen::Vector4d base_quat;
-    double angle0 = 0.5*M_PI;
-    base_quat[0] = (std::cos(angle0/2));
-    base_quat.segment(1,3) = (std::sin(angle0/2))* Eigen::Vector3d::UnitY();
+Eigen::Vector4d rpyToQuat(double r, double p, double y){
+  Eigen::Vector4d q_base = {std::cos(-M_PI/4), std::sin(-M_PI/4), 0.0, 0.0}; //rotate from base quaternion (ee pointing up) to 'ready to play' rotation
 
-    Eigen::Vector4d q_x = Eigen::Vector4d::Zero();
-    q_x(0) = std::cos(rpy[0]/2);
-    q_x(1) = std::sin(rpy[0]/2);
-    Eigen::Matrix3d rotMat_x = Utils<double>::quaternionToRotationMatrix(q_x);
+  Eigen::Vector4d q_r = {std::cos(r/2), std::sin(r/2), 0.0, 0.0};
+  Eigen::Vector4d q_p = {std::cos(p/2), 0.0, std::sin(p/2), 0.0};
+  Eigen::Vector4d q_y = {std::cos(y/2), 0.0, 0.0, std::sin(y/2)};
 
-    Eigen::Vector4d q_y = Eigen::Vector4d::Zero();
-    q_y(0) = std::cos(rpy[1]/2);
-    q_y(2) = std::sin(rpy[1]/2);
-    Eigen::Matrix3d rotMat_y = Utils<double>::quaternionToRotationMatrix(q_y);
+  Eigen::Vector4d q = quatProd(q_r, quatProd(q_p, quatProd(q_y,q_base)));     //start with last rotation and then backwards
 
-    Eigen::Vector4d q_z = Eigen::Vector4d::Zero();
-    q_z(0) = std::cos(rpy[2]/2);
-    q_z(3) = std::sin(rpy[2]/2);
-    Eigen::Matrix3d rotMat_z = Utils<double>::quaternionToRotationMatrix(q_z);
-
-    Eigen::Matrix3d rotMat = rotMat_z*rotMat_y*rotMat_x * Utils<double>::quaternionToRotationMatrix(base_quat);
-
-    Eigen::Vector4d th_quat = Utils<double>::rotationMatrixToQuaternion(rotMat);
-    return th_quat;
+  return q;
 }
 
 int getIndex(std::vector<std::string> v, std::string value){
@@ -117,11 +111,12 @@ void objectCallback(const gazebo_msgs::ModelStates model_states){
   object_pos << box_pose.position.x, box_pose.position.y, box_pose.position.z;
   object_vel << box_twist.linear.x, box_twist.linear.y, box_twist.linear.z;
 
-  object_rpy = quatToRPY(box_pose.orientation);
-  object_theta = object_rpy[2];
-  theta_mod = std::fmod(object_theta+M_PI+M_PI/4,M_PI/2)-M_PI/4;
-  theta_quat = rpyToQuat({0.0,0.0,theta_mod});
+  object_rpy = quatToRPY({box_pose.orientation.w, box_pose.orientation.x, box_pose.orientation.y, box_pose.orientation.z}); //get orientation in rpy
+  object_theta = object_rpy[2];                                                                                             //only the z-axis
+  theta_mod = std::fmod(object_theta+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
+  theta_quat = rpyToQuat(0.0, 0.0, theta_mod);                                                                                    //convert back to quat
 }
+
 
 void iiwaCallback(const gazebo_msgs::LinkStates link_states){
   int ee1_index = getIndex(link_states.name, "iiwa1::iiwa1_link_7"); // End effector is the 7th link in KUKA IIWA
@@ -350,11 +345,11 @@ int main (int argc, char** argv){
     mode1 = modeSelektor(predict_pos, ETA, ee1_pos, prev_mode1, 1);
     switch (mode1) {
       case 1: //track
-        pub_pos_quat1.publish(track(predict_pos, rest1_quat, ee_offset, iiwa1_base_pos, 1));
+        pub_pos_quat1.publish(track(predict_pos, theta_quat, ee_offset, iiwa1_base_pos, 1));
         ee1_pos_init = ee1_pos; //we can go from track to hit. For hit, we need initial
         break;
       case 2: //stop
-        pub_pos_quat1.publish(block(predict_pos, rest1_quat, iiwa1_base_pos, 1));
+        pub_pos_quat1.publish(block(predict_pos, theta_quat, iiwa1_base_pos, 1));
         break;
       case 3: //hit
         pub_vel_quat1.publish(hitDS(des_speed, theta_mod, object_pos, ee1_pos, ee1_pos_init, 1));
@@ -373,11 +368,11 @@ int main (int argc, char** argv){
     mode2 = modeSelektor(predict_pos, ETA, ee2_pos, prev_mode2, 2);
     switch (mode2) {
       case 1: //track
-        pub_pos_quat2.publish(track(predict_pos, rest2_quat, ee_offset, iiwa2_base_pos, 2));
+        pub_pos_quat2.publish(track(predict_pos, theta_quat, ee_offset, iiwa2_base_pos, 2));
         ee2_pos_init = ee2_pos;
         break;
       case 2: //stop
-        pub_pos_quat2.publish(block(predict_pos, rest2_quat, iiwa2_base_pos, 2));
+        pub_pos_quat2.publish(block(predict_pos, theta_quat, iiwa2_base_pos, 2));
         break;
       case 3: //hit
         pub_vel_quat2.publish(hitDS(des_speed, theta_mod, object_pos, ee2_pos, ee2_pos_init, 2));
@@ -554,7 +549,7 @@ int main (int argc, char** argv){
     
     if (tracking == true && oneinten >= 10){
       oneinten = 0;
-      object_data << object_pos[0] << ", " << object_pos[1] << ", " << object_pos[2] << ", " << theta_mod << ", " << box_twist.angular.z << "\n";
+      object_data << object_pos[0] << ", " << object_pos[1] << ", " << object_pos[2] << ", " << object_theta << ", " << box_twist.angular.z << "\n";
     }
     oneinten++;
 

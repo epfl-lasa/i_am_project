@@ -3,6 +3,7 @@
 #include "ros/ros.h"
 #include "ros/package.h"
 #include <ros/console.h>
+#include "thirdparty/Utils.h"
 
 #include <cstdio>
 #include <iostream>

@@ -30,6 +30,8 @@ geometry_msgs::Twist box_twist, ee1_twist, ee2_twist;
 Eigen::Vector3d object_pos, object_vel, ee1_pos, ee2_pos, ee1_vel, ee2_vel, iiwa1_base_pos, iiwa2_base_pos;
 Eigen::Vector3d object_rpy;
 double object_theta;
+double theta_mod;
+Eigen::Vector4d theta_quat;
 
 std::vector<double> iiwa1_joint_angles, iiwa2_joint_angles;
 
@@ -117,6 +119,8 @@ void objectCallback(const gazebo_msgs::ModelStates model_states){
 
   object_rpy = quatToRPY(box_pose.orientation);
   object_theta = object_rpy[2];
+  theta_mod = std::fmod(object_theta+M_PI+M_PI/4,M_PI/2)-M_PI/4;
+  theta_quat = rpyToQuat({0.0,0.0,theta_mod});
 }
 
 void iiwaCallback(const gazebo_msgs::LinkStates link_states){
@@ -340,11 +344,10 @@ int main (int argc, char** argv){
     // Predict the future
     tie(P, state, predict_pos, ETA) = predictPos(P, state, object_pos, object_vel, 0.3);
     
-    double theta_mod = std::fmod(object_theta+M_PI+M_PI/4,M_PI/2)-M_PI/4;
-    Eigen::Vector4d theta_quat = rpyToQuat({0.0,0.0,theta_mod});
+    
 
     // Select correct operating mode for both arms based on conditions on (predicted) object position and velocity and ee position
-    //mode1 = modeSelektor(predict_pos, ETA, ee1_pos, prev_mode1, 1);
+    mode1 = modeSelektor(predict_pos, ETA, ee1_pos, prev_mode1, 1);
     switch (mode1) {
       case 1: //track
         pub_pos_quat1.publish(track(predict_pos, rest1_quat, ee_offset, iiwa1_base_pos, 1));
@@ -367,7 +370,7 @@ int main (int argc, char** argv){
     }
     prev_mode1 = mode1;
 
-    //mode2 = modeSelektor(predict_pos, ETA, ee2_pos, prev_mode2, 2);
+    mode2 = modeSelektor(predict_pos, ETA, ee2_pos, prev_mode2, 2);
     switch (mode2) {
       case 1: //track
         pub_pos_quat2.publish(track(predict_pos, rest2_quat, ee_offset, iiwa2_base_pos, 2));

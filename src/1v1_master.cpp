@@ -21,6 +21,9 @@ using namespace std;
 double des_speed;
 double theta;
 
+int mode1 = 5;
+int mode2 = 5;
+
 geometry_msgs::Pose box_pose, ee1_pose, ee2_pose, iiwa1_base_pose, iiwa2_base_pose;
 geometry_msgs::Twist box_twist, ee1_twist, ee2_twist;
 
@@ -44,7 +47,7 @@ Eigen::Vector3d predict_pos;
 double ETA;
 
 
-Eigen::Vector3d quatToEulerAngles(geometry_msgs::Quaternion q) {
+Eigen::Vector3d quatToRPY(geometry_msgs::Quaternion q) {
     Eigen::Vector3d angles;
 
     // roll (x-axis rotation)
@@ -67,6 +70,32 @@ Eigen::Vector3d quatToEulerAngles(geometry_msgs::Quaternion q) {
     return angles;
 }
 
+Eigen::Vector4d rpyToQuat(const Eigen::Vector3d& rpy){
+    Eigen::Vector4d base_quat;
+    double angle0 = 0.5*M_PI;
+    base_quat[0] = (std::cos(angle0/2));
+    base_quat.segment(1,3) = (std::sin(angle0/2))* Eigen::Vector3d::UnitY();
+
+    Eigen::Vector4d q_x = Eigen::Vector4d::Zero();
+    q_x(0) = std::cos(rpy[0]/2);
+    q_x(1) = std::sin(rpy[0]/2);
+    Eigen::Matrix3d rotMat_x = Utils<double>::quaternionToRotationMatrix(q_x);
+
+    Eigen::Vector4d q_y = Eigen::Vector4d::Zero();
+    q_y(0) = std::cos(rpy[1]/2);
+    q_y(2) = std::sin(rpy[1]/2);
+    Eigen::Matrix3d rotMat_y = Utils<double>::quaternionToRotationMatrix(q_y);
+
+    Eigen::Vector4d q_z = Eigen::Vector4d::Zero();
+    q_z(0) = std::cos(rpy[2]/2);
+    q_z(3) = std::sin(rpy[2]/2);
+    Eigen::Matrix3d rotMat_z = Utils<double>::quaternionToRotationMatrix(q_z);
+
+    Eigen::Matrix3d rotMat = rotMat_z*rotMat_y*rotMat_x * Utils<double>::quaternionToRotationMatrix(base_quat);
+
+    Eigen::Vector4d th_quat = Utils<double>::rotationMatrixToQuaternion(rotMat);
+    return th_quat;
+}
 
 int getIndex(std::vector<std::string> v, std::string value){
     for(int i = 0; i < v.size(); i++)
@@ -86,7 +115,7 @@ void objectCallback(const gazebo_msgs::ModelStates model_states){
   object_pos << box_pose.position.x, box_pose.position.y, box_pose.position.z;
   object_vel << box_twist.linear.x, box_twist.linear.y, box_twist.linear.z;
 
-  object_rpy = quatToEulerAngles(box_pose.orientation);
+  object_rpy = quatToRPY(box_pose.orientation);
   object_theta = object_rpy[2];
 }
 
@@ -121,6 +150,12 @@ void iiwa2JointCallback(sensor_msgs::JointState joint_states){
   iiwa2_joint_angles = joint_states.position;
 }
 
+
+/*void modeCallback(std_msgs::Int16 msg){
+  if (msg.data <= 5){mode1 = msg.data;}
+  if (msg.data >= 6){mode2 = msg.data-5;} 
+  if (msg.data == 0){mode2 = 5;}
+}*/
 
 int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos, const int prev_mode, const int iiwa_no){
   int mode = prev_mode;           // if none of the conditions are met, mode remains the same
@@ -221,6 +256,8 @@ int main (int argc, char** argv){
   ros::ServiceClient set_state_client = nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
   gazebo_msgs::SetModelState setmodelstate;
   
+  //ros::Subscriber mode_sub = nh.subscribe("mode",10,modeCallback);
+
   //Object properties from param file
   struct modelProperties {
     double size_x;
@@ -264,8 +301,7 @@ int main (int argc, char** argv){
 
 
 
-  int mode1 = 5;
-  int mode2 = 5;
+  
   int prev_mode1 = mode1;
   int prev_mode2 = mode2;
 
@@ -304,8 +340,11 @@ int main (int argc, char** argv){
     // Predict the future
     tie(P, state, predict_pos, ETA) = predictPos(P, state, object_pos, object_vel, 0.3);
     
+    double theta_mod = std::fmod(object_theta+M_PI+M_PI/4,M_PI/2)-M_PI/4;
+    Eigen::Vector4d theta_quat = rpyToQuat({0.0,0.0,theta_mod});
+
     // Select correct operating mode for both arms based on conditions on (predicted) object position and velocity and ee position
-    mode1 = modeSelektor(predict_pos, ETA, ee1_pos, prev_mode1, 1);
+    //mode1 = modeSelektor(predict_pos, ETA, ee1_pos, prev_mode1, 1);
     switch (mode1) {
       case 1: //track
         pub_pos_quat1.publish(track(predict_pos, rest1_quat, ee_offset, iiwa1_base_pos, 1));
@@ -315,7 +354,7 @@ int main (int argc, char** argv){
         pub_pos_quat1.publish(block(predict_pos, rest1_quat, iiwa1_base_pos, 1));
         break;
       case 3: //hit
-        pub_vel_quat1.publish(hitDS(des_speed, theta, object_pos, ee1_pos, ee1_pos_init, 1));
+        pub_vel_quat1.publish(hitDS(des_speed, theta_mod, object_pos, ee1_pos, ee1_pos_init, 1));
         object_pos_init1 = object_pos; //need this for post-hit to guide the arm right after hit
         break;
       case 4: //post hit
@@ -328,7 +367,7 @@ int main (int argc, char** argv){
     }
     prev_mode1 = mode1;
 
-    mode2 = modeSelektor(predict_pos, ETA, ee2_pos, prev_mode2, 2);
+    //mode2 = modeSelektor(predict_pos, ETA, ee2_pos, prev_mode2, 2);
     switch (mode2) {
       case 1: //track
         pub_pos_quat2.publish(track(predict_pos, rest2_quat, ee_offset, iiwa2_base_pos, 2));
@@ -338,7 +377,7 @@ int main (int argc, char** argv){
         pub_pos_quat2.publish(block(predict_pos, rest2_quat, iiwa2_base_pos, 2));
         break;
       case 3: //hit
-        pub_vel_quat2.publish(hitDS(des_speed, theta, object_pos, ee2_pos, ee2_pos_init, 2));
+        pub_vel_quat2.publish(hitDS(des_speed, theta_mod, object_pos, ee2_pos, ee2_pos_init, 2));
         object_pos_init2 = object_pos;
         break;
       case 4: //post hit
@@ -449,12 +488,10 @@ int main (int argc, char** argv){
 
 
     object_data.open(data_path.str(), std::ofstream::out | std::ofstream::app);
-    if(!object_data.is_open())
-    {
+    if(!object_data.is_open()){
       std::cerr << "Error opening output file.\n";
       std::cout << "Current path is " << std::experimental::filesystem::current_path() << '\n';
     }
-
 
     if (mode1 == 4 && once11 == true){  //store data right before hit (this is once, directly after hit)
       once11 = false;
@@ -468,7 +505,6 @@ int main (int argc, char** argv){
       tracking = true;
       oneinten = 10;
     }
-
     if (mode2 == 2 && object_pos[1] > 0.75 && once12 == true){  //store predicted pos if it will be stopped
       once12 = false;
       tracking = false;
@@ -477,7 +513,6 @@ int main (int argc, char** argv){
       once21 = true;
       once22 = true;
     }
-
     if (mode2 == 3 && once12 == true){  //or if it will be hit back just before it came to a halt
       once12 = false;
       tracking = false;
@@ -485,8 +520,6 @@ int main (int argc, char** argv){
       once21 = true;
       once22 = true;
     }
-
-    
     
     if (mode2 == 4 && once21 == true){
       once21 = false;
@@ -500,7 +533,6 @@ int main (int argc, char** argv){
       tracking = true;
       oneinten = 10;
     }
-
     if (mode1 == 2 && object_pos[1] < -0.75 && once22 == true){
       once22 = false;
       tracking = false;
@@ -509,7 +541,6 @@ int main (int argc, char** argv){
       once11 = true;
       once12 = true;
     }
-
     if (mode1 == 3 && once22 == true){
       once22 = false;
       tracking = false;
@@ -518,10 +549,9 @@ int main (int argc, char** argv){
       once12 = true;
     }
     
-    
     if (tracking == true && oneinten >= 10){
       oneinten = 0;
-      object_data << object_pos[0] << ", " << object_pos[1] << ", " << object_pos[2] << ", " << object_theta << ", " << box_twist.angular.z << "\n";
+      object_data << object_pos[0] << ", " << object_pos[1] << ", " << object_pos[2] << ", " << theta_mod << ", " << box_twist.angular.z << "\n";
     }
     oneinten++;
 

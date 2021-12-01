@@ -6,9 +6,9 @@ geometry_msgs::Pose postHit(const Eigen::Vector3d object_pos_init, const Eigen::
   pos_quat.position.x = (object_pos_init[0] - iiwa_base_pos[0])*iiwa_sel;
   pos_quat.position.y = (object_pos_init[1] - iiwa_base_pos[1])*iiwa_sel;
   pos_quat.position.z = object_pos_init[2] - iiwa_base_pos[2];
-  pos_quat.orientation.x = rest_quat[0];
-  pos_quat.orientation.y = rest_quat[1];
-  pos_quat.orientation.z = rest_quat[2];
-  pos_quat.orientation.w = rest_quat[3];
+  pos_quat.orientation.w = rest_quat[0];
+  pos_quat.orientation.x = rest_quat[1];
+  pos_quat.orientation.y = rest_quat[2];
+  pos_quat.orientation.z = rest_quat[3];
   return pos_quat;
 }

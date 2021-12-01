@@ -37,10 +37,12 @@ std::vector<double> iiwa1_joint_angles, iiwa2_joint_angles;
 
 Eigen::Vector3d rest1_pos = {0.5, -0.2, 0.4};           //relative to iiwa base
 Eigen::Vector3d rest2_pos = {0.5, -0.2, 0.4};
-Eigen::Vector4d rest1_quat = {-0.707, 0.0, 0.0, 0.707};
-Eigen::Vector4d rest2_quat = {-0.707, 0.0, 0.0, 0.707};
+Eigen::Vector4d rest1_quat = {0.707, -0.707, 0.0, 0.0};
+Eigen::Vector4d rest2_quat = {0.707, -0.707, 0.0, 0.0};
 
 Eigen::Vector3d ee_offset = {0.0, -0.4, 0.225};         //relative to object
+
+Eigen::Vector3d des_pos = {0.0, 0.8, 0.0};
 
 //State estimation initialization
 Eigen::Matrix<double, 6,6> P = Eigen::Matrix<double, 6,6>::Zero();
@@ -93,6 +95,7 @@ Eigen::Vector4d rpyToQuat(double r, double p, double y){
   return q;
 }
 
+
 int getIndex(std::vector<std::string> v, std::string value){
     for(int i = 0; i < v.size(); i++)
     {
@@ -116,7 +119,6 @@ void objectCallback(const gazebo_msgs::ModelStates model_states){
   theta_mod = std::fmod(object_theta+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
   theta_quat = rpyToQuat(0.0, 0.0, theta_mod);                                                                                    //convert back to quat
 }
-
 
 void iiwaCallback(const gazebo_msgs::LinkStates link_states){
   int ee1_index = getIndex(link_states.name, "iiwa1::iiwa1_link_7"); // End effector is the 7th link in KUKA IIWA
@@ -339,20 +341,24 @@ int main (int argc, char** argv){
     // Predict the future
     tie(P, state, predict_pos, ETA) = predictPos(P, state, object_pos, object_vel, 0.3);
     
-    
+    double theta_des1 = -std::atan2((des_pos[0]-predict_pos[0]),(des_pos[1]-predict_pos[1]));
+    double theta_des2 = -std::atan2((des_pos[0]+predict_pos[0]),(des_pos[1]+predict_pos[1]));
+    std::stringstream omaatje;
+    omaatje << "th1: " << theta_des1 << "   th2: " << theta_des2;
+    ROS_INFO("%s", omaatje.str().c_str());
 
     // Select correct operating mode for both arms based on conditions on (predicted) object position and velocity and ee position
     mode1 = modeSelektor(predict_pos, ETA, ee1_pos, prev_mode1, 1);
     switch (mode1) {
       case 1: //track
-        pub_pos_quat1.publish(track(predict_pos, theta_quat, ee_offset, iiwa1_base_pos, 1));
+        pub_pos_quat1.publish(track(predict_pos, rest1_quat, ee_offset, iiwa1_base_pos, 1));
         ee1_pos_init = ee1_pos; //we can go from track to hit. For hit, we need initial
         break;
       case 2: //stop
         pub_pos_quat1.publish(block(predict_pos, theta_quat, iiwa1_base_pos, 1));
         break;
       case 3: //hit
-        pub_vel_quat1.publish(hitDS(des_speed, theta_mod, object_pos, ee1_pos, ee1_pos_init, 1));
+        pub_vel_quat1.publish(hitDS(des_speed, theta_des1, object_pos, ee1_pos, ee1_pos_init, 1));
         object_pos_init1 = object_pos; //need this for post-hit to guide the arm right after hit
         break;
       case 4: //post hit
@@ -368,14 +374,14 @@ int main (int argc, char** argv){
     mode2 = modeSelektor(predict_pos, ETA, ee2_pos, prev_mode2, 2);
     switch (mode2) {
       case 1: //track
-        pub_pos_quat2.publish(track(predict_pos, theta_quat, ee_offset, iiwa2_base_pos, 2));
+        pub_pos_quat2.publish(track(predict_pos, rest2_quat, ee_offset, iiwa2_base_pos, 2));
         ee2_pos_init = ee2_pos;
         break;
       case 2: //stop
         pub_pos_quat2.publish(block(predict_pos, theta_quat, iiwa2_base_pos, 2));
         break;
       case 3: //hit
-        pub_vel_quat2.publish(hitDS(des_speed, theta_mod, object_pos, ee2_pos, ee2_pos_init, 2));
+        pub_vel_quat2.publish(hitDS(des_speed, theta_des2, object_pos, ee2_pos, ee2_pos_init, 2));
         object_pos_init2 = object_pos;
         break;
       case 4: //post hit

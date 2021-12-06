@@ -23,6 +23,8 @@ double theta;
 
 int mode1 = 5;
 int mode2 = 5;
+int manual_mode1 = 5;
+int manual_mode2 = 5;
 
 geometry_msgs::Pose box_pose, ee1_pose, ee2_pose, iiwa1_base_pose, iiwa2_base_pose;
 geometry_msgs::Twist box_twist, ee1_twist, ee2_twist;
@@ -42,11 +44,13 @@ Eigen::Vector4d rest2_quat = {0.707, -0.707, 0.0, 0.0};
 
 Eigen::Vector3d ee_offset = {0.0, -0.4, 0.225};         //relative to object
 
-Eigen::Vector3d des_pos = {0.0, 0.8, 0.0};
+Eigen::Vector3d des_pos = {0.0, 0.8, 0.0};              // Seen from IIWA 1, relative to world base. Same coordinate is used for iiwa 2, flipped 180 deg
 
 //State estimation initialization
 Eigen::Matrix<double, 6,6> P = Eigen::Matrix<double, 6,6>::Zero();
 Eigen::Matrix<double, 6,1> state = Eigen::Matrix<double, 6,1>::Zero();
+//Eigen::Matrix<double, 9,9> P = Eigen::Matrix<double, 9,9>::Zero();  //use for experimental kalman2
+//Eigen::Matrix<double, 9,1> state = Eigen::Matrix<double, 9,1>::Zero();
 Eigen::Vector3d predict_pos;
 double ETA;
 
@@ -152,11 +156,11 @@ void iiwa2JointCallback(sensor_msgs::JointState joint_states){
 }
 
 
-/*void modeCallback(std_msgs::Int16 msg){
-  if (msg.data <= 5){mode1 = msg.data;}
-  if (msg.data >= 6){mode2 = msg.data-5;} 
-  if (msg.data == 0){mode2 = 5;}
-}*/
+void modeCallback(std_msgs::Int16 msg){
+  if (msg.data <= 5){manual_mode1 = msg.data;}
+  if (msg.data >= 6){manual_mode2 = msg.data-5;} 
+  if (msg.data == 0){manual_mode2 = 5;}
+}
 
 int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos, const int prev_mode, const int iiwa_no){
   int mode = prev_mode;           // if none of the conditions are met, mode remains the same
@@ -202,7 +206,7 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
   switch (prev_mode){
     case 1:   //track
       if (too_far == true && ETA < 3) {mode = 2;}                                         //if object will go too far, try to stop it
-      if (pred_hittable == true && ETA < 0.5 && ee_ready == true) {mode = 3;}             //if object will be in feasible position and stops in 0.8s and ee is in correct position, go to hit
+      if (pred_hittable == true && ETA < 0.5 && ee_ready == true) {mode = 3;}             //if object will be in feasible position and stops in 0.5s and ee is in correct position, go to hit
       if (too_close == true && ETA < 3) {mode = 5;}                                       //if object will not make it into reach, give up and go to rest
       break;
 
@@ -214,6 +218,9 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
         state = Eigen::Matrix<double,6,1>::Zero();
         state << object_vel[0],object_vel[1],object_vel[2],0.0,0.03*9.81*0.3*iiwa_sel,0.0;
         P = Eigen::Matrix<double, 6,6>::Zero();
+        //state = Eigen::Matrix<double,9,1>::Zero();
+        //state << object_pos[0],object_pos[1],object_pos[2],object_vel[0],object_vel[1],object_vel[2],0.0,0.03*9.81*0.3*iiwa_sel,0.0;
+        //P = Eigen::Matrix<double, 9,9>::Zero();
       }                                           
       break;
 
@@ -257,7 +264,9 @@ int main (int argc, char** argv){
   ros::ServiceClient set_state_client = nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
   gazebo_msgs::SetModelState setmodelstate;
   
-  //ros::Subscriber mode_sub = nh.subscribe("mode",10,modeCallback);
+  ros::Subscriber mode_sub = nh.subscribe("mode",10,modeCallback);
+  bool manual_mode;
+  nh.getParam("manual_mode", manual_mode);
 
   //Object properties from param file
   struct modelProperties {
@@ -339,16 +348,14 @@ int main (int argc, char** argv){
 
   while(ros::ok()){
     // Predict the future
-    tie(P, state, predict_pos, ETA) = predictPos(P, state, object_pos, object_vel, 0.3);
+    tie(P, state, predict_pos, ETA) = predictPos(P, state, object_pos, object_vel, box.mass);
     
     double theta_des1 = -std::atan2((des_pos[0]-predict_pos[0]),(des_pos[1]-predict_pos[1]));
     double theta_des2 = -std::atan2((des_pos[0]+predict_pos[0]),(des_pos[1]+predict_pos[1]));
-    std::stringstream omaatje;
-    omaatje << "th1: " << theta_des1 << "   th2: " << theta_des2;
-    ROS_INFO("%s", omaatje.str().c_str());
 
     // Select correct operating mode for both arms based on conditions on (predicted) object position and velocity and ee position
-    mode1 = modeSelektor(predict_pos, ETA, ee1_pos, prev_mode1, 1);
+    if (manual_mode == false) {mode1 = modeSelektor(predict_pos, ETA, ee1_pos, prev_mode1, 1);}
+    else {mode1 = manual_mode1;}
     switch (mode1) {
       case 1: //track
         pub_pos_quat1.publish(track(predict_pos, rest1_quat, ee_offset, iiwa1_base_pos, 1));
@@ -371,7 +378,8 @@ int main (int argc, char** argv){
     }
     prev_mode1 = mode1;
 
-    mode2 = modeSelektor(predict_pos, ETA, ee2_pos, prev_mode2, 2);
+    if (manual_mode == false) {mode2 = modeSelektor(predict_pos, ETA, ee2_pos, prev_mode2, 2);}
+    else {mode2 = manual_mode2;}
     switch (mode2) {
       case 1: //track
         pub_pos_quat2.publish(track(predict_pos, rest2_quat, ee_offset, iiwa2_base_pos, 2));

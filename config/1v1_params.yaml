@@ -1,4 +1,5 @@
 hollow: false
+manual_mode: false
 
 table:
   properties:

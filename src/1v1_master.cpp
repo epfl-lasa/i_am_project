@@ -109,42 +109,31 @@ int getIndex(std::vector<std::string> v, std::string value){
     return -1;
 }
 
-void objectCallback(const gazebo_msgs::ModelStates model_states){
-  int box_index = getIndex(model_states.name, "my_box");
+void objectCallback(const geometry_msgs::Pose object_pose){
+  object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;
 
-  box_pose = model_states.pose[box_index];
-  box_twist = model_states.twist[box_index];
-
-  object_pos << box_pose.position.x, box_pose.position.y, box_pose.position.z;
-  object_vel << box_twist.linear.x, box_twist.linear.y, box_twist.linear.z;
-
-  object_rpy = quatToRPY({box_pose.orientation.w, box_pose.orientation.x, box_pose.orientation.y, box_pose.orientation.z}); //get orientation in rpy
+  object_rpy = quatToRPY({object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z}); //get orientation in rpy
   object_theta = object_rpy[2];                                                                                             //only the z-axis
   theta_mod = std::fmod(object_theta+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
   theta_quat = rpyToQuat(0.0, 0.0, theta_mod);                                                                                    //convert back to quat
 }
 
-void iiwaCallback(const gazebo_msgs::LinkStates link_states){
-  int ee1_index = getIndex(link_states.name, "iiwa1::iiwa1_link_7"); // End effector is the 7th link in KUKA IIWA
-  int ee2_index = getIndex(link_states.name, "iiwa2::iiwa2_link_7");
-  int iiwa1_base_index = getIndex(link_states.name, "iiwa1::iiwa1_link_0");
-  int iiwa2_base_index = getIndex(link_states.name, "iiwa2::iiwa2_link_0");
+void iiwa1BaseCallback(const geometry_msgs::Pose base_pose){
+  iiwa1_base_pos << base_pose.position.x, base_pose.position.y, base_pose.position.z;
+}
 
-  ee1_pose = link_states.pose[ee1_index];
-  ee2_pose = link_states.pose[ee2_index];
-  ee1_twist = link_states.twist[ee1_index];
-  ee2_twist = link_states.twist[ee2_index];
+void iiwa2BaseCallback(const geometry_msgs::Pose base_pose){
+  iiwa2_base_pos << base_pose.position.x, base_pose.position.y, base_pose.position.z;
+}
 
-  ee1_pos << ee1_pose.position.x, ee1_pose.position.y, ee1_pose.position.z;
-  ee2_pos << ee2_pose.position.x, ee2_pose.position.y, ee2_pose.position.z;
-  ee1_vel << ee1_twist.linear.x, ee1_twist.linear.y, ee1_twist.linear.z;
-  ee2_vel << ee2_twist.linear.x, ee2_twist.linear.y, ee2_twist.linear.z;
-  
+void iiwa1EECallback(const geometry_msgs::Pose ee_pose){
+  ee1_pose = ee_pose;
+  ee1_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
+}
 
-  iiwa1_base_pose = link_states.pose[iiwa1_base_index];
-  iiwa2_base_pose = link_states.pose[iiwa2_base_index];
-  iiwa1_base_pos << iiwa1_base_pose.position.x,iiwa1_base_pose.position.y,iiwa1_base_pose.position.z;
-  iiwa2_base_pos << iiwa2_base_pose.position.x,iiwa2_base_pose.position.y,iiwa2_base_pose.position.z;
+void iiwa2EECallback(const geometry_msgs::Pose ee_pose){
+  ee2_pose = ee_pose;
+  ee2_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
 }
 
 void iiwa1JointCallback(sensor_msgs::JointState joint_states){
@@ -248,10 +237,13 @@ int main (int argc, char** argv){
   ros::Rate rate(100);
 
   //Subscribers to object and IIWA states
-  ros::Subscriber object_subs = nh.subscribe("/gazebo/model_states", 100 , objectCallback);
-  ros::Subscriber iiwa_subs = nh.subscribe("/gazebo/link_states", 100, iiwaCallback);
-  ros::Subscriber iiwa1_joint_subs = nh.subscribe("/iiwa1/joint_states", 100, iiwa1JointCallback);
-  ros::Subscriber iiwa2_joint_subs = nh.subscribe("/iiwa2/joint_states", 100, iiwa2JointCallback);
+  ros::Subscriber object_subs = nh.subscribe("/simo_track/object_pose", 10 , objectCallback);
+  ros::Subscriber iiwa1_base_subs = nh.subscribe("/simo_track/robot_left/pose", 10, iiwa1BaseCallback);
+  ros::Subscriber iiwa2_base_subs = nh.subscribe("/simo_track/robot_right/pose", 10, iiwa2BaseCallback);
+  ros::Subscriber iiwa1_ee_subs = nh.subscribe("/simo_track/robot_left/ee_pose", 10, iiwa1EECallback);
+  ros::Subscriber iiwa2_ee_subs = nh.subscribe("/simo_track/robot_right/ee_pose", 10, iiwa2EECallback);
+  ros::Subscriber iiwa1_joint_subs = nh.subscribe("/iiwa1/joint_states", 10, iiwa1JointCallback);
+  ros::Subscriber iiwa2_joint_subs = nh.subscribe("/iiwa2/joint_states", 10, iiwa2JointCallback);
   
   //Publishers for position and velocity commands for IIWA end-effectors
   ros::Publisher pub_vel_quat1 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/vel_quat", 1);
@@ -259,10 +251,6 @@ int main (int argc, char** argv){
   ros::Publisher pub_vel_quat2 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/vel_quat", 1);
   ros::Publisher pub_pos_quat2 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/pos_quat", 1);
 
-  //Client to reset object pose
-  ros::service::waitForService("gazebo/set_model_state");
-  ros::ServiceClient set_state_client = nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
-  gazebo_msgs::SetModelState setmodelstate;
   
   ros::Subscriber mode_sub = nh.subscribe("mode",10,modeCallback);
   bool manual_mode;

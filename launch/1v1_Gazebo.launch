@@ -10,20 +10,17 @@
 |-->
 
 <launch>
-  <include
-      file = "$(find dual_iiwa_toolkit)/launch/passive_track_gazebo.launch">
-  </include>
+  <arg name="robot_name_1" default="iiwa1"/>
+  <arg name="robot_name_2" default="iiwa2"/>
 
+  <rosparam file="$(find real_pose)/config/topics.yaml" command="load" subst_value="true"/>
+  <rosparam file="$(find dual_iiwa_toolkit)/config/passive_track_params.yaml" command="load"/>
   <rosparam file="$(find i_am_project)/config/1v1_params.yaml" />
 
-  <node name="initialization" pkg="i_am_project" type="AH_init" output="screen"/>
+  <include file="$(find real_pose)/launch/hardwares.launch">
 
-
-  <!--node name="motion_gen" pkg="iiwa_test_motion" type="motion_gen_dual" />
-  <node name="mode_control" pkg="iiwa_test_motion" type="mode_ctrl" /-->        <!--manual control-->
-
-  
-  <!-- Here is the node that allows me to hit the object in the iiwa simulator -->
+  <node name="real_pose" pkg="real_pose" type="real_pose" output="screen"/>
+  <node name="dual_iiwa_toolkit" pkg="dual_iiwa_toolkit" type="dual_iiwa_toolkit" output="screen"/>
   <node name="master" pkg="i_am_project" type="AH_master"   output="screen"/>
 
 

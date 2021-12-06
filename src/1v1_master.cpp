@@ -100,14 +100,6 @@ Eigen::Vector4d rpyToQuat(double r, double p, double y){
 }
 
 
-int getIndex(std::vector<std::string> v, std::string value){
-    for(int i = 0; i < v.size(); i++)
-    {
-        if(v[i].compare(value) == 0)
-            return i;
-    }
-    return -1;
-}
 
 void objectCallback(const geometry_msgs::Pose object_pose){
   object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;
@@ -396,46 +388,6 @@ int main (int argc, char** argv){
 
 
 
-    // Reset object position once out of reach
-    if (object_vel.norm()<0.01 && (object_pos[1] < -0.9 || (object_pos[1] > -0.5 && object_pos[1] < 0.5) || object_pos[1] > 0.9)) {
-      //Set new pose of box
-      geometry_msgs::Pose new_box_pose;
-      nh.getParam("box/initial_pos/x",new_box_pose.position.x);
-      nh.getParam("box/initial_pos/y",new_box_pose.position.y);
-      nh.getParam("box/initial_pos/z",new_box_pose.position.z);
-      new_box_pose.orientation.x = 0.0;
-      new_box_pose.orientation.y = 0.0;
-      new_box_pose.orientation.z = 0.0;
-      new_box_pose.orientation.w = 0.0;
-
-      gazebo_msgs::ModelState modelstate;
-      modelstate.model_name = (std::string) "my_box";
-      modelstate.reference_frame = (std::string) "world";
-      modelstate.pose = new_box_pose;
-      setmodelstate.request.model_state = modelstate;
-      set_state_client.call(setmodelstate);
-
-
-      //Set new pose of minibox
-      geometry_msgs::Pose new_mini_pose;
-      nh.getParam("mini/initial_pos/x", new_mini_pose.position.x);
-      nh.getParam("mini/initial_pos/y", new_mini_pose.position.y);
-      nh.getParam("mini/initial_pos/z", new_mini_pose.position.z);
-      new_mini_pose.position.x += new_box_pose.position.x;
-      new_mini_pose.position.y += new_box_pose.position.y;
-      new_mini_pose.position.z += new_box_pose.position.z;
-      new_mini_pose.orientation.x = 0.0;
-      new_mini_pose.orientation.y = 0.0;
-      new_mini_pose.orientation.z = 0.0;
-      new_mini_pose.orientation.w = 0.0;
-
-      modelstate.model_name = (std::string) "my_mini";
-      modelstate.pose = new_mini_pose;
-      setmodelstate.request.model_state = modelstate;
-      set_state_client.call(setmodelstate);
-
-      ROS_INFO("Resetting object pose");
-    } 
 
 
 

@@ -17,11 +17,12 @@
   <rosparam file="$(find dual_iiwa_toolkit)/config/passive_track_params.yaml" command="load"/>
   <rosparam file="$(find i_am_project)/config/1v1_params.yaml" />
 
-  <include file="$(find real_pose)/launch/hardwares.launch">
+  <include file="$(find real_pose)/launch/hardwares.launch">                                          <!--Optitrack-->
+  </include>
 
-  <node name="real_pose" pkg="real_pose" type="real_pose" output="screen"/>
-  <node name="dual_iiwa_toolkit" pkg="dual_iiwa_toolkit" type="dual_iiwa_toolkit" output="screen"/>
-  <node name="master" pkg="i_am_project" type="AH_master"   output="screen"/>
+  <node name="real_pose" pkg="real_pose" type="real_pose" output="screen"/>                           <!--Run real_pose to convert optitrack and iiwa_joint data to object, base and ee pose-->
+  <node name="dual_iiwa_toolkit" pkg="dual_iiwa_toolkit" type="dual_iiwa_toolkit" output="screen"/>   <!--Run dual_iiwa_toolkit to control torques from position and velocity cmds-->
+  <node name="master" pkg="i_am_project" type="AH_master"   output="screen"/>                         <!--Run AH_master to control position and velocity for game of air hockey-->
 
 
 </launch>

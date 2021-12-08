@@ -26,17 +26,8 @@ int mode2 = 5;
 int manual_mode1 = 5;
 int manual_mode2 = 5;
 
-geometry_msgs::Pose box_pose, ee1_pose, ee2_pose, iiwa1_base_pose, iiwa2_base_pose;
-geometry_msgs::Twist box_twist, ee1_twist, ee2_twist;
 
-Eigen::Vector3d object_pos, object_vel, ee1_pos, ee2_pos, ee1_vel, ee2_vel, iiwa1_base_pos, iiwa2_base_pos;
-Eigen::Vector3d object_rpy;
-double object_theta;
-double theta_mod;
-Eigen::Vector4d theta_quat;
-
-std::vector<double> iiwa1_joint_angles, iiwa2_joint_angles;
-
+// Stuff to set
 Eigen::Vector3d rest1_pos = {0.5, -0.2, 0.4};           //relative to iiwa base
 Eigen::Vector3d rest2_pos = {0.5, -0.2, 0.4};
 Eigen::Vector4d rest1_quat = {0.707, -0.707, 0.0, 0.0};
@@ -46,13 +37,35 @@ Eigen::Vector3d ee_offset = {0.0, -0.4, 0.225};         //relative to object
 
 Eigen::Vector3d des_pos = {0.0, 0.8, 0.0};              // Seen from IIWA 1, relative to world base. Same coordinate is used for iiwa 2, flipped 180 deg
 
-//State estimation initialization
-Eigen::Matrix<double, 6,6> P = Eigen::Matrix<double, 6,6>::Zero();
-Eigen::Matrix<double, 6,1> state = Eigen::Matrix<double, 6,1>::Zero();
-//Eigen::Matrix<double, 9,9> P = Eigen::Matrix<double, 9,9>::Zero();  //use for experimental kalman2
-//Eigen::Matrix<double, 9,1> state = Eigen::Matrix<double, 9,1>::Zero();
-Eigen::Vector3d predict_pos;
+double min_dist = 0.05;
+double max_dist = 0.45;
+
+
+// Stuff to measure
+geometry_msgs::Pose object_pose, ee1_pose, ee2_pose, iiwa1_base_pose, iiwa2_base_pose;
+geometry_msgs::Twist object_twist, ee1_twist, ee2_twist;
+
+Eigen::Vector3d object_pos, ee1_pos, ee2_pos, iiwa1_base_pos, iiwa2_base_pos;
+Eigen::Vector3d object_vel, ee1_vel, ee2_vel;
+Eigen::Vector3d hit_force = Eigen::Vector3d::Zero();
+
+Eigen::Vector3d object_rpy;
+double object_th, object_th_mod;
+Eigen::Vector4d th_quat;
+
+std::vector<double> iiwa1_joint_angles, iiwa2_joint_angles;
+
+
+// Stuff to estimate
+Eigen::Matrix<double, 9,9> P_obj_lin = Eigen::Matrix<double, 9,9>::Zero();  //use for experimental kalman2
+Eigen::Matrix<double, 9,1> s_obj_lin = Eigen::Matrix<double, 9,1>::Zero();
+Eigen::Vector3d object_vel_est, predict_pos;
 double ETA;
+
+Eigen::Matrix3d P_obj_th = Eigen::Matrix3d::Zero();
+Eigen::Vector3d s_obj_th = Eigen::Vector3d::Zero();
+double predict_th;
+
 
 
 Eigen::Vector4d quatProd(Eigen::Vector4d a, Eigen::Vector4d b){
@@ -112,16 +125,16 @@ int getIndex(std::vector<std::string> v, std::string value){
 void objectCallback(const gazebo_msgs::ModelStates model_states){
   int box_index = getIndex(model_states.name, "my_box");
 
-  box_pose = model_states.pose[box_index];
-  box_twist = model_states.twist[box_index];
+  object_pose = model_states.pose[box_index];
+  object_twist = model_states.twist[box_index];
 
-  object_pos << box_pose.position.x, box_pose.position.y, box_pose.position.z;
-  object_vel << box_twist.linear.x, box_twist.linear.y, box_twist.linear.z;
+  object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;
+  object_vel << object_twist.linear.x, object_twist.linear.y, object_twist.linear.z;
 
-  object_rpy = quatToRPY({box_pose.orientation.w, box_pose.orientation.x, box_pose.orientation.y, box_pose.orientation.z}); //get orientation in rpy
-  object_theta = object_rpy[2];                                                                                             //only the z-axis
-  theta_mod = std::fmod(object_theta+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
-  theta_quat = rpyToQuat(0.0, 0.0, theta_mod);                                                                                    //convert back to quat
+  object_rpy = quatToRPY({object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z}); //get orientation in rpy
+  object_th = object_rpy[2];                                                                                                            //only the z-axis
+  object_th_mod = std::fmod(object_th+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                                       //get relative angle of box face facing the arm
+  th_quat = rpyToQuat(0.0, 0.0, object_th_mod);                                                                                         //convert back to quat
 }
 
 void iiwaCallback(const gazebo_msgs::LinkStates link_states){
@@ -174,19 +187,19 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
 
   
   bool cur_hittable;
-  if (object_pos[1]*iiwa_sel < -0.5 && object_pos[1]*iiwa_sel > -0.9){cur_hittable = true;}
+  if (object_pos[1]*iiwa_sel < -min_dist && object_pos[1]*iiwa_sel > -max_dist){cur_hittable = true;}
   else {cur_hittable = false;}
 
   bool pred_hittable;
-  if (predict_pos[1]*iiwa_sel < -0.5 && predict_pos[1]*iiwa_sel > -0.9){pred_hittable = true;}
+  if (predict_pos[1]*iiwa_sel < -min_dist && predict_pos[1]*iiwa_sel > -max_dist){pred_hittable = true;}
   else {pred_hittable = false;}
 
   bool too_far;
-  if (predict_pos[1]*iiwa_sel < -0.9){too_far = true;}
+  if (predict_pos[1]*iiwa_sel < -max_dist){too_far = true;}
   else {too_far = false;}
 
   bool too_close;
-  if (predict_pos[1]*iiwa_sel > -0.5){too_close = true;}
+  if (predict_pos[1]*iiwa_sel > -min_dist){too_close = true;}
   else {too_close = false;}
 
   bool moving;
@@ -215,17 +228,23 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
     
     case 3:   //hit
       if (towards == false && moving == true) {mode = 4;                                    //if object starts moving because it is hit, go to post hit and initialize kalman
-        state = Eigen::Matrix<double,6,1>::Zero();
-        state << object_vel[0],object_vel[1],object_vel[2],0.0,0.03*9.81*0.3*iiwa_sel,0.0;
-        P = Eigen::Matrix<double, 6,6>::Zero();
-        //state = Eigen::Matrix<double,9,1>::Zero();
-        //state << object_pos[0],object_pos[1],object_pos[2],object_vel[0],object_vel[1],object_vel[2],0.0,0.03*9.81*0.3*iiwa_sel,0.0;
-        //P = Eigen::Matrix<double, 9,9>::Zero();
+        //s_obj_lin = Eigen::Matrix<double,6,1>::Zero();
+        //s_obj_lin << object_vel[0],object_vel[1],object_vel[2],0.0,0.03*9.81*0.3*iiwa_sel,0.0;
+        //P_obj_lin = Eigen::Matrix<double, 6,6>::Zero();
+        s_obj_lin = Eigen::Matrix<double,9,1>::Zero();
+        s_obj_lin << object_pos[0],object_pos[1],object_pos[2],0.0,0.0,0.0,0.0,0.0,0.0;//,0.8*iiwa_sel,0.0,0.0,-0.025*9.81*iiwa_sel,0.0;
+        P_obj_lin = Eigen::Matrix<double, 9,9>::Zero();
+        hit_force = {0.0, 11.0*iiwa_sel, 0.0};
+        s_obj_th = Eigen::Vector3d::Zero();
+        s_obj_th << object_th,0.0,0.0;
+        P_obj_th = Eigen::Matrix3d::Zero();
       }                                           
       break;
 
     case 4:   //post hit
-      if (cur_hittable == false || towards == false) {mode = 5;}                            //if object has left the range of arm, go to rest
+      if (cur_hittable == false || towards == false) {mode = 5;                              //if object has left the range of arm, go to rest
+        hit_force = {0.0,0.0,0.0};
+        }
       break;
 
     case 5:   //rest
@@ -279,6 +298,7 @@ int main (int argc, char** argv){
     double mass;
     double mu;
     double mu2;
+    double izz;
 };
   struct modelProperties box;
     nh.getParam("box/properties/size/x", box.size_x);
@@ -289,7 +309,8 @@ int main (int argc, char** argv){
     nh.getParam("box/properties/COM/z", box.com_z);
     nh.getParam("box/properties/mass", box.mass);
     nh.getParam("box/properties/mu", box.mu);
-  nh.getParam("box/properties/mu2", box.mu2);
+    nh.getParam("box/properties/mu2", box.mu2);
+  box.izz = 1.0/12* box.mass* (pow(box.size_x,2) + pow(box.size_y,2));
 
   
   //Set hitting speed and direction. Once we change attractor to something more related to the game, we no longer need this
@@ -321,6 +342,7 @@ int main (int argc, char** argv){
   Eigen::Vector3d ee2_pos_init = ee2_pos;
 
 
+
   //Storing data to get the right values in time. The data we want is actually from right before events that we can recognize (e.g. speed right before hitting)
   std::queue<Eigen::Vector3d> object_pos_q;
   std::queue<Eigen::Vector3d> predict_pos_q;
@@ -347,8 +369,14 @@ int main (int argc, char** argv){
 
 
   while(ros::ok()){
-    // Predict the future
-    tie(P, state, predict_pos, ETA) = predictPos(P, state, object_pos, object_vel, box.mass);
+    // Predict the future position
+    //tie(P_obj_lin, s_obj_lin, predict_pos, ETA) = predictPos(P_obj_lin, s_obj_lin, object_pos, object_vel, box.mass);
+    tie(P_obj_lin, s_obj_lin, predict_pos, ETA) = predictPos(P_obj_lin, s_obj_lin, hit_force, object_pos, 1.0/100, box.mass);
+    object_vel_est << s_obj_lin[3], s_obj_lin[4], s_obj_lin[5];
+
+    // Predict the future theta
+    //tie(P_obj_th, s_obj_th, predict_th) = predictTh(P_obj_th, s_obj_th, object_th, 1.0/100, box.izz);
+
     
     double theta_des1 = -std::atan2((des_pos[0]-predict_pos[0]),(des_pos[1]-predict_pos[1]));
     double theta_des2 = -std::atan2((des_pos[0]+predict_pos[0]),(des_pos[1]+predict_pos[1]));
@@ -362,7 +390,7 @@ int main (int argc, char** argv){
         ee1_pos_init = ee1_pos; //we can go from track to hit. For hit, we need initial
         break;
       case 2: //stop
-        pub_pos_quat1.publish(block(predict_pos, theta_quat, iiwa1_base_pos, 1));
+        pub_pos_quat1.publish(block(predict_pos, th_quat, iiwa1_base_pos, 1));
         break;
       case 3: //hit
         pub_vel_quat1.publish(hitDS(des_speed, theta_des1, object_pos, ee1_pos, ee1_pos_init, 1));
@@ -386,7 +414,7 @@ int main (int argc, char** argv){
         ee2_pos_init = ee2_pos;
         break;
       case 2: //stop
-        pub_pos_quat2.publish(block(predict_pos, theta_quat, iiwa2_base_pos, 2));
+        pub_pos_quat2.publish(block(predict_pos, th_quat, iiwa2_base_pos, 2));
         break;
       case 3: //hit
         pub_vel_quat2.publish(hitDS(des_speed, theta_des2, object_pos, ee2_pos, ee2_pos_init, 2));
@@ -409,7 +437,7 @@ int main (int argc, char** argv){
 
 
     // Reset object position once out of reach
-    if (object_vel.norm()<0.01 && (object_pos[1] < -0.9 || (object_pos[1] > -0.5 && object_pos[1] < 0.5) || object_pos[1] > 0.9)) {
+    if (object_vel.norm()<0.01 && (object_pos[1] < -max_dist || (object_pos[1] > -min_dist && object_pos[1] < min_dist) || object_pos[1] > max_dist)) {
       //Set new pose of box
       geometry_msgs::Pose new_box_pose;
       nh.getParam("box/initial_pos/x",new_box_pose.position.x);
@@ -464,14 +492,27 @@ int main (int argc, char** argv){
       std::stringstream ss3;
       std::stringstream ss4;
       std::stringstream ss5;
+      std::stringstream ss6;
+      std::stringstream ss7;
+      std::stringstream ss8;
+      std::stringstream ss9;
 
-      ss3 << "final  : " << predict_pos[1];
-      ss4 << "current: " << object_pos[1];
-      ss5 << "ETA  : " << ETA*5.0;
+      ss3 << "final     : " << predict_pos[1];
+      ss4 << "current   : " << object_pos[1];
+      ss5 << "ETA       : " << ETA*5.0;
+      ss6 << "actual vel: " << object_vel[1];
+      ss7 << "estima vel: " << object_vel_est[1];
+      //ss8 << "final th  : " << predict_th;
+      //ss9 << "current th: " << object_th;
+
 
       ROS_INFO("%s",ss3.str().c_str());
       ROS_INFO("%s",ss4.str().c_str());
     ROS_INFO("%s",ss5.str().c_str());
+    ROS_INFO("%s",ss6.str().c_str());
+    ROS_INFO("%s",ss7.str().c_str());
+    //ROS_INFO("%s",ss8.str().c_str());
+    //ROS_INFO("%s",ss9.str().c_str());
 
     
 
@@ -480,7 +521,7 @@ int main (int argc, char** argv){
     //Store the actual data for three time steps. This turns out to be the right time. In other words, post-hit is initiated three time steps after the step right before impact, which is the step we want data from.
     object_pos_q.push(object_pos);
     predict_pos_q.push(predict_pos);
-    object_theta_q.push(object_theta);
+    object_theta_q.push(object_th);
     ee1_pose_q.push(ee1_pose);
     ee2_pose_q.push(ee2_pose);
     ee1_twist_q.push(ee1_twist);
@@ -563,7 +604,7 @@ int main (int argc, char** argv){
     
     if (tracking == true && oneinten >= 10){
       oneinten = 0;
-      object_data << object_pos[0] << ", " << object_pos[1] << ", " << object_pos[2] << ", " << object_theta << ", " << box_twist.angular.z << "\n";
+      object_data << object_pos[0] << ", " << object_pos[1] << ", " << object_pos[2] << ", " << object_th << ", " << object_twist.angular.z << "\n";
     }
     oneinten++;
 

@@ -11,7 +11,6 @@
 #include "../include/post_hit.h"
 #include "../include/rest.h"
 
-#include "../include/kalman.h"
 
 #include <experimental/filesystem>
 
@@ -28,17 +27,17 @@ int manual_mode2 = 5;
 
 
 // Stuff to set
-Eigen::Vector3d rest1_pos = {0.5, -0.2, 0.4};           //relative to iiwa base
-Eigen::Vector3d rest2_pos = {0.5, -0.2, 0.4};
+Eigen::Vector3d rest1_pos = {0.5, -0.2, 0.175};           //relative to iiwa base
+Eigen::Vector3d rest2_pos = {0.5, -0.2, 0.175};
 Eigen::Vector4d rest1_quat = {0.707, -0.707, 0.0, 0.0};
 Eigen::Vector4d rest2_quat = {0.707, -0.707, 0.0, 0.0};
 
-Eigen::Vector3d ee_offset = {0.0, -0.4, 0.225};         //relative to object
+Eigen::Vector3d ee_offset = {0.0, -0.4, 0.0};         //relative to object
 
-Eigen::Vector3d des_pos = {0.0, 0.8, 0.0};              // Seen from IIWA 1, relative to world base. Same coordinate is used for iiwa 2, flipped 180 deg
+Eigen::Vector3d des_pos = {0.0, 0.5, 0.0};              // Seen from IIWA 1, relative to world base. Same coordinate is used for iiwa 2, flipped 180 deg
 
-double min_dist = 0.05;
-double max_dist = 0.45;
+double min_dist = 0.1;
+double max_dist = 0.6;
 
 
 // Stuff to measure
@@ -57,13 +56,9 @@ std::vector<double> iiwa1_joint_angles, iiwa2_joint_angles;
 
 
 // Stuff to estimate
-Eigen::Matrix<double, 9,9> P_obj_lin = Eigen::Matrix<double, 9,9>::Zero();  //use for experimental kalman2
-Eigen::Matrix<double, 9,1> s_obj_lin = Eigen::Matrix<double, 9,1>::Zero();
 Eigen::Vector3d object_vel_est, predict_pos;
 double ETA;
 
-Eigen::Matrix3d P_obj_th = Eigen::Matrix3d::Zero();
-Eigen::Vector3d s_obj_th = Eigen::Vector3d::Zero();
 double predict_th;
 
 
@@ -168,6 +163,13 @@ void iiwa2JointCallback(sensor_msgs::JointState joint_states){
   iiwa2_joint_angles = joint_states.position;
 }
 
+void estimateObjectCallback(std_msgs::Float64MultiArray estimation){
+  ETA = estimation.data[0];
+  predict_pos << estimation.data[1], estimation.data[2], estimation.data[3];
+  object_vel_est << estimation.data[4], estimation.data[5], estimation.data[6];
+  //predict_th = estimation.data[7];
+}
+
 
 void modeCallback(std_msgs::Int16 msg){
   if (msg.data <= 5){manual_mode1 = msg.data;}
@@ -227,24 +229,11 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
       if (towards == false || pred_hittable == true) {mode = 1;}                            //if the object no longer moves towards, it has been stopped succesfully so go to track for correct ee
     
     case 3:   //hit
-      if (towards == false && moving == true) {mode = 4;                                    //if object starts moving because it is hit, go to post hit and initialize kalman
-        //s_obj_lin = Eigen::Matrix<double,6,1>::Zero();
-        //s_obj_lin << object_vel[0],object_vel[1],object_vel[2],0.0,0.03*9.81*0.3*iiwa_sel,0.0;
-        //P_obj_lin = Eigen::Matrix<double, 6,6>::Zero();
-        s_obj_lin = Eigen::Matrix<double,9,1>::Zero();
-        s_obj_lin << object_pos[0],object_pos[1],object_pos[2],0.0,0.0,0.0,0.0,0.0,0.0;//,0.8*iiwa_sel,0.0,0.0,-0.025*9.81*iiwa_sel,0.0;
-        P_obj_lin = Eigen::Matrix<double, 9,9>::Zero();
-        hit_force = {0.0, 11.0*iiwa_sel, 0.0};
-        s_obj_th = Eigen::Vector3d::Zero();
-        s_obj_th << object_th,0.0,0.0;
-        P_obj_th = Eigen::Matrix3d::Zero();
-      }                                           
+      if (towards == false && moving == true) {mode = 4;}                                   //if object starts moving because it is hit, go to post hit and initialize kalman                                          
       break;
 
     case 4:   //post hit
-      if (cur_hittable == false || towards == false) {mode = 5;                              //if object has left the range of arm, go to rest
-        hit_force = {0.0,0.0,0.0};
-        }
+      if (cur_hittable == false || towards == false) {mode = 5;}                            //if object has left the range of arm, go to rest
       break;
 
     case 5:   //rest
@@ -278,11 +267,15 @@ int main (int argc, char** argv){
   ros::Publisher pub_vel_quat2 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/vel_quat", 1);
   ros::Publisher pub_pos_quat2 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/pos_quat", 1);
 
+  //Subcriber to position estimator
+  ros::Subscriber estimate_object_subs = nh.subscribe("estimate/object",10,estimateObjectCallback);
+
   //Client to reset object pose
   ros::service::waitForService("gazebo/set_model_state");
   ros::ServiceClient set_state_client = nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
   gazebo_msgs::SetModelState setmodelstate;
   
+  //For manual control
   ros::Subscriber mode_sub = nh.subscribe("mode",10,modeCallback);
   bool manual_mode;
   nh.getParam("manual_mode", manual_mode);
@@ -311,7 +304,8 @@ int main (int argc, char** argv){
     nh.getParam("box/properties/mu", box.mu);
     nh.getParam("box/properties/mu2", box.mu2);
   box.izz = 1.0/12* box.mass* (pow(box.size_x,2) + pow(box.size_y,2));
-
+  bool hollow;
+  nh.getParam("hollow", hollow);
   
   //Set hitting speed and direction. Once we change attractor to something more related to the game, we no longer need this
     std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;
@@ -369,14 +363,6 @@ int main (int argc, char** argv){
 
 
   while(ros::ok()){
-    // Predict the future position
-    //tie(P_obj_lin, s_obj_lin, predict_pos, ETA) = predictPos(P_obj_lin, s_obj_lin, object_pos, object_vel, box.mass);
-    tie(P_obj_lin, s_obj_lin, predict_pos, ETA) = predictPos(P_obj_lin, s_obj_lin, hit_force, object_pos, 1.0/100, box.mass);
-    object_vel_est << s_obj_lin[3], s_obj_lin[4], s_obj_lin[5];
-
-    // Predict the future theta
-    //tie(P_obj_th, s_obj_th, predict_th) = predictTh(P_obj_th, s_obj_th, object_th, 1.0/100, box.izz);
-
     
     double theta_des1 = -std::atan2((des_pos[0]-predict_pos[0]),(des_pos[1]-predict_pos[1]));
     double theta_des2 = -std::atan2((des_pos[0]+predict_pos[0]),(des_pos[1]+predict_pos[1]));
@@ -455,26 +441,42 @@ int main (int argc, char** argv){
       setmodelstate.request.model_state = modelstate;
       set_state_client.call(setmodelstate);
 
+      if (hollow == true){
+        //Set new pose of minibox
+        geometry_msgs::Pose new_mini_pose;
+        nh.getParam("mini/initial_pos/x", new_mini_pose.position.x);
+        nh.getParam("mini/initial_pos/y", new_mini_pose.position.y);
+        nh.getParam("mini/initial_pos/z", new_mini_pose.position.z);
+        new_mini_pose.position.x += new_box_pose.position.x;
+        new_mini_pose.position.y += new_box_pose.position.y;
+        new_mini_pose.position.z += new_box_pose.position.z;
+        new_mini_pose.orientation.x = 0.0;
+        new_mini_pose.orientation.y = 0.0;
+        new_mini_pose.orientation.z = 0.0;
+        new_mini_pose.orientation.w = 0.0;
 
-      //Set new pose of minibox
-      geometry_msgs::Pose new_mini_pose;
-      nh.getParam("mini/initial_pos/x", new_mini_pose.position.x);
-      nh.getParam("mini/initial_pos/y", new_mini_pose.position.y);
-      nh.getParam("mini/initial_pos/z", new_mini_pose.position.z);
-      new_mini_pose.position.x += new_box_pose.position.x;
-      new_mini_pose.position.y += new_box_pose.position.y;
-      new_mini_pose.position.z += new_box_pose.position.z;
-      new_mini_pose.orientation.x = 0.0;
-      new_mini_pose.orientation.y = 0.0;
-      new_mini_pose.orientation.z = 0.0;
-      new_mini_pose.orientation.w = 0.0;
-
-      modelstate.model_name = (std::string) "my_mini";
-      modelstate.pose = new_mini_pose;
-      setmodelstate.request.model_state = modelstate;
-      set_state_client.call(setmodelstate);
+        modelstate.model_name = (std::string) "my_mini";
+        modelstate.pose = new_mini_pose;
+        setmodelstate.request.model_state = modelstate;
+        set_state_client.call(setmodelstate);
+      }
 
       ROS_INFO("Resetting object pose");
+      tracking = false;
+      if (once11 == false){
+        once12 = false;
+        tracking = false;
+        object_data << "end, free" << "\n\n\n";
+        once21 = true;
+        once22 = true;
+      }
+      if (once21 == false){
+        once22 = false;
+        tracking = false;
+        object_data << "end, free" << "\n\n\n";
+        once11 = true;
+        once12 = true;
+      }
     } 
 
 
@@ -486,8 +488,8 @@ int main (int argc, char** argv){
       ss1 << "mode1: " << mode1;
       ss2 << "mode2: " << mode2;
 
-      ROS_INFO("%s",ss1.str().c_str());
-      ROS_INFO("%s",ss2.str().c_str());
+      //ROS_INFO("%s",ss1.str().c_str());
+      //ROS_INFO("%s",ss2.str().c_str());
 
       std::stringstream ss3;
       std::stringstream ss4;
@@ -497,8 +499,8 @@ int main (int argc, char** argv){
       std::stringstream ss8;
       std::stringstream ss9;
 
-      ss3 << "final     : " << predict_pos[1];
-      ss4 << "current   : " << object_pos[1];
+      ss3 << "current   : " << object_pos[1];
+      ss4 << "predicted : " << predict_pos[1];
       ss5 << "ETA       : " << ETA*5.0;
       ss6 << "actual vel: " << object_vel[1];
       ss7 << "estima vel: " << object_vel_est[1];
@@ -506,18 +508,18 @@ int main (int argc, char** argv){
       //ss9 << "current th: " << object_th;
 
 
-      ROS_INFO("%s",ss3.str().c_str());
-      ROS_INFO("%s",ss4.str().c_str());
-    ROS_INFO("%s",ss5.str().c_str());
-    ROS_INFO("%s",ss6.str().c_str());
-    ROS_INFO("%s",ss7.str().c_str());
-    //ROS_INFO("%s",ss8.str().c_str());
+      //ROS_INFO("%s",ss3.str().c_str());
+      //ROS_INFO("%s",ss4.str().c_str());
+      //ROS_INFO("%s",ss5.str().c_str());
+      //ROS_INFO("%s",ss6.str().c_str());
+      //ROS_INFO("%s",ss7.str().c_str());
+      //ROS_INFO("%s",ss8.str().c_str());
     //ROS_INFO("%s",ss9.str().c_str());
 
     
 
 
-
+    ros::Time current_time = ros::Time::now();
     //Store the actual data for three time steps. This turns out to be the right time. In other words, post-hit is initiated three time steps after the step right before impact, which is the step we want data from.
     object_pos_q.push(object_pos);
     predict_pos_q.push(predict_pos);
@@ -558,7 +560,7 @@ int main (int argc, char** argv){
       tracking = true;
       oneinten = 10;
     }
-    if (mode2 == 2 && object_pos[1] > 0.75 && once12 == true){  //store predicted pos if it will be stopped
+    if (mode2 == 2 && object_pos[1] > min_dist + 0.25 && once12 == true){  //store predicted pos if it will be stopped
       once12 = false;
       tracking = false;
       object_data << "end, stopped" << "\n";
@@ -586,7 +588,7 @@ int main (int argc, char** argv){
       tracking = true;
       oneinten = 10;
     }
-    if (mode1 == 2 && object_pos[1] < -0.75 && once22 == true){
+    if (mode1 == 2 && object_pos[1] < -(min_dist+0.25) && once22 == true){
       once22 = false;
       tracking = false;
       object_data << "end, stopped" << "\n";
@@ -604,7 +606,7 @@ int main (int argc, char** argv){
     
     if (tracking == true && oneinten >= 10){
       oneinten = 0;
-      object_data << object_pos[0] << ", " << object_pos[1] << ", " << object_pos[2] << ", " << object_th << ", " << object_twist.angular.z << "\n";
+      object_data << current_time.toSec() << ", " << object_pos[0] << ", " << object_pos[1] << ", " << object_pos[2] << ", " << object_th << ", " << object_twist.angular.z << "\n";
     }
     oneinten++;
 

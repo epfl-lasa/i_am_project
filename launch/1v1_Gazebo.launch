@@ -25,7 +25,7 @@
   
   <!-- Here is the node that allows me to hit the object in the iiwa simulator -->
   <node name="master" pkg="i_am_project" type="AH_master"   output="screen"/>
-
+  <node name="estimator" pkg="i_am_predict" type="estimate_sim"  output="screen"/>
 
 </launch>
 

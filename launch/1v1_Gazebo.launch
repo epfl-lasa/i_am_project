@@ -12,6 +12,8 @@
 <launch>
   <include
       file = "$(find dual_iiwa_toolkit)/launch/passive_track_gazebo.launch">
+      <arg name="position_1" value="-x -0.55 -y -0.65"/>
+      <arg name="position_2" value="-x 0.55 -y 0.65 -Y 3.1415926536"/>
   </include>
 
   <rosparam file="$(find i_am_project)/config/1v1_params.yaml" />

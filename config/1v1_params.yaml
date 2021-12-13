@@ -34,7 +34,7 @@ box:
     mu2: 0.05
   initial_pos:
     x: 0.0
-    y: -0.5
+    y: -0.45
     z: 0.175
   
 mini:

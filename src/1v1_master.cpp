@@ -27,17 +27,16 @@ int manual_mode2 = 5;
 
 
 // Stuff to set
-Eigen::Vector3d rest1_pos = {0.5, -0.2, 0.175};           //relative to iiwa base
-Eigen::Vector3d rest2_pos = {0.5, -0.2, 0.175};
+Eigen::Vector3d rest1_pos = {0.5, -0.2, 0.4};           //relative to iiwa base
+Eigen::Vector3d rest2_pos = {0.5, -0.2, 0.4};
 Eigen::Vector4d rest1_quat = {0.707, -0.707, 0.0, 0.0};
 Eigen::Vector4d rest2_quat = {0.707, -0.707, 0.0, 0.0};
 
-Eigen::Vector3d ee_offset = {0.0, -0.4, 0.0};         //relative to object
+Eigen::Vector3d ee_offset = {0.0, -0.4, 0.225};         //relative to object
 
-Eigen::Vector3d des_pos = {0.0, 0.5, 0.0};              // Seen from IIWA 1, relative to world base. Same coordinate is used for iiwa 2, flipped 180 deg
+Eigen::Vector3d des_pos_set = {0.0, 0.5, 0.0};              // Seen from IIWA 1, relative to world base. Same coordinate is used for iiwa 2, flipped 180 deg
 
-double min_dist = 0.1;
-double max_dist = 0.6;
+double min_dist, max_dist;
 
 
 // Stuff to measure
@@ -221,7 +220,7 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
   switch (prev_mode){
     case 1:   //track
       if (too_far == true && ETA < 3) {mode = 2;}                                         //if object will go too far, try to stop it
-      if (pred_hittable == true && ETA < 0.5 && ee_ready == true) {mode = 3;}             //if object will be in feasible position and stops in 0.5s and ee is in correct position, go to hit
+      if (pred_hittable == true && ETA < 0.3 && ee_ready == true) {mode = 3;}             //if object will be in feasible position and stops in 0.5s and ee is in correct position, go to hit
       if (too_close == true && ETA < 3) {mode = 5;}                                       //if object will not make it into reach, give up and go to rest
       break;
 
@@ -238,7 +237,7 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
 
     case 5:   //rest
       if (too_far == true && ETA < 3) {mode = 2;}                               //if object will go too far, try to stop it
-      if (pred_hittable == true && ETA < 0.5 && ee_ready == true) {mode = 3;}   //same as when being in tracking mode, since mode is initialized in rest
+      if (pred_hittable == true && ETA < 0.3 && ee_ready == true) {mode = 3;}   //same as when being in tracking mode, since mode is initialized in rest
       if (pred_hittable == true && ETA < 3 && ee_ready == false) {mode = 1;}    //if object is going to be hittable but ee is not in the right position, lets track!                               
       break;
   }
@@ -335,6 +334,9 @@ int main (int argc, char** argv){
   Eigen::Vector3d ee1_pos_init = ee1_pos;
   Eigen::Vector3d ee2_pos_init = ee2_pos;
 
+  Eigen::Vector3d des_pos1, des_pos2, rand_pos;
+  double randx;
+  double randy;
 
 
   //Storing data to get the right values in time. The data we want is actually from right before events that we can recognize (e.g. speed right before hitting)
@@ -361,11 +363,18 @@ int main (int argc, char** argv){
 
 
 
-
   while(ros::ok()){
-    
-    double theta_des1 = -std::atan2((des_pos[0]-predict_pos[0]),(des_pos[1]-predict_pos[1]));
-    double theta_des2 = -std::atan2((des_pos[0]+predict_pos[0]),(des_pos[1]+predict_pos[1]));
+    min_dist = iiwa2_base_pos[1] - 0.5;
+    max_dist = iiwa2_base_pos[1] - 0.1;
+
+    //Determine desired direction of hit
+    randx = ((double)(rand() % 2500-1250))/10000;
+    randy = ((double)(rand() % 2500-1250))/10000;
+    rand_pos = {randx, randy, 0.0};
+
+    double theta_des1 = -std::atan2((des_pos1[0]-predict_pos[0]),(des_pos1[1]-predict_pos[1])); //can also use cur_pos
+    double theta_des2 = -std::atan2((des_pos2[0]+predict_pos[0]),(des_pos2[1]+predict_pos[1]));
+
 
     // Select correct operating mode for both arms based on conditions on (predicted) object position and velocity and ee position
     if (manual_mode == false) {mode1 = modeSelektor(predict_pos, ETA, ee1_pos, prev_mode1, 1);}
@@ -374,6 +383,7 @@ int main (int argc, char** argv){
       case 1: //track
         pub_pos_quat1.publish(track(predict_pos, rest1_quat, ee_offset, iiwa1_base_pos, 1));
         ee1_pos_init = ee1_pos; //we can go from track to hit. For hit, we need initial
+        des_pos1 = des_pos_set + rand_pos;
         break;
       case 2: //stop
         pub_pos_quat1.publish(block(predict_pos, th_quat, iiwa1_base_pos, 1));
@@ -388,6 +398,7 @@ int main (int argc, char** argv){
       case 5: //rest
         pub_pos_quat1.publish(rest(rest1_pos, rest1_quat));
         ee1_pos_init = ee1_pos; //we can also go from rest to hit..
+        des_pos1 = des_pos_set + rand_pos;
         break;
     }
     prev_mode1 = mode1;
@@ -398,6 +409,7 @@ int main (int argc, char** argv){
       case 1: //track
         pub_pos_quat2.publish(track(predict_pos, rest2_quat, ee_offset, iiwa2_base_pos, 2));
         ee2_pos_init = ee2_pos;
+        des_pos2 = des_pos_set + rand_pos;
         break;
       case 2: //stop
         pub_pos_quat2.publish(block(predict_pos, th_quat, iiwa2_base_pos, 2));
@@ -412,6 +424,7 @@ int main (int argc, char** argv){
       case 5: //rest
         pub_pos_quat2.publish(rest(rest2_pos, rest2_quat));
         ee2_pos_init = ee2_pos;
+        des_pos2 = des_pos_set + rand_pos;
         break;
     }
     prev_mode2 = mode2;
@@ -419,6 +432,12 @@ int main (int argc, char** argv){
 
 
 
+
+    object_data.open(data_path.str(), std::ofstream::out | std::ofstream::app);
+    if(!object_data.is_open()){
+      std::cerr << "Error opening output file.\n";
+      std::cout << "Current path is " << std::experimental::filesystem::current_path() << '\n';
+    }
 
 
 
@@ -466,55 +485,20 @@ int main (int argc, char** argv){
       if (once11 == false){
         once12 = false;
         tracking = false;
-        object_data << "end, free" << "\n\n\n";
+        object_data << "end, reset" << "\n\n\n";
         once21 = true;
         once22 = true;
       }
       if (once21 == false){
         once22 = false;
         tracking = false;
-        object_data << "end, free" << "\n\n\n";
+        object_data << "end, reset" << "\n\n\n";
         once11 = true;
         once12 = true;
       }
     } 
 
 
-
-    // Some infos
-      std::stringstream ss1;
-      std::stringstream ss2;
-
-      ss1 << "mode1: " << mode1;
-      ss2 << "mode2: " << mode2;
-
-      //ROS_INFO("%s",ss1.str().c_str());
-      //ROS_INFO("%s",ss2.str().c_str());
-
-      std::stringstream ss3;
-      std::stringstream ss4;
-      std::stringstream ss5;
-      std::stringstream ss6;
-      std::stringstream ss7;
-      std::stringstream ss8;
-      std::stringstream ss9;
-
-      ss3 << "current   : " << object_pos[1];
-      ss4 << "predicted : " << predict_pos[1];
-      ss5 << "ETA       : " << ETA*5.0;
-      ss6 << "actual vel: " << object_vel[1];
-      ss7 << "estima vel: " << object_vel_est[1];
-      //ss8 << "final th  : " << predict_th;
-      //ss9 << "current th: " << object_th;
-
-
-      //ROS_INFO("%s",ss3.str().c_str());
-      //ROS_INFO("%s",ss4.str().c_str());
-      //ROS_INFO("%s",ss5.str().c_str());
-      //ROS_INFO("%s",ss6.str().c_str());
-      //ROS_INFO("%s",ss7.str().c_str());
-      //ROS_INFO("%s",ss8.str().c_str());
-    //ROS_INFO("%s",ss9.str().c_str());
 
     
 
@@ -542,11 +526,7 @@ int main (int argc, char** argv){
     while (iiwa2_joint_angles_q.size() > 3){iiwa2_joint_angles_q.pop();}
 
 
-    object_data.open(data_path.str(), std::ofstream::out | std::ofstream::app);
-    if(!object_data.is_open()){
-      std::cerr << "Error opening output file.\n";
-      std::cout << "Current path is " << std::experimental::filesystem::current_path() << '\n';
-    }
+    
 
     if (mode1 == 4 && once11 == true){  //store data right before hit (this is once, directly after hit)
       once11 = false;
@@ -607,18 +587,70 @@ int main (int argc, char** argv){
     if (tracking == true && oneinten >= 10){
       oneinten = 0;
       object_data << current_time.toSec() << ", " << object_pos[0] << ", " << object_pos[1] << ", " << object_pos[2] << ", " << object_th << ", " << object_twist.angular.z << "\n";
+      if (object_vel.norm()<0.05){
+        tracking = false;
+        if (once11 == false){
+          once12 = false;
+          tracking = false;
+          object_data << "end, free" << "\n\n\n";
+          once21 = true;
+          once22 = true;
+        }
+        if (once21 == false){
+          once22 = false;
+          tracking = false;
+          object_data << "end, free" << "\n\n\n";
+          once11 = true;
+          once12 = true;
+        }
+      }
     }
     oneinten++;
 
     object_data.close();
     
-    /*std_msgs::Float32 posfloat;
-    posfloat.data = (float) ee1_pos[1];
-    std_msgs::Float32 velfloat;
-    velfloat.data = (float) ee1_vel[1];
-    pub_ee1_pos.publish(posfloat);
-    pub_ee1_vel.publish(velfloat);*/
+    
+    // Some infos
+      std::stringstream ss1;
+      std::stringstream ss2;
 
+      ss1 << "mode1: " << mode1;
+      ss2 << "mode2: " << mode2;
+
+      ROS_INFO("%s",ss1.str().c_str());
+      ROS_INFO("%s",ss2.str().c_str());
+
+      std::stringstream ss3;
+      std::stringstream ss4;
+      std::stringstream ss5;
+      std::stringstream ss6;
+      std::stringstream ss7;
+      std::stringstream ss8;
+      std::stringstream ss9;
+      std::stringstream ss10;
+      std::stringstream ss11;
+      
+
+      ss3 << "current   : " << object_pos[1];
+      ss4 << "predicted : " << predict_pos[1];
+      ss5 << "ETA       : " << ETA*5.0;
+      ss6 << "actual vel: " << object_vel[1];
+      ss7 << "estima vel: " << object_vel_est[1];
+      //ss8 << "final th  : " << predict_th;
+      //ss9 << "current th: " << object_th;
+      //ss10 << "des_x: " << min_dist;//des_pos1[0];
+      //ss11 << "des_y: " << max_dist;//des_pos1[1];
+
+
+      //ROS_INFO("%s",ss3.str().c_str());
+      //ROS_INFO("%s",ss4.str().c_str());
+      //ROS_INFO("%s",ss5.str().c_str());
+      //ROS_INFO("%s",ss6.str().c_str());
+      //ROS_INFO("%s",ss7.str().c_str());
+      //ROS_INFO("%s",ss8.str().c_str());
+      //ROS_INFO("%s",ss9.str().c_str());
+      //ROS_INFO("%s",ss10.str().c_str());
+    ROS_INFO("%s",ss11.str().c_str());
 
 
 
@@ -630,3 +662,12 @@ int main (int argc, char** argv){
 
   return 0;
 }
+
+
+
+/*std_msgs::Float32 posfloat;
+    posfloat.data = (float) ee1_pos[1];
+    std_msgs::Float32 velfloat;
+    velfloat.data = (float) ee1_vel[1];
+    pub_ee1_pos.publish(posfloat);
+    pub_ee1_vel.publish(velfloat);*/

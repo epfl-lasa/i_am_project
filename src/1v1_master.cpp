@@ -442,7 +442,7 @@ int main (int argc, char** argv){
 
 
     // Reset object position once out of reach
-    if (object_vel.norm()<0.01 && (!hittable(object_pos, iiwa1_base_pos, 1) && !hittable(object_pos, iiwa1_base_pos, 1))) {
+    if (object_vel.norm()<0.01 && (!hittable(object_pos, iiwa1_base_pos, 1) && !hittable(object_pos, iiwa1_base_pos, 2))) {
       //Set new pose of box
       geometry_msgs::Pose new_box_pose;
       nh.getParam("box/initial_pos/x",new_box_pose.position.x);

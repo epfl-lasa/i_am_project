@@ -23,7 +23,7 @@
   <node name="real_pose" pkg="real_pose" type="real_pose" output="screen"/>                           <!--Run real_pose to convert optitrack and iiwa_joint data to object, base and ee pose-->
   <node name="dual_iiwa_toolkit" pkg="dual_iiwa_toolkit" type="dual_iiwa_toolkit" output="screen"/>   <!--Run dual_iiwa_toolkit to control torques from position and velocity cmds-->
   <node name="master" pkg="i_am_project" type="AH_master"   output="screen"/>                         <!--Run AH_master to control position and velocity for game of air hockey-->
-
+  <node name="estimator" pkg="i_am_predict" type="estimator" output="screen"/>
 
 </launch>
 

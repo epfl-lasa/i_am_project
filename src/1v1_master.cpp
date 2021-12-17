@@ -11,6 +11,8 @@
 #include "../include/post_hit.h"
 #include "../include/rest.h"
 
+#include "../include/hittable.h"
+
 
 #include <experimental/filesystem>
 
@@ -36,7 +38,7 @@ Eigen::Vector3d ee_offset = {0.0, -0.4, 0.225};         //relative to object
 
 Eigen::Vector3d des_pos_set = {0.0, 0.5, 0.0};              // Seen from IIWA 1, relative to world base. Same coordinate is used for iiwa 2, flipped 180 deg
 
-double min_dist, max_dist;
+double min_y, max_y;
 
 
 // Stuff to measure
@@ -57,6 +59,7 @@ std::vector<double> iiwa1_joint_angles, iiwa2_joint_angles;
 // Stuff to estimate
 Eigen::Vector3d object_vel_est, predict_pos;
 double ETA;
+double stdev;
 
 double predict_th;
 
@@ -152,6 +155,9 @@ void iiwaCallback(const gazebo_msgs::LinkStates link_states){
   iiwa2_base_pose = link_states.pose[iiwa2_base_index];
   iiwa1_base_pos << iiwa1_base_pose.position.x,iiwa1_base_pose.position.y,iiwa1_base_pose.position.z;
   iiwa2_base_pos << iiwa2_base_pose.position.x,iiwa2_base_pose.position.y,iiwa2_base_pose.position.z;
+
+  min_y = iiwa2_base_pos[1] - 0.5;
+  max_y = iiwa2_base_pos[1] - 0.1;
 }
 
 void iiwa1JointCallback(sensor_msgs::JointState joint_states){
@@ -163,10 +169,11 @@ void iiwa2JointCallback(sensor_msgs::JointState joint_states){
 }
 
 void estimateObjectCallback(std_msgs::Float64MultiArray estimation){
-  ETA = estimation.data[0];
-  predict_pos << estimation.data[1], estimation.data[2], estimation.data[3];
-  object_vel_est << estimation.data[4], estimation.data[5], estimation.data[6];
-  //predict_th = estimation.data[7];
+  stdev = estimation.data[0];
+  ETA = estimation.data[1];
+  predict_pos << estimation.data[2], estimation.data[3], estimation.data[4];
+  object_vel_est << estimation.data[5], estimation.data[6], estimation.data[7];
+  //predict_th = estimation.data[8];
 }
 
 
@@ -187,20 +194,16 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
   
 
   
-  bool cur_hittable;
-  if (object_pos[1]*iiwa_sel < -min_dist && object_pos[1]*iiwa_sel > -max_dist){cur_hittable = true;}
-  else {cur_hittable = false;}
+  bool cur_hittable = hittable(object_pos, iiwa1_base_pos, iiwa_no);
 
-  bool pred_hittable;
-  if (predict_pos[1]*iiwa_sel < -min_dist && predict_pos[1]*iiwa_sel > -max_dist){pred_hittable = true;}
-  else {pred_hittable = false;}
+  bool pred_hittable = hittable(predict_pos, iiwa1_base_pos, iiwa_no);
 
   bool too_far;
-  if (predict_pos[1]*iiwa_sel < -max_dist){too_far = true;}
+  if (predict_pos[1]*iiwa_sel < -max_y){too_far = true;}
   else {too_far = false;}
 
   bool too_close;
-  if (predict_pos[1]*iiwa_sel > -min_dist){too_close = true;}
+  if (predict_pos[1]*iiwa_sel > -min_y){too_close = true;}
   else {too_close = false;}
 
   bool moving;
@@ -334,9 +337,9 @@ int main (int argc, char** argv){
   Eigen::Vector3d ee1_pos_init = ee1_pos;
   Eigen::Vector3d ee2_pos_init = ee2_pos;
 
-  Eigen::Vector3d des_pos1, des_pos2, rand_pos;
-  double randx;
-  double randy;
+  //Eigen::Vector3d des_pos1, des_pos2, rand_pos;
+  //double randx;
+  //double randy;
 
 
   //Storing data to get the right values in time. The data we want is actually from right before events that we can recognize (e.g. speed right before hitting)
@@ -364,16 +367,13 @@ int main (int argc, char** argv){
 
 
   while(ros::ok()){
-    min_dist = iiwa2_base_pos[1] - 0.5;
-    max_dist = iiwa2_base_pos[1] - 0.1;
-
     //Determine desired direction of hit
-    randx = ((double)(rand() % 2500-1250))/10000;
-    randy = ((double)(rand() % 2500-1250))/10000;
-    rand_pos = {randx, randy, 0.0};
+    //randx = ((double)(rand() % 2500-1250))/10000;
+    //randy = ((double)(rand() % 2500-1250))/10000;
+    //rand_pos = {randx, randy, 0.0};
 
-    double theta_des1 = -std::atan2((des_pos1[0]-predict_pos[0]),(des_pos1[1]-predict_pos[1])); //can also use cur_pos
-    double theta_des2 = -std::atan2((des_pos2[0]+predict_pos[0]),(des_pos2[1]+predict_pos[1]));
+    double theta_des1 = -std::atan2((des_pos_set[0]-predict_pos[0]),(des_pos_set[1]-predict_pos[1])); //can also use cur_pos
+    double theta_des2 = -std::atan2((des_pos_set[0]+predict_pos[0]),(des_pos_set[1]+predict_pos[1]));
 
 
     // Select correct operating mode for both arms based on conditions on (predicted) object position and velocity and ee position
@@ -383,10 +383,10 @@ int main (int argc, char** argv){
       case 1: //track
         pub_pos_quat1.publish(track(predict_pos, rest1_quat, ee_offset, iiwa1_base_pos, 1));
         ee1_pos_init = ee1_pos; //we can go from track to hit. For hit, we need initial
-        des_pos1 = des_pos_set + rand_pos;
+        //des_pos1 = des_pos_set + rand_pos;
         break;
       case 2: //stop
-        pub_pos_quat1.publish(block(predict_pos, th_quat, iiwa1_base_pos, 1));
+        pub_pos_quat1.publish(block(object_pos, predict_pos, th_quat, iiwa1_base_pos, 1));
         break;
       case 3: //hit
         pub_vel_quat1.publish(hitDS(des_speed, theta_des1, object_pos, ee1_pos, ee1_pos_init, 1));
@@ -398,7 +398,7 @@ int main (int argc, char** argv){
       case 5: //rest
         pub_pos_quat1.publish(rest(rest1_pos, rest1_quat));
         ee1_pos_init = ee1_pos; //we can also go from rest to hit..
-        des_pos1 = des_pos_set + rand_pos;
+        //des_pos1 = des_pos_set + rand_pos;
         break;
     }
     prev_mode1 = mode1;
@@ -409,10 +409,10 @@ int main (int argc, char** argv){
       case 1: //track
         pub_pos_quat2.publish(track(predict_pos, rest2_quat, ee_offset, iiwa2_base_pos, 2));
         ee2_pos_init = ee2_pos;
-        des_pos2 = des_pos_set + rand_pos;
+        //des_pos2 = des_pos_set + rand_pos;
         break;
       case 2: //stop
-        pub_pos_quat2.publish(block(predict_pos, th_quat, iiwa2_base_pos, 2));
+        pub_pos_quat2.publish(block(object_pos, predict_pos, th_quat, iiwa2_base_pos, 2));
         break;
       case 3: //hit
         pub_vel_quat2.publish(hitDS(des_speed, theta_des2, object_pos, ee2_pos, ee2_pos_init, 2));
@@ -424,7 +424,7 @@ int main (int argc, char** argv){
       case 5: //rest
         pub_pos_quat2.publish(rest(rest2_pos, rest2_quat));
         ee2_pos_init = ee2_pos;
-        des_pos2 = des_pos_set + rand_pos;
+        //des_pos2 = des_pos_set + rand_pos;
         break;
     }
     prev_mode2 = mode2;
@@ -442,7 +442,7 @@ int main (int argc, char** argv){
 
 
     // Reset object position once out of reach
-    if (object_vel.norm()<0.01 && (object_pos[1] < -max_dist || (object_pos[1] > -min_dist && object_pos[1] < min_dist) || object_pos[1] > max_dist)) {
+    if (object_vel.norm()<0.01 && (!hittable(object_pos, iiwa1_base_pos, 1) && !hittable(object_pos, iiwa1_base_pos, 1))) {
       //Set new pose of box
       geometry_msgs::Pose new_box_pose;
       nh.getParam("box/initial_pos/x",new_box_pose.position.x);
@@ -540,7 +540,7 @@ int main (int argc, char** argv){
       tracking = true;
       oneinten = 10;
     }
-    if (mode2 == 2 && object_pos[1] > min_dist + 0.25 && once12 == true){  //store predicted pos if it will be stopped
+    if (mode2 == 2 && object_pos[1] > min_y + 0.25 && once12 == true){  //store predicted pos if it will be stopped
       once12 = false;
       tracking = false;
       object_data << "end, stopped" << "\n";
@@ -568,7 +568,7 @@ int main (int argc, char** argv){
       tracking = true;
       oneinten = 10;
     }
-    if (mode1 == 2 && object_pos[1] < -(min_dist+0.25) && once22 == true){
+    if (mode1 == 2 && object_pos[1] < -(min_y+0.25) && once22 == true){
       once22 = false;
       tracking = false;
       object_data << "end, stopped" << "\n";
@@ -638,8 +638,6 @@ int main (int argc, char** argv){
       ss7 << "estima vel: " << object_vel_est[1];
       //ss8 << "final th  : " << predict_th;
       //ss9 << "current th: " << object_th;
-      //ss10 << "des_x: " << min_dist;//des_pos1[0];
-      //ss11 << "des_y: " << max_dist;//des_pos1[1];
 
 
       //ROS_INFO("%s",ss3.str().c_str());
@@ -648,9 +646,7 @@ int main (int argc, char** argv){
       //ROS_INFO("%s",ss6.str().c_str());
       //ROS_INFO("%s",ss7.str().c_str());
       //ROS_INFO("%s",ss8.str().c_str());
-      //ROS_INFO("%s",ss9.str().c_str());
-      //ROS_INFO("%s",ss10.str().c_str());
-    ROS_INFO("%s",ss11.str().c_str());
+    //ROS_INFO("%s",ss9.str().c_str());
 
 
 

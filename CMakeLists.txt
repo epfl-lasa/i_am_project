@@ -34,6 +34,6 @@ target_link_libraries(AH_init ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 add_executable(AH_key_ctrl src/1v1_key_ctrl.cpp) 
 target_link_libraries(AH_key_ctrl ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 
-add_executable(AH_master src/1v1_master.cpp src/tools/calculate_alpha.cpp src/tools/nominal_DS_aux.cpp src/tools/nominal_DS_main.cpp src/tools/modulated_DS.cpp src/modes/track.cpp src/modes/block.cpp src/modes/hit_DS.cpp src/modes/post_hit.cpp src/modes/rest.cpp include/thirdparty/Utils.cpp) 
+add_executable(AH_master src/1v1_master.cpp src/tools/calculate_alpha.cpp src/tools/nominal_DS_aux.cpp src/tools/nominal_DS_main.cpp src/tools/modulated_DS.cpp src/tools/hittable.cpp src/modes/track.cpp src/modes/block.cpp src/modes/hit_DS.cpp src/modes/post_hit.cpp src/modes/rest.cpp include/thirdparty/Utils.cpp) 
 target_link_libraries(AH_master ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs")
 add_dependencies(AH_master i_am_project_generate_messages_cpp)

@@ -39,7 +39,7 @@ int main (int argc, char** argv){
     ros::init(argc, argv, "AH_init");
     ros::NodeHandle nh;
     ros::Publisher mode_pub = nh.advertise<std_msgs::Int16>("mode",10);
-    ros::Rate rate(10.0);
+    ros::Rate rate(5.0);
 
 
     char key = (' ');
@@ -54,9 +54,11 @@ int main (int argc, char** argv){
                 break;
             case '1':
                 mode.data = 1; //homing;
+                mode_pub.publish(mode);
                 break;
             case '2':
                 mode.data = 2; //circling;
+                mode_pub.publish(mode);
                 break;
             case '3':
                 mode.data = 3; //homing;
@@ -91,7 +93,9 @@ int main (int argc, char** argv){
         printOut.data = ss.str();
         ROS_INFO("%s", printOut.data.c_str());
 
-        mode_pub.publish(mode);
+        
         rate.sleep();
+        mode.data = 0;
+        mode_pub.publish(mode);
     }
 }

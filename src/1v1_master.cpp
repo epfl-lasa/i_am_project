@@ -24,8 +24,9 @@ double theta;
 
 int mode1 = 5;
 int mode2 = 5;
-int manual_mode1 = 5;
-int manual_mode2 = 5;
+//int manual_mode1 = 5;
+//int manual_mode2 = 5;
+int key_ctrl = 0;
 
 
 // Stuff to set
@@ -178,9 +179,10 @@ void estimateObjectCallback(std_msgs::Float64MultiArray estimation){
 
 
 void modeCallback(std_msgs::Int16 msg){
-  if (msg.data <= 5){manual_mode1 = msg.data;}
-  if (msg.data >= 6){manual_mode2 = msg.data-5;} 
-  if (msg.data == 0){manual_mode2 = 5;}
+  //if (msg.data <= 5){manual_mode1 = msg.data;}
+  //if (msg.data >= 6){manual_mode2 = msg.data-5;} 
+  //if (msg.data == 0){manual_mode2 = 5;}
+  key_ctrl = msg.data;
 }
 
 int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos, const int prev_mode, const int iiwa_no){
@@ -242,6 +244,50 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
       if (too_far == true && ETA < 3) {mode = 2;}                               //if object will go too far, try to stop it
       if (pred_hittable == true && ETA < 0.3 && ee_ready == true) {mode = 3;}   //same as when being in tracking mode, since mode is initialized in rest
       if (pred_hittable == true && ETA < 3 && ee_ready == false) {mode = 1;}    //if object is going to be hittable but ee is not in the right position, lets track!                               
+      break;
+  }
+  return mode;
+}
+
+int maniModeSelektor(Eigen::Vector3d ee_pos, const int prev_mode, const int iiwa_no){
+  int mode = prev_mode;           // if none of the conditions are met, mode remains the same
+  
+  int iiwa_sel = 3-2*iiwa_no;        // multiplier used in conditional statements. iiwa = 1 -> selector = 1, iiwa = 2 -> selector = -1. This allows for directions to flip
+  Eigen::Matrix3d sel_mat;
+  sel_mat << iiwa_sel, 0.0,      0.0,
+             0.0,      iiwa_sel, 0.0,
+             0.0,      0.0,      1.0;
+  
+
+  
+  bool cur_hittable = hittable(object_pos, iiwa1_base_pos, iiwa_no);
+
+
+  bool moving;
+  if (object_vel_est.norm() > 0.03){moving = true;}
+  else {moving = false;}
+
+  bool towards;
+  if (object_vel_est[1]*iiwa_sel < -0.01){towards = true;}
+  else {towards = false;}
+
+  bool ee_ready;
+  if ((ee_pos-(object_pos+sel_mat*ee_offset)).norm() < 0.1){ee_ready = true;}
+  else {ee_ready = false;}
+
+
+
+  switch (prev_mode){
+    case 3:   //hit
+      if (towards == false && moving == true) {mode = 4;}                                   //if object starts moving because it is hit, go to post hit and initialize kalman                                          
+      break;
+
+    case 4:   //post hit
+      if (cur_hittable == false || towards == false) {mode = 5;}                            //if object has left the range of arm, go to rest
+      break;
+
+    case 5:   //rest
+      if (cur_hittable == true && ee_ready == true) {mode = 3;}   //same as when being in tracking mode, since mode is initialized in rest
       break;
   }
   return mode;
@@ -404,7 +450,7 @@ int main (int argc, char** argv){
     prev_mode1 = mode1;
 
     if (manual_mode == false) {mode2 = modeSelektor(predict_pos, ETA, ee2_pos, prev_mode2, 2);}
-    else {mode2 = manual_mode2;}
+    else {mode2 = maniModeSelektor;}
     switch (mode2) {
       case 1: //track
         pub_pos_quat2.publish(track(predict_pos, rest2_quat, ee_offset, iiwa2_base_pos, 2));

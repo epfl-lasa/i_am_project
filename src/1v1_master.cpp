@@ -115,9 +115,9 @@ void objectCallback(const geometry_msgs::Pose object_pose){
   object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;
 
   object_rpy = quatToRPY({object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z}); //get orientation in rpy
-  object_theta = object_rpy[2];                                                                                             //only the z-axis
-  theta_mod = std::fmod(object_theta+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
-  theta_quat = rpyToQuat(0.0, 0.0, theta_mod);                                                                                    //convert back to quat
+  object_th = object_rpy[2];                                                                                             //only the z-axis
+  object_th_mod = std::fmod(object_th+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
+  th_quat = rpyToQuat(0.0, 0.0, object_th_mod);                                                                                    //convert back to quat
 }
 
 void iiwa1BaseCallback(const geometry_msgs::Pose base_pose){

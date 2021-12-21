@@ -41,9 +41,8 @@ Eigen::Vector3d des_pos_set = {0.0, 0.5, 0.0};              // Seen from IIWA 1,
 
 double min_y, max_y;
 
-Eigen::Matrix3d R_Opti = {-1.0, 0.0, 0.0,
-                           0.0,-1.0, 0.0,
-                           0.0, 0.0, 1.0};
+Eigen::Vector3d iiwa_flip = {1.0, 1.0, 0.0};
+Eigen::Matrix3d R_Opti; 
 
 // Stuff to measure
 geometry_msgs::Pose object_pose, iiwa1_base_pose, iiwa2_base_pose, ee1_pose, ee2_pose;
@@ -122,15 +121,41 @@ int getIndex(std::vector<std::string> v, std::string value){
     }
     return -1;
 }
-
+/*
 void objectCallback(const geometry_msgs::Pose object_pose){
   object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;
   object_pos = R_Opti*object_pos;
+
   object_rpy = quatToRPY({object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z}); //get orientation in rpy
   object_th = object_rpy[2];                                                                                             //only the z-axis
   object_th_mod = std::fmod(object_th+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
   th_quat = rpyToQuat(0.0, 0.0, object_th_mod);                                                                                    //convert back to quat
 }
+*/
+void objectCallback(const gazebo_msgs::ModelStates model_states){
+  int box_index = getIndex(model_states.name, "my_box");
+  object_pose = model_states.pose[box_index];
+  object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;
+  //object_pos = R_Opti*object_pos;
+
+  object_rpy = quatToRPY({object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z}); //get orientation in rpy
+  object_th = object_rpy[2];                                                                                             //only the z-axis
+  object_th_mod = std::fmod(object_th+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
+  th_quat = rpyToQuat(0.0, 0.0, object_th_mod);                                                                                    //convert back to quat
+}
+/*
+void iiwa1BaseCallback(const geometry_msgs::Pose base_pose){
+  iiwa1_base_pos << base_pose.position.x, base_pose.position.y, base_pose.position.z;
+  iiwa1_base_pos = R_Opti*iiwa1_base_pos;
+}
+
+void iiwa2BaseCallback(const geometry_msgs::Pose base_pose){
+  iiwa2_base_pos << base_pose.position.x, base_pose.position.y, base_pose.position.z;
+  iiwa2_base_pos = R_Opti*iiwa2_base_pos;
+  min_y = iiwa2_base_pos[1] - 0.5;
+  max_y = iiwa2_base_pos[1] - 0.1;
+}
+*/
 
 void iiwaCallback(const gazebo_msgs::LinkStates link_states){
   int iiwa1_ee_index = getIndex(link_states.name, "iiwa1::iiwa1_link_7");
@@ -201,23 +226,24 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
   int mode = prev_mode;           // if none of the conditions are met, mode remains the same
   
   int iiwa_sel = 3-2*iiwa_no;        // multiplier used in conditional statements. iiwa = 1 -> selector = 1, iiwa = 2 -> selector = -1. This allows for directions to flip
+  Eigen::Vector3d flip_vec = Eigen::Vector3d::Ones() + iiwa_flip*(iiwa_sel-1);
   Eigen::Matrix3d sel_mat;
-  sel_mat << iiwa_sel, 0.0,      0.0,
-             0.0,      iiwa_sel, 0.0,
-             0.0,      0.0,      1.0;
+  sel_mat << flip_vec[0], 0.0,         0.0,
+             0.0,         flip_vec[1], 0.0,
+             0.0,         0.0,         flip_vec[2];
   
 
   
-  bool cur_hittable = hittable(object_pos, iiwa1_base_pos, iiwa_no);
+  bool cur_hittable = hittable(object_pos, iiwa1_base_pos, iiwa_flip, iiwa_no);
 
-  bool pred_hittable = hittable(predict_pos, iiwa1_base_pos, iiwa_no);
+  bool pred_hittable = hittable(predict_pos, iiwa1_base_pos, iiwa_flip, iiwa_no);
 
   bool too_far;
-  if (predict_pos[1]*iiwa_sel < -max_y){too_far = true;}
+  if (predict_pos[1]*flip_vec[1] < -max_y){too_far = true;}
   else {too_far = false;}
 
   bool too_close;
-  if (predict_pos[1]*iiwa_sel > -min_y){too_close = true;}
+  if (predict_pos[1]*flip_vec[1] > -min_y){too_close = true;}
   else {too_close = false;}
 
   bool moving;
@@ -225,7 +251,7 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
   else {moving = false;}
 
   bool towards;
-  if (object_vel[1]*iiwa_sel < -0.01){towards = true;}
+  if (object_vel[1]*flip_vec[1] < -0.01){towards = true;}
   else {towards = false;}
 
   bool ee_ready;
@@ -256,6 +282,14 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
       if (too_far == true && ETA < 3) {mode = 2;}                               //if object will go too far, try to stop it
       if (pred_hittable == true && ETA < 0.3 && ee_ready == true) {mode = 3;}   //same as when being in tracking mode, since mode is initialized in rest
       if (pred_hittable == true && ETA < 3 && ee_ready == false) {mode = 1;}    //if object is going to be hittable but ee is not in the right position, lets track!                               
+      std::stringstream ss1;
+      std::stringstream ss2;
+
+      ss1 << "too_far : " << too_far;
+      ss2 << "pred_hit: " << cur_hittable << " pred_x " << predict_pos[0] << " pred_y " << predict_pos[1];
+
+      ROS_INFO("%s",ss1.str().c_str());
+      ROS_INFO("%s",ss2.str().c_str());
       break;
   }
   return mode;
@@ -265,14 +299,15 @@ int maniModeSelektor(Eigen::Vector3d ee_pos, const int prev_mode, const int iiwa
   int mode = prev_mode;           // if none of the conditions are met, mode remains the same
   
   int iiwa_sel = 3-2*iiwa_no;        // multiplier used in conditional statements. iiwa = 1 -> selector = 1, iiwa = 2 -> selector = -1. This allows for directions to flip
+  Eigen::Vector3d flip_vec = Eigen::Vector3d::Ones() + iiwa_flip*(iiwa_sel-1);
   Eigen::Matrix3d sel_mat;
-  sel_mat << iiwa_sel, 0.0,      0.0,
-             0.0,      iiwa_sel, 0.0,
-             0.0,      0.0,      1.0;
+  sel_mat << flip_vec[0], 0.0,         0.0,
+             0.0,         flip_vec[1], 0.0,
+             0.0,         0.0,         flip_vec[2];
   
 
   
-  bool cur_hittable = hittable(object_pos, iiwa1_base_pos, iiwa_no);
+  bool cur_hittable = hittable(object_pos, iiwa1_base_pos, iiwa_flip, iiwa_no);
 
 
   bool moving;
@@ -280,7 +315,7 @@ int maniModeSelektor(Eigen::Vector3d ee_pos, const int prev_mode, const int iiwa
   else {moving = false;}
 
   bool towards;
-  if (object_vel[1]*iiwa_sel < -0.01){towards = true;}
+  if (object_vel[1]*flip_vec[1] < -0.01){towards = true;}
   else {towards = false;}
 
   bool ee_ready;
@@ -324,8 +359,11 @@ int main (int argc, char** argv){
   ros::Rate rate(100);
 
   //Subscribers to object and IIWA states
-  ros::Subscriber object_subs = nh.subscribe("/simo_track/object_pose", 10 , objectCallback);               //from real_pose and gazebo
+  //ros::Subscriber object_subs = nh.subscribe("/simo_track/object_pose", 10 , objectCallback);               //from real_pose and gazebo
+  ros::Subscriber object_subs = nh.subscribe("/gazebo/model_states", 10, objectCallback);
   ros::Subscriber iiwa_subs = nh.subscribe("/gazebo/link_states", 10, iiwaCallback);
+  //ros::Subscriber iiwa1_base_subs = nh.subscribe("/simo_track/robot_left/pose", 10, iiwa1BaseCallback);
+  //ros::Subscriber iiwa2_base_subs = nh.subscribe("/simo_track/robot_right/pose", 10, iiwa2BaseCallback);
 
   ros::Subscriber iiwa1_ee_twist_subs = nh.subscribe("iiwa1/ee_twist", 100, iiwa1EETwistCallback);          //from passive_control and iiwa_ros
   ros::Subscriber iiwa2_ee_twist_subs = nh.subscribe("iiwa2/ee_twist", 100, iiwa2EETwistCallback);
@@ -399,6 +437,8 @@ int main (int argc, char** argv){
   Eigen::Vector3d ee1_pos_init = ee1_pos;
   Eigen::Vector3d ee2_pos_init = ee2_pos;
 
+
+  R_Opti << -1.0, 0.0, 0.0, 0.0,-1.0, 0.0, 0.0, 0.0, 1.0;
   //Eigen::Vector3d des_pos1, des_pos2, rand_pos;
   //double randx;
   //double randy;
@@ -435,7 +475,7 @@ int main (int argc, char** argv){
     //rand_pos = {randx, randy, 0.0};
 
     double theta_des1 = -std::atan2((des_pos_set[0]-predict_pos[0]),(des_pos_set[1]-predict_pos[1])); //can also use cur_pos
-    double theta_des2 = -std::atan2((des_pos_set[0]+predict_pos[0]),(des_pos_set[1]+predict_pos[1]));
+    double theta_des2 = -std::atan2((des_pos_set[0]-predict_pos[0]),(des_pos_set[1]+predict_pos[1]));
 
 
     // Select correct operating mode for both arms based on conditions on (predicted) object position and velocity and ee position
@@ -443,19 +483,19 @@ int main (int argc, char** argv){
     else {mode1 = maniModeSelektor(ee1_pos, prev_mode1, 1);}
     switch (mode1) {
       case 1: //track
-        pub_pos_quat1.publish(track(predict_pos, rest1_quat, ee_offset, iiwa1_base_pos, 1));
+        pub_pos_quat1.publish(track(predict_pos, rest1_quat, ee_offset, iiwa1_base_pos, iiwa_flip, 1));
         ee1_pos_init = ee1_pos; //we can go from track to hit. For hit, we need initial
         //des_pos1 = des_pos_set + rand_pos;
         break;
       case 2: //stop
-        pub_pos_quat1.publish(block(object_pos, predict_pos, th_quat, iiwa1_base_pos, 1));
+        pub_pos_quat1.publish(block(object_pos, predict_pos, th_quat, iiwa1_base_pos, iiwa_flip, 1));
         break;
       case 3: //hit
-        pub_vel_quat1.publish(hitDS(des_speed, theta_des1, object_pos, ee1_pos, ee1_pos_init, 1));
+        pub_vel_quat1.publish(hitDS(des_speed, theta_des1, object_pos, ee1_pos, ee1_pos_init, iiwa_flip, 1));
         object_pos_init1 = object_pos; //need this for post-hit to guide the arm right after hit
         break;
       case 4: //post hit
-        pub_pos_quat1.publish(postHit(object_pos_init1, rest1_quat, iiwa1_base_pos, 1));
+        pub_pos_quat1.publish(postHit(object_pos_init1, rest1_quat, iiwa1_base_pos, iiwa_flip, 1));
         break;
       case 5: //rest
         pub_pos_quat1.publish(rest(rest1_pos, rest1_quat));
@@ -469,19 +509,19 @@ int main (int argc, char** argv){
     else {mode2 = maniModeSelektor(ee2_pos, prev_mode2, 2);}
     switch (mode2) {
       case 1: //track
-        pub_pos_quat2.publish(track(predict_pos, rest2_quat, ee_offset, iiwa2_base_pos, 2));
+        pub_pos_quat2.publish(track(predict_pos, rest2_quat, ee_offset, iiwa2_base_pos, iiwa_flip, 2));
         ee2_pos_init = ee2_pos;
         //des_pos2 = des_pos_set + rand_pos;
         break;
       case 2: //stop
-        pub_pos_quat2.publish(block(object_pos, predict_pos, th_quat, iiwa2_base_pos, 2));
+        pub_pos_quat2.publish(block(object_pos, predict_pos, th_quat, iiwa2_base_pos, iiwa_flip, 2));
         break;
       case 3: //hit
-        pub_vel_quat2.publish(hitDS(des_speed, theta_des2, object_pos, ee2_pos, ee2_pos_init, 2));
+        pub_vel_quat2.publish(hitDS(des_speed, theta_des2, object_pos, ee2_pos, ee2_pos_init, iiwa_flip, 2));
         object_pos_init2 = object_pos;
         break;
       case 4: //post hit
-        pub_pos_quat2.publish(postHit(object_pos_init2, rest2_quat, iiwa2_base_pos, 2));
+        pub_pos_quat2.publish(postHit(object_pos_init2, rest2_quat, iiwa2_base_pos, iiwa_flip, 2));
         break;
       case 5: //rest
         pub_pos_quat2.publish(rest(rest2_pos, rest2_quat));
@@ -637,16 +677,15 @@ int main (int argc, char** argv){
       std::stringstream ss11;
       
 
-      ss3 << "current   : " << object_pos[1];
-      ss4 << "predicted : " << predict_pos[1];
-      ss5 << "ETA       : " << ETA*5.0;
-      ss6 << "estima vel: " << object_vel[1];
+      //ss3 << "object    : " << object_pos[0] << " " << object_pos[1] << " " << object_pos[2];
+      //ss4 << "iiwa1_base: " << predict_pos[1];
+      //ss5 << "ETA       : " << ETA*5.0;
+      //ss6 << "estima vel: " << object_vel[1];
       //ss8 << "final th  : " << predict_th;
       //ss9 << "current th: " << object_th;
 
-
-      //ROS_INFO("%s",ss3.str().c_str());
-      //ROS_INFO("%s",ss4.str().c_str());
+      ROS_INFO("%s",ss3.str().c_str());
+      ROS_INFO("%s",ss4.str().c_str());
       //ROS_INFO("%s",ss5.str().c_str());
       //ROS_INFO("%s",ss6.str().c_str());
       //ROS_INFO("%s",ss7.str().c_str());

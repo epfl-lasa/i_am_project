@@ -62,6 +62,7 @@ int main (int argc, char** argv){
                 break;
             case '3':
                 mode.data = 3; //homing;
+                mode_pub.publish(mode);
                 break;
             case '4':
                 mode.data = 4; //circling;

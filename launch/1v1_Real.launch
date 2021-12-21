@@ -36,7 +36,7 @@
   <rosparam file="$(find i_am_project)/config/1v1_params.yaml" />
   <node name="initialization" pkg="i_am_project" type="AH_init" output="screen"/>
   <node name="master" pkg="i_am_project" type="AH_master"   output="screen"/>                         
-  <node name="estimator" pkg="i_am_predict" type="estimate_real" output="screen"/>
+  <node name="estimator" pkg="i_am_predict" type="estimate_sim" output="screen"/>
 
 </launch>
 

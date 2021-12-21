@@ -1,5 +1,8 @@
+object_real: false
+iiwa_real: false
+
 hollow: false
-manual_mode: true
+manual_mode: false
 
 table:
   properties:

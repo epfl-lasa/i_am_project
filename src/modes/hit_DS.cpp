@@ -1,15 +1,16 @@
 #include "../include/hit_DS.h"
 
 
-geometry_msgs::Pose hitDS(double des_speed, double theta, Eigen::Vector3d object_pos, Eigen::Vector3d ee_pos, Eigen::Vector3d ee_pos_init, const int iiwa_no){
+geometry_msgs::Pose hitDS(double des_speed, double theta, Eigen::Vector3d object_pos, Eigen::Vector3d ee_pos, Eigen::Vector3d ee_pos_init, Eigen::Vector3d iiwa_flip, const int iiwa_no){
   geometry_msgs::Pose vel_quat;
   Eigen::Vector3d object_offset = {0.0, 0.0, 0.025};
 
   int iiwa_sel = 3-2*iiwa_no;
+  Eigen::Vector3d flip_vec = Eigen::Vector3d::Ones() + iiwa_flip*(iiwa_sel-1);
   Eigen::Matrix3d sel_mat;
-  sel_mat << iiwa_sel, 0.0,      0.0,
-             0.0,      iiwa_sel, 0.0,
-             0.0,      0.0,      1.0;
+  sel_mat << flip_vec[0], 0.0,         0.0,
+             0.0,         flip_vec[1], 0.0,
+             0.0,         0.0,         flip_vec[2];
 
   //instead of flipping direction of attractor and such, make use of the fact that iiwa2 is exactly the same as iiwa1 but rotated around the worlds z-axis with pi
   //if then the only parameters that are defined w.r.t. the world frame are rotated also, the whole situation becomes identical

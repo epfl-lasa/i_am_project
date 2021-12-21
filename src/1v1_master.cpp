@@ -47,7 +47,7 @@ geometry_msgs::Pose object_pose, iiwa1_base_pose, iiwa2_base_pose, ee1_pose, ee2
 geometry_msgs::Twist object_twist, ee1_twist, ee2_twist;
 
 Eigen::Vector3d object_pos, iiwa1_base_pos, iiwa2_base_pos, ee1_pos, ee2_pos;
-Eigen::Vector3d ee1_vel, ee2_vel;
+Eigen::Vector3d object_vel_real, ee1_vel, ee2_vel;
 //Eigen::Vector3d hit_force = Eigen::Vector3d::Zero();
 
 Eigen::Vector3d object_rpy;
@@ -124,8 +124,10 @@ void objectCallback(const gazebo_msgs::ModelStates model_states){
   int box_index = getIndex(model_states.name, "my_box");
 
   object_pose = model_states.pose[box_index];
-
   object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;
+
+  object_twist = model_states.twist[box_index];
+  object_vel_real << object_twist.linear.x, object_twist.linear.y, object_twist.linear.z;
 
   object_rpy = quatToRPY({object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z}); //get orientation in rpy
   object_th = object_rpy[2];                                                                                                            //only the z-axis
@@ -293,14 +295,17 @@ int maniModeSelektor(Eigen::Vector3d ee_pos, const int prev_mode, const int iiwa
   switch (prev_mode){
     case 1: //track
       if (cur_hittable == true && ee_ready == true && key_ctrl == iiwa_no) {mode = 3;}
+      if (key_ctrl == 3) {mode = 5;}
       break;
       
     case 3:   //hit
       if (towards == false && moving == true) {mode = 4;}                                   //if object starts moving because it is hit, go to post hit and initialize kalman                                          
+      if (key_ctrl == 3) {mode = 5;}
       break;
 
     case 4:   //post hit
       if (cur_hittable == false || towards == false) {mode = 5;}                            //if object has left the range of arm, go to rest
+      if (key_ctrl == 3) {mode = 5;}
       break;
 
     case 5:   //rest
@@ -702,6 +707,7 @@ int main (int argc, char** argv){
       ss4 << "predicted : " << predict_pos[1];
       ss5 << "ETA       : " << ETA*5.0;
       ss6 << "estima vel: " << object_vel[1];
+      ss7 << "actual vel: " << object_vel_real[1];
       //ss8 << "final th  : " << predict_th;
       //ss9 << "current th: " << object_th;
 
@@ -709,8 +715,8 @@ int main (int argc, char** argv){
       //ROS_INFO("%s",ss3.str().c_str());
       //ROS_INFO("%s",ss4.str().c_str());
       //ROS_INFO("%s",ss5.str().c_str());
-      //ROS_INFO("%s",ss6.str().c_str());
-      //ROS_INFO("%s",ss7.str().c_str());
+      ROS_INFO("%s",ss6.str().c_str());
+      ROS_INFO("%s",ss7.str().c_str());
       //ROS_INFO("%s",ss8.str().c_str());
     //ROS_INFO("%s",ss9.str().c_str());
 

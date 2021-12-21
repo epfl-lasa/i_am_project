@@ -141,16 +141,6 @@ void iiwaCallback(const gazebo_msgs::LinkStates link_states){
   max_y = iiwa2_base_pos[1] - 0.1;
 }
 
-void iiwa2EEPoseCallback(const geometry_msgs::Pose ee_pose){
-  ee2_pose.position.x = ee_pose.position.x;
-  ee2_pose.position.y = ee_pose.position.y;
-  ee2_pose.position.z = ee_pose.position.z;
-  ee2_pose.orientation.w = ee_pose.position.w;
-  ee2_pose.orientation.x = ee_pose.position.x;
-  ee2_pose.orientation.y = ee_pose.position.y;
-  ee2_pose.orientation.z = ee_pose.position.z;
-  ee2_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
-}
 
 void iiwa1EETwistCallback(const geometry_msgs::Twist ee_twist){
   ee1_twist.linear.x = ee_twist.linear.x;
@@ -291,14 +281,17 @@ int maniModeSelektor(Eigen::Vector3d ee_pos, const int prev_mode, const int iiwa
   switch (prev_mode){
     case 1: //track
       if (cur_hittable == true && ee_ready == true && key_ctrl == iiwa_no) {mode = 3;}
+      if (key_ctrl == 3) {mode = 5;}
       break;
       
     case 3:   //hit
       if (towards == false && moving == true) {mode = 4;}                                   //if object starts moving because it is hit, go to post hit and initialize kalman                                          
+      if (key_ctrl == 3) {mode = 5;}
       break;
 
     case 4:   //post hit
       if (cur_hittable == false || towards == false) {mode = 5;}                            //if object has left the range of arm, go to rest
+      if (key_ctrl == 3) {mode = 5;}
       break;
 
     case 5:   //rest

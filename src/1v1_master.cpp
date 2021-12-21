@@ -41,6 +41,9 @@ Eigen::Vector3d des_pos_set = {0.0, 0.5, 0.0};              // Seen from IIWA 1,
 
 double min_y, max_y;
 
+Eigen::Matrix3d R_Opti = {-1.0, 0.0, 0.0,
+                           0.0,-1.0, 0.0,
+                           0.0, 0.0, 1.0};
 
 // Stuff to measure
 geometry_msgs::Pose object_pose, iiwa1_base_pose, iiwa2_base_pose, ee1_pose, ee2_pose;
@@ -122,7 +125,7 @@ int getIndex(std::vector<std::string> v, std::string value){
 
 void objectCallback(const geometry_msgs::Pose object_pose){
   object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;
-
+  object_pos = R_Opti*object_pos;
   object_rpy = quatToRPY({object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z}); //get orientation in rpy
   object_th = object_rpy[2];                                                                                             //only the z-axis
   object_th_mod = std::fmod(object_th+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm

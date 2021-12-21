@@ -31,9 +31,9 @@ int key_ctrl = 0;
 
 // Stuff to set
 Eigen::Vector3d rest1_pos = {0.55, -0.2, 0.4};           //relative to iiwa base
-Eigen::Vector3d rest2_pos = {0.55, -0.2, 0.4};
+Eigen::Vector3d rest2_pos = {0.55, 0.2, 0.4};
 Eigen::Vector4d rest1_quat = {0.707, -0.707, 0.0, 0.0};
-Eigen::Vector4d rest2_quat = {0.707, -0.707, 0.0, 0.0};
+Eigen::Vector4d rest2_quat = {-0.707, -0.707, 0.0, 0.0};
 
 Eigen::Vector3d ee_offset = {0.0, -0.4, 0.225};         //relative to object
 
@@ -41,7 +41,7 @@ Eigen::Vector3d des_pos_set = {0.0, 0.5, 0.0};              // Seen from IIWA 1,
 
 double min_y, max_y;
 
-Eigen::Vector3d iiwa_flip = {1.0, 1.0, 0.0};
+Eigen::Vector3d iiwa_flip = {0.0, 1.0, 0.0};
 Eigen::Matrix3d R_Opti; 
 
 // Stuff to measure
@@ -281,15 +281,7 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
     case 5:   //rest
       if (too_far == true && ETA < 3) {mode = 2;}                               //if object will go too far, try to stop it
       if (pred_hittable == true && ETA < 0.3 && ee_ready == true) {mode = 3;}   //same as when being in tracking mode, since mode is initialized in rest
-      if (pred_hittable == true && ETA < 3 && ee_ready == false) {mode = 1;}    //if object is going to be hittable but ee is not in the right position, lets track!                               
-      std::stringstream ss1;
-      std::stringstream ss2;
-
-      ss1 << "too_far : " << too_far;
-      ss2 << "pred_hit: " << cur_hittable << " pred_x " << predict_pos[0] << " pred_y " << predict_pos[1];
-
-      ROS_INFO("%s",ss1.str().c_str());
-      ROS_INFO("%s",ss2.str().c_str());
+      if (pred_hittable == true && ETA < 3 && ee_ready == false) {mode = 1;}    //if object is going to be hittable but ee is not in the right position, lets track! 
       break;
   }
   return mode;
@@ -370,6 +362,9 @@ int main (int argc, char** argv){
   ros::Subscriber iiwa1_joint_subs = nh.subscribe("/iiwa1/joint_states", 100, iiwa1JointCallback);
   ros::Subscriber iiwa2_joint_subs = nh.subscribe("/iiwa2/joint_states", 100, iiwa2JointCallback);
   
+  //Subcriber to position estimator
+  ros::Subscriber estimate_object_subs = nh.subscribe("estimate/object",10,estimateObjectCallback);
+
   //Publishers for position and velocity commands for IIWA end-effectors
   ros::Publisher pub_vel_quat1 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/vel_quat", 1);
   ros::Publisher pub_pos_quat1 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/pos_quat", 1);
@@ -684,8 +679,8 @@ int main (int argc, char** argv){
       //ss8 << "final th  : " << predict_th;
       //ss9 << "current th: " << object_th;
 
-      ROS_INFO("%s",ss3.str().c_str());
-      ROS_INFO("%s",ss4.str().c_str());
+      //ROS_INFO("%s",ss3.str().c_str());
+      //ROS_INFO("%s",ss4.str().c_str());
       //ROS_INFO("%s",ss5.str().c_str());
       //ROS_INFO("%s",ss6.str().c_str());
       //ROS_INFO("%s",ss7.str().c_str());

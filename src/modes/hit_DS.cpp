@@ -15,9 +15,9 @@ geometry_msgs::Pose hitDS(double des_speed, double theta, Eigen::Vector3d object
   //instead of flipping direction of attractor and such, make use of the fact that iiwa2 is exactly the same as iiwa1 but rotated around the worlds z-axis with pi
   //if then the only parameters that are defined w.r.t. the world frame are rotated also, the whole situation becomes identical
   //(passive_track gives cmds w.r.t. respective iiwa frame)
-  Eigen::Vector3d object_pos2  = sel_mat*(object_pos+object_offset); 
-  Eigen::Vector3d ee_pos2      = sel_mat*ee_pos;
-  Eigen::Vector3d ee_pos_init2 = sel_mat*ee_pos_init;
+  //Eigen::Vector3d object_pos2  = sel_mat*(object_pos+object_offset); 
+  //Eigen::Vector3d ee_pos2      = sel_mat*ee_pos;
+  //Eigen::Vector3d ee_pos_init2 = sel_mat*ee_pos_init;
 
 
   
@@ -48,8 +48,8 @@ geometry_msgs::Pose hitDS(double des_speed, double theta, Eigen::Vector3d object
   Eigen::Vector3d attractor_main;
   Eigen::Vector3d attractor_aux;
   
-  attractor_main = object_pos2 + 1*rot_mat*unit_x;
-  attractor_aux = (4.0/3.0)*object_pos2 - (1.0/3.0)*attractor_main;
+  attractor_main = object_pos + 1*rot_mat*unit_x*flip_vec[1];
+  attractor_aux = (4.0/3.0)*object_pos - (1.0/3.0)*attractor_main;
   
   
 
@@ -60,7 +60,7 @@ geometry_msgs::Pose hitDS(double des_speed, double theta, Eigen::Vector3d object
   Eigen::Matrix3d rot_ee;
   Eigen::Quaterniond rot_quat;
   
-  ee_direction_z = attractor_main - object_pos2; 
+  ee_direction_z = attractor_main - object_pos; 
   ee_direction_x = {0.0, 0.0, 1.0};
   ee_direction_y = ee_direction_z.cross(ee_direction_x);
   ee_direction_z = ee_direction_z/ee_direction_z.norm();
@@ -75,10 +75,10 @@ geometry_msgs::Pose hitDS(double des_speed, double theta, Eigen::Vector3d object
   
 
   Eigen::Vector3d des_vel = {0.0, 0.0, 0.0};
-  double alpha = calculate_alpha(ee_pos2, ee_pos_init2, object_pos2, attractor_main);
+  double alpha = calculate_alpha(ee_pos, ee_pos_init, object_pos, attractor_main);
   
-  des_vel = alpha*nominal_aux(rot_mat, gain_aux, ee_pos2, attractor_aux) + (1 - alpha)*nominal_main(rot_mat, gain_main, ee_pos2, attractor_main)
-            + modulated_DS(attractor_main, object_pos2, ee_pos2, modulated_sigma);
+  des_vel = alpha*nominal_aux(rot_mat, gain_aux, ee_pos, attractor_aux) + (1 - alpha)*nominal_main(rot_mat, gain_main, ee_pos, attractor_main)
+            + modulated_DS(attractor_main, object_pos, ee_pos, modulated_sigma);
 
   des_vel = des_vel*des_speed / des_vel.norm();
 

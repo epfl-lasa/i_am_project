@@ -1,5 +1,5 @@
 hollow: false
-manual_mode: false
+manual_mode: true
 
 table:
   properties:

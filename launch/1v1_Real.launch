@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+
+<!--|
+    Copyright (C) 2019 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
+    Authors:  Harshit Khurana, Daan Stokbroekx
+    email:    harshit.khurana@epfl.ch
+    website:  lasa.epfl.ch
+
+    This file is part of i_am_project EPFL (impact aware manipulation).
+|-->
+
+<launch>
+  <arg name="robot_name_1" default="iiwa1"/>
+  <arg name="robot_name_2" default="iiwa2"/>
+
+  <!--Launch iiwa14_brinup.launch on the second computers connected to this rosmaster-->
+
+  <!--This brings up only iiwa7 but starts both passive tracking in their namespace-->
+  <include
+      file = "$(find iiwa_toolkit)/launch/passive_track_real_dual.launch">    
+      <arg name="robot_name_1" value="$(arg robot_name_1)"/>
+      <arg name="robot_name_2" value="$(arg robot_name_2)"/>
+      <arg name="iiwa_model_1" value="7"/>
+  </include>
+
+  <!--Optitrack and other hardwares-->
+  <rosparam file="$(find real_pose)/config/topics.yaml" command="load" subst_value="true"/>           
+  <include file="$(find real_pose)/launch/hardwares.launch">                                          
+  </include>
+  <node name="real_pose" pkg="real_pose" type="real_pose" output="screen"/>                           <!--Run real_pose to convert optitrack and iiwa_joint data to object, base and ee pose-->
+  
+  <!--Run AH_master to control position and velocity for game of air hockey-->
+  <rosparam file="$(find i_am_project)/config/1v1_params.yaml" />
+  <node name="master" pkg="i_am_project" type="AH_master"   output="screen"/>                         
+  <node name="estimator" pkg="i_am_predict" type="estimate_real" output="screen"/>
+
+</launch>
+

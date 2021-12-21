@@ -24,13 +24,14 @@ double theta;
 
 int mode1 = 5;
 int mode2 = 5;
-int manual_mode1 = 5;
-int manual_mode2 = 5;
+//int manual_mode1 = 5;
+//int manual_mode2 = 5;
+int key_ctrl = 0;
 
 
 // Stuff to set
-Eigen::Vector3d rest1_pos = {0.5, -0.2, 0.4};           //relative to iiwa base
-Eigen::Vector3d rest2_pos = {0.5, -0.2, 0.4};
+Eigen::Vector3d rest1_pos = {0.55, -0.2, 0.4};           //relative to iiwa base
+Eigen::Vector3d rest2_pos = {0.55, -0.2, 0.4};
 Eigen::Vector4d rest1_quat = {0.707, -0.707, 0.0, 0.0};
 Eigen::Vector4d rest2_quat = {0.707, -0.707, 0.0, 0.0};
 
@@ -42,12 +43,12 @@ double min_y, max_y;
 
 
 // Stuff to measure
-geometry_msgs::Pose object_pose, ee1_pose, ee2_pose, iiwa1_base_pose, iiwa2_base_pose;
+geometry_msgs::Pose object_pose, iiwa1_base_pose, iiwa2_base_pose, ee1_pose, ee2_pose;
 geometry_msgs::Twist object_twist, ee1_twist, ee2_twist;
 
-Eigen::Vector3d object_pos, ee1_pos, ee2_pos, iiwa1_base_pos, iiwa2_base_pos;
-Eigen::Vector3d object_vel, ee1_vel, ee2_vel;
-Eigen::Vector3d hit_force = Eigen::Vector3d::Zero();
+Eigen::Vector3d object_pos, iiwa1_base_pos, iiwa2_base_pos, ee1_pos, ee2_pos;
+Eigen::Vector3d ee1_vel, ee2_vel;
+//Eigen::Vector3d hit_force = Eigen::Vector3d::Zero();
 
 Eigen::Vector3d object_rpy;
 double object_th, object_th_mod;
@@ -57,7 +58,7 @@ std::vector<double> iiwa1_joint_angles, iiwa2_joint_angles;
 
 
 // Stuff to estimate
-Eigen::Vector3d object_vel_est, predict_pos;
+Eigen::Vector3d object_vel, predict_pos;
 double ETA;
 double stdev;
 
@@ -115,9 +116,9 @@ void objectCallback(const geometry_msgs::Pose object_pose){
   object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;
 
   object_rpy = quatToRPY({object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z}); //get orientation in rpy
-  object_theta = object_rpy[2];                                                                                             //only the z-axis
-  theta_mod = std::fmod(object_theta+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
-  theta_quat = rpyToQuat(0.0, 0.0, theta_mod);                                                                                    //convert back to quat
+  object_th = object_rpy[2];                                                                                             //only the z-axis
+  object_th_mod = std::fmod(object_th+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
+  th_quat = rpyToQuat(0.0, 0.0, object_th_mod);                                                                                    //convert back to quat
 }
 
 void iiwa1BaseCallback(const geometry_msgs::Pose base_pose){
@@ -130,14 +131,46 @@ void iiwa2BaseCallback(const geometry_msgs::Pose base_pose){
   max_y = iiwa2_base_pos[1] - 0.1;
 }
 
-void iiwa1EECallback(const geometry_msgs::Pose ee_pose){
-  ee1_pose = ee_pose;
+void iiwa1EEPoseCallback(const geometry_msgs::Pose ee_pose){
+  ee1_pose.position.x = ee_pose.position.x;
+  ee1_pose.position.y = ee_pose.position.y;
+  ee1_pose.position.z = ee_pose.position.z;
+  ee1_pose.orientation.w = ee_pose.position.w;
+  ee1_pose.orientation.x = ee_pose.position.x;
+  ee1_pose.orientation.y = ee_pose.position.y;
+  ee1_pose.orientation.z = ee_pose.position.z;
   ee1_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
 }
 
-void iiwa2EECallback(const geometry_msgs::Pose ee_pose){
-  ee2_pose = ee_pose;
+void iiwa2EEPoseCallback(const geometry_msgs::Pose ee_pose){
+  ee2_pose.position.x = ee_pose.position.x;
+  ee2_pose.position.y = ee_pose.position.y;
+  ee2_pose.position.z = ee_pose.position.z;
+  ee2_pose.orientation.w = ee_pose.position.w;
+  ee2_pose.orientation.x = ee_pose.position.x;
+  ee2_pose.orientation.y = ee_pose.position.y;
+  ee2_pose.orientation.z = ee_pose.position.z;
   ee2_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
+}
+
+void iiwa1EETwistCallback(const geometry_msgs::Twist ee_twist){
+  ee1_twist.linear.x = ee_twist.linear.x;
+  ee1_twist.linear.y = ee_twist.linear.y;
+  ee1_twist.linear.z = ee_twist.linear.z;
+  ee1_twist.angular.x = ee_twist.angular.x;
+  ee1_twist.angular.y = ee_twist.angular.y;
+  ee1_twist.angular.z = ee_twist.angular.z;
+  ee1_vel << ee1_twist.linear.x, ee1_twist.linear.y, ee1_twist.linear.z;
+}
+
+void iiwa2EETwistCallback(const geometry_msgs::Twist ee_twist){
+  ee2_twist.linear.x = ee_twist.linear.x;
+  ee2_twist.linear.y = ee_twist.linear.y;
+  ee2_twist.linear.z = ee_twist.linear.z;
+  ee2_twist.angular.x = ee_twist.angular.x;
+  ee2_twist.angular.y = ee_twist.angular.y;
+  ee2_twist.angular.z = ee_twist.angular.z;
+  ee2_vel << ee2_twist.linear.x, ee2_twist.linear.y, ee2_twist.linear.z;
 }
 
 void iiwa1JointCallback(sensor_msgs::JointState joint_states){
@@ -152,15 +185,16 @@ void estimateObjectCallback(std_msgs::Float64MultiArray estimation){
   stdev = estimation.data[0];
   ETA = estimation.data[1];
   predict_pos << estimation.data[2], estimation.data[3], estimation.data[4];
-  object_vel_est << estimation.data[5], estimation.data[6], estimation.data[7];
+  object_vel << estimation.data[5], estimation.data[6], estimation.data[7];
   //predict_th = estimation.data[8];
 }
 
 
 void modeCallback(std_msgs::Int16 msg){
-  if (msg.data <= 5){manual_mode1 = msg.data;}
-  if (msg.data >= 6){manual_mode2 = msg.data-5;} 
-  if (msg.data == 0){manual_mode2 = 5;}
+  //if (msg.data <= 5){manual_mode1 = msg.data;}
+  //if (msg.data >= 6){manual_mode2 = msg.data-5;} 
+  //if (msg.data == 0){manual_mode2 = 5;}
+  key_ctrl = msg.data;
 }
 
 int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos, const int prev_mode, const int iiwa_no){
@@ -227,6 +261,55 @@ int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos
   return mode;
 }
 
+int maniModeSelektor(Eigen::Vector3d ee_pos, const int prev_mode, const int iiwa_no){
+  int mode = prev_mode;           // if none of the conditions are met, mode remains the same
+  
+  int iiwa_sel = 3-2*iiwa_no;        // multiplier used in conditional statements. iiwa = 1 -> selector = 1, iiwa = 2 -> selector = -1. This allows for directions to flip
+  Eigen::Matrix3d sel_mat;
+  sel_mat << iiwa_sel, 0.0,      0.0,
+             0.0,      iiwa_sel, 0.0,
+             0.0,      0.0,      1.0;
+  
+
+  
+  bool cur_hittable = hittable(object_pos, iiwa1_base_pos, iiwa_no);
+
+
+  bool moving;
+  if (object_vel.norm() > 0.03){moving = true;}
+  else {moving = false;}
+
+  bool towards;
+  if (object_vel[1]*iiwa_sel < -0.01){towards = true;}
+  else {towards = false;}
+
+  bool ee_ready;
+  if ((ee_pos-(object_pos+sel_mat*ee_offset)).norm() < 0.1){ee_ready = true;}
+  else {ee_ready = false;}
+
+
+
+  switch (prev_mode){
+    case 1: //track
+      if (cur_hittable == true && ee_ready == true && key_ctrl == iiwa_no) {mode = 3;}
+      break;
+      
+    case 3:   //hit
+      if (towards == false && moving == true) {mode = 4;}                                   //if object starts moving because it is hit, go to post hit and initialize kalman                                          
+      break;
+
+    case 4:   //post hit
+      if (cur_hittable == false || towards == false) {mode = 5;}                            //if object has left the range of arm, go to rest
+      break;
+
+    case 5:   //rest
+      if (cur_hittable == true && ee_ready == true && key_ctrl == iiwa_no) {mode = 3;}   //same as when being in tracking mode, since mode is initialized in rest
+      if (cur_hittable == true && ee_ready == false && key_ctrl == iiwa_no) {mode = 1;}
+      break;
+  }
+  return mode;
+}
+
 
 
 
@@ -238,13 +321,16 @@ int main (int argc, char** argv){
   ros::Rate rate(100);
 
   //Subscribers to object and IIWA states
-  ros::Subscriber object_subs = nh.subscribe("/simo_track/object_pose", 10 , objectCallback);
+  ros::Subscriber object_subs = nh.subscribe("/simo_track/object_pose", 10 , objectCallback);               //from real_pose
   ros::Subscriber iiwa1_base_subs = nh.subscribe("/simo_track/robot_left/pose", 10, iiwa1BaseCallback);
   ros::Subscriber iiwa2_base_subs = nh.subscribe("/simo_track/robot_right/pose", 10, iiwa2BaseCallback);
-  ros::Subscriber iiwa1_ee_subs = nh.subscribe("/simo_track/robot_left/ee_pose", 10, iiwa1EECallback);
-  ros::Subscriber iiwa2_ee_subs = nh.subscribe("/simo_track/robot_right/ee_pose", 10, iiwa2EECallback);
-  ros::Subscriber iiwa1_joint_subs = nh.subscribe("/iiwa1/joint_states", 10, iiwa1JointCallback);
-  ros::Subscriber iiwa2_joint_subs = nh.subscribe("/iiwa2/joint_states", 10, iiwa2JointCallback);
+  ros::Subscriber iiwa1_ee_subs = nh.subscribe("/simo_track/robot_left/ee_pose", 10, iiwa1EEPoseCallback);
+  ros::Subscriber iiwa2_ee_subs = nh.subscribe("/simo_track/robot_right/ee_pose", 10, iiwa2EEPoseCallback);
+
+  ros::Subscriber iiwa1_ee_twist_subs = nh.subscribe("iiwa1/ee_twist", 100, iiwa1EETwistCallback);          //from passive_control and iiwa_ros
+  ros::Subscriber iiwa2_ee_twist_subs = nh.subscribe("iiwa2/ee_twist", 100, iiwa2EETwistCallback);
+  ros::Subscriber iiwa1_joint_subs = nh.subscribe("/iiwa1/joint_states", 100, iiwa1JointCallback);
+  ros::Subscriber iiwa2_joint_subs = nh.subscribe("/iiwa2/joint_states", 100, iiwa2JointCallback);
   
   //Publishers for position and velocity commands for IIWA end-effectors
   ros::Publisher pub_vel_quat1 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/vel_quat", 1);
@@ -354,7 +440,7 @@ int main (int argc, char** argv){
 
     // Select correct operating mode for both arms based on conditions on (predicted) object position and velocity and ee position
     if (manual_mode == false) {mode1 = modeSelektor(predict_pos, ETA, ee1_pos, prev_mode1, 1);}
-    else {mode1 = manual_mode1;}
+    else {mode1 = maniModeSelektor(ee1_pos, prev_mode1, 1);}
     switch (mode1) {
       case 1: //track
         pub_pos_quat1.publish(track(predict_pos, rest1_quat, ee_offset, iiwa1_base_pos, 1));
@@ -380,7 +466,7 @@ int main (int argc, char** argv){
     prev_mode1 = mode1;
 
     if (manual_mode == false) {mode2 = modeSelektor(predict_pos, ETA, ee2_pos, prev_mode2, 2);}
-    else {mode2 = manual_mode2;}
+    else {mode2 = maniModeSelektor(ee2_pos, prev_mode2, 2);}
     switch (mode2) {
       case 1: //track
         pub_pos_quat2.publish(track(predict_pos, rest2_quat, ee_offset, iiwa2_base_pos, 2));
@@ -554,8 +640,7 @@ int main (int argc, char** argv){
       ss3 << "current   : " << object_pos[1];
       ss4 << "predicted : " << predict_pos[1];
       ss5 << "ETA       : " << ETA*5.0;
-      ss6 << "actual vel: " << object_vel[1];
-      ss7 << "estima vel: " << object_vel_est[1];
+      ss6 << "estima vel: " << object_vel[1];
       //ss8 << "final th  : " << predict_th;
       //ss9 << "current th: " << object_th;
 

@@ -111,6 +111,14 @@ Eigen::Vector4d rpyToQuat(double r, double p, double y){
 }
 
 
+int getIndex(std::vector<std::string> v, std::string value){
+    for(int i = 0; i < v.size(); i++)
+    {
+        if(v[i].compare(value) == 0)
+            return i;
+    }
+    return -1;
+}
 
 void objectCallback(const geometry_msgs::Pose object_pose){
   object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;

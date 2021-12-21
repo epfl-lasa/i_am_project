@@ -121,25 +121,24 @@ void objectCallback(const geometry_msgs::Pose object_pose){
   th_quat = rpyToQuat(0.0, 0.0, object_th_mod);                                                                                    //convert back to quat
 }
 
-void iiwa1BaseCallback(const geometry_msgs::Pose base_pose){
-  iiwa1_base_pos << base_pose.position.x, base_pose.position.y, base_pose.position.z;
-}
+void iiwaCallback(const gazebo_msgs::LinkStates link_states){
+  int iiwa1_ee_index = getIndex(link_states.name, "iiwa1::iiwa1_link_7");
+  int iiwa2_ee_index = getIndex(link_states.name, "iiwa2::iiwa2_link_7");
+  int iiwa1_base_index = getIndex(link_states.name, "iiwa1::iiwa1_link_0");
+  int iiwa2_base_index = getIndex(link_states.name, "iiwa2::iiwa2_link_0");
 
-void iiwa2BaseCallback(const geometry_msgs::Pose base_pose){
-  iiwa2_base_pos << base_pose.position.x, base_pose.position.y, base_pose.position.z;
+  ee1_pose = link_states.pose[iiwa1_ee_index];
+  ee2_pose = link_states.pose[iiwa2_ee_index];
+  ee1_pos << ee1_pose.position.x, ee1_pose.position.y, ee1_pose.position.z;
+  ee2_pos << ee2_pose.position.x, ee2_pose.position.y, ee2_pose.position.z;
+  
+  iiwa1_base_pose = link_states.pose[iiwa1_base_index];
+  iiwa2_base_pose = link_states.pose[iiwa2_base_index];
+  iiwa1_base_pos << iiwa1_base_pose.position.x,iiwa1_base_pose.position.y,iiwa1_base_pose.position.z;
+  iiwa2_base_pos << iiwa2_base_pose.position.x,iiwa2_base_pose.position.y,iiwa2_base_pose.position.z;
+
   min_y = iiwa2_base_pos[1] - 0.5;
   max_y = iiwa2_base_pos[1] - 0.1;
-}
-
-void iiwa1EEPoseCallback(const geometry_msgs::Pose ee_pose){
-  ee1_pose.position.x = ee_pose.position.x;
-  ee1_pose.position.y = ee_pose.position.y;
-  ee1_pose.position.z = ee_pose.position.z;
-  ee1_pose.orientation.w = ee_pose.position.w;
-  ee1_pose.orientation.x = ee_pose.position.x;
-  ee1_pose.orientation.y = ee_pose.position.y;
-  ee1_pose.orientation.z = ee_pose.position.z;
-  ee1_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
 }
 
 void iiwa2EEPoseCallback(const geometry_msgs::Pose ee_pose){
@@ -321,11 +320,8 @@ int main (int argc, char** argv){
   ros::Rate rate(100);
 
   //Subscribers to object and IIWA states
-  ros::Subscriber object_subs = nh.subscribe("/simo_track/object_pose", 10 , objectCallback);               //from real_pose
-  ros::Subscriber iiwa1_base_subs = nh.subscribe("/simo_track/robot_left/pose", 10, iiwa1BaseCallback);
-  ros::Subscriber iiwa2_base_subs = nh.subscribe("/simo_track/robot_right/pose", 10, iiwa2BaseCallback);
-  ros::Subscriber iiwa1_ee_subs = nh.subscribe("/simo_track/robot_left/ee_pose", 10, iiwa1EEPoseCallback);
-  ros::Subscriber iiwa2_ee_subs = nh.subscribe("/simo_track/robot_right/ee_pose", 10, iiwa2EEPoseCallback);
+  ros::Subscriber object_subs = nh.subscribe("/simo_track/object_pose", 10 , objectCallback);               //from real_pose and gazebo
+  ros::Subscriber iiwa_subs = nh.subscribe("/gazebo/link_states", 10, iiwaCallback);
 
   ros::Subscriber iiwa1_ee_twist_subs = nh.subscribe("iiwa1/ee_twist", 100, iiwa1EETwistCallback);          //from passive_control and iiwa_ros
   ros::Subscriber iiwa2_ee_twist_subs = nh.subscribe("iiwa2/ee_twist", 100, iiwa2EETwistCallback);

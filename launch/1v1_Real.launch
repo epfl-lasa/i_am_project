@@ -15,12 +15,15 @@
 
   <!--Launch iiwa14_brinup.launch on the second computers connected to this rosmaster-->
 
-  <!--This brings up only iiwa7 but starts both passive tracking in their namespace-->
+  <!--This spawns iiwa7 and iiwa14 and starts both passive tracking in their namespace-->
   <include
-      file = "$(find iiwa_toolkit)/launch/passive_track_real_dual.launch">    
+      file = "$(find iiwa_toolkit)/launch/passive_track_gazebo_dual.launch">    
       <arg name="robot_name_1" value="$(arg robot_name_1)"/>
       <arg name="robot_name_2" value="$(arg robot_name_2)"/>
       <arg name="iiwa_model_1" value="7"/>
+      <arg name="iiwa_model_1" value="14"/>
+      <arg name="position_1" value="-x -0.55 -y -0.65"/>
+      <arg name="position_1" value="-x 0.55 -y 0.65 -Y 3.1419"/>
   </include>
 
   <!--Optitrack and other hardwares-->

@@ -35,9 +35,9 @@ Eigen::Vector3d rest2_pos = {0.55, 0.2, 0.4};
 Eigen::Vector4d rest1_quat = {0.707, -0.707, 0.0, 0.0};
 Eigen::Vector4d rest2_quat = {-0.707, -0.707, 0.0, 0.0};
 
-Eigen::Vector3d ee_offset = {0.0, -0.4, 0.225};         //relative to object
+Eigen::Vector3d ee_offset = {0.0, -0.4, 0.225};         //relative to object in relation to iiwa 1
 
-Eigen::Vector3d des_pos_set = {0.0, 0.5, 0.0};              // Seen from IIWA 1, relative to world base. Same coordinate is used for iiwa 2, flipped 180 deg
+Eigen::Vector3d des_pos_set = {0.55, 0.5, 0.0};              // Seen from IIWA 1, relative to world base. Same coordinate is used for iiwa 2, flipped 180 deg
 
 double min_y, max_y;
 
@@ -392,25 +392,32 @@ int main (int argc, char** argv){
 
 
   //Subscribers to object and IIWA states
+  ros::Subscriber object_subs;
+  ros::ServiceClient set_state_client;
   if (object_real){
-    ros::Subscriber object_subs = nh.subscribe("/simo_track/object_pose", 10 , objectCallback);
-  }
-  else{
-    ros::Subscriber object_subs = nh.subscribe("/gazebo/model_states", 10, objectSimCallback);
+    object_subs = nh.subscribe("/simo_track/object_pose", 10 , objectCallback);
+    }
+    else{
+    object_subs = nh.subscribe("/gazebo/model_states", 10, objectSimCallback);
     //Client to reset object pose
     ros::service::waitForService("gazebo/set_model_state");
-    ros::ServiceClient set_state_client = nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
-    gazebo_msgs::SetModelState setmodelstate;
+    set_state_client = nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
+    
   }
   
+  ros::Subscriber iiwa1_base_subs;
+  ros::Subscriber iiwa2_base_subs;
+  ros::Subscriber iiwa1_ee_subs;
+  ros::Subscriber iiwa2_ee_subs;
+  ros::Subscriber iiwa_subs;
   if (iiwa_real){
-    ros::Subscriber iiwa1_base_subs = nh.subscribe("/simo_track/robot_left/pose", 10, iiwa1BaseCallback);
-    ros::Subscriber iiwa2_base_subs = nh.subscribe("/simo_track/robot_right/pose", 10, iiwa2BaseCallback);
-    ros::Subscriber iiwa1_ee_subs = nh.subscribe("/simo_track/robot_left/ee_pose", 10, iiwa1EEPoseCallback);
-    ros::Subscriber iiwa2_ee_subs = nh.subscribe("/simo_track/robot_right/ee_pose", 10, iiwa2EEPoseCallback);
-  }
-  else{
-    ros::Subscriber iiwa_subs = nh.subscribe("/gazebo/link_states", 10, iiwaSimCallback);
+    iiwa1_base_subs = nh.subscribe("/simo_track/robot_left/pose", 10, iiwa1BaseCallback);
+    iiwa2_base_subs = nh.subscribe("/simo_track/robot_right/pose", 10, iiwa2BaseCallback);
+    iiwa1_ee_subs = nh.subscribe("/simo_track/robot_left/ee_pose", 10, iiwa1EEPoseCallback);
+    iiwa2_ee_subs = nh.subscribe("/simo_track/robot_right/ee_pose", 10, iiwa2EEPoseCallback);
+    }
+    else{
+    iiwa_subs = nh.subscribe("/gazebo/link_states", 10, iiwaSimCallback);
   }
 
   ros::Subscriber iiwa1_ee_twist_subs = nh.subscribe("iiwa1/ee_twist", 100, iiwa1EETwistCallback);          //from passive_control and iiwa_ros
@@ -431,7 +438,10 @@ int main (int argc, char** argv){
   ros::Publisher pub_vel_quat2 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/vel_quat", 1);
   ros::Publisher pub_pos_quat2 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/pos_quat", 1);
   
+
   
+
+
   //Center points of desired workspaces (used to aim for and tell what orientation)
   std::vector<double> center1vec;
   std::vector<double> center2vec;
@@ -441,6 +451,7 @@ int main (int argc, char** argv){
   if(!nh.getParam("center2", center2vec)){ROS_ERROR("Param center2 not found");}
   center1 << center1vec[0], center1vec[1], center1vec[2];
   center2 << center2vec[0], center2vec[1], center2vec[2];
+
   
 
   //Object properties from param file
@@ -548,7 +559,7 @@ int main (int argc, char** argv){
         pub_pos_quat1.publish(block(object_pos, predict_pos, th_quat, iiwa1_base_pos, iiwa_flip, 1));
         break;
       case 3: //hit
-        pub_vel_quat1.publish(hitDS(des_speed, theta_des1, object_pos, ee1_pos, ee1_pos_init, iiwa_flip, 1));
+        pub_vel_quat1.publish(hitDS(des_speed, theta, object_pos, ee1_pos, ee1_pos_init, iiwa_flip, 1));
         object_pos_init1 = object_pos; //need this for post-hit to guide the arm right after hit
         break;
       case 4: //post hit
@@ -574,7 +585,7 @@ int main (int argc, char** argv){
         pub_pos_quat2.publish(block(object_pos, predict_pos, th_quat, iiwa2_base_pos, iiwa_flip, 2));
         break;
       case 3: //hit
-        pub_vel_quat2.publish(hitDS(des_speed, theta_des2, object_pos, ee2_pos, ee2_pos_init, iiwa_flip, 2));
+        pub_vel_quat2.publish(hitDS(des_speed, theta, object_pos, ee2_pos, ee2_pos_init, iiwa_flip, 2));
         object_pos_init2 = object_pos;
         break;
       case 4: //post hit
@@ -601,7 +612,8 @@ int main (int argc, char** argv){
 
 
     // Reset object position once out of reach if it is in gazebo (otherwise, there is little our code can do for us)
-    if (object_real == false && object_vel.norm()<0.01 && (!hittable(object_pos, iiwa1_base_pos, 1) && !hittable(object_pos, iiwa1_base_pos, 2))) {
+    if (object_real == false && object_vel.norm()<0.01 && (!hittable(object_pos, iiwa1_base_pos, iiwa_flip, 1) && !hittable(object_pos, iiwa1_base_pos, iiwa_flip, 2))) {
+      gazebo_msgs::SetModelState setmodelstate;
       //Set new pose of box
       geometry_msgs::Pose new_box_pose;
       nh.getParam("box/initial_pos/x",new_box_pose.position.x);

@@ -57566,3 +57566,2452 @@ post_hit_trajectory:
 end, free
 
 
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+box_properties,  0.26, 0.26, 0.23, 0, 0, 0, 0.363, 0.045, 0.045
+pre_hit_joints,  -0.361456, 0.788877, -0.17156, -1.37851, -1.75337, -1.98968, -0.661912
+post_hit_joints, -0.362123, 0.788285, -0.169948, -1.3811, -1.75569, -1.98837, -0.66424
+pre_hit_ee,      0, 0, 0, 0, 0, 0, 0, 3.04051e-06, 4.87062e-05, 7.13106e-05, -7.47344e-05, -0.00010348, 0.000120827
+post_hit_ee,     0, 0, 0, 0, 0, 0, 0, -0.0413394, 0.0320043, -0.0482778, -0.039006, 0.00230264, 0.0347893
+pre_hit_object,  0, 0, 0, 0
+post_hit_trajectory:
+18.142, 0, 0, 0, 0, 0
+end, free
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+box_properties,  0.26, 0.26, 0.23, 0, 0, 0, 0.363, 0.045, 0.045
+pre_hit_joints,  1.25961e-05, -4.83592e-05, -1.43442e-05, 2.51301e-06, 5.71791e-06, 3.95365e-05, -8.32312e-06
+post_hit_joints, 1.27401e-05, -4.94486e-05, -1.45034e-05, 2.51117e-06, 5.78352e-06, 4.02483e-05, -8.32667e-06
+pre_hit_ee,      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+post_hit_ee,     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+pre_hit_object,  0, 0, 0, 0
+post_hit_trajectory:
+2.116, 0, 0, 0, 0, 0
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+end, reset
+
+
+box_properties,  0.26, 0.26, 0.23, 0, 0, 0, 0.363, 0.045, 0.045
+pre_hit_joints,  -0.318658, 0.789532, -0.23727, -1.38717, -1.70979, -1.98952, -0.664596
+post_hit_joints, -0.318726, 0.78784, -0.232736, -1.39953, -1.71448, -1.98257, -0.68223
+pre_hit_ee,      0.551044, -0.846572, 0.399203, -0.717579, 0.023639, -0.023555, 0.695677, -0.000839945, -0.000986997, 0.000285387, -0.00316653, -0.0036723, 0.036418
+post_hit_ee,     0.549363, -0.844672, 0.396397, -0.717653, 0.0218925, -0.0260537, 0.695569, -0.127245, 0.153032, -0.223606, -0.0262539, -0.479293, -0.0992827
+pre_hit_object,  0.55, -0.45, 0.174971, 0
+post_hit_trajectory:
+12.558, 0.55, -0.45, 0.170737, 0, 0
+12.658, 0.55, -0.45, 0.165, -8.81083e-16, -3.83353e-15
+end, free
+
+
+end, free
+
+
+box_properties,  0.26, 0.26, 0.23, 0, 0, 0, 0.363, 0.045, 0.045
+pre_hit_joints,  -0.147359, 1.22685, 0.0591971, -1.41666, -1.64588, -1.62818, -1.97382
+post_hit_joints, -0.127473, 1.22727, 0.0691651, -1.41535, -1.6355, -1.61796, -2.01431
+pre_hit_ee,      0.567108, -0.633334, 0.129878, -0.620553, -0.284064, -0.32801, 0.653169, 0.0827926, 0.781006, -0.0165219, 0.239827, -2.15781, 0.314937
+post_hit_ee,     0.568323, -0.6196, 0.130116, -0.612079, -0.297597, -0.338522, 0.649768, 0.0446391, 0.751009, 0.0527277, 0.191272, -2.07189, 0.305391
+pre_hit_object,  0.55, -0.45, 0.165, -2.58215e-15
+post_hit_trajectory:
+13.118, 0.550044, -0.443615, 0.166549, 0.00662694, 0.73469
+13.218, 0.549203, -0.363397, 0.164996, 0.0599251, 0.243298
+13.318, 0.548819, -0.288738, 0.164997, 0.0662233, 0.00794517
+13.418, 0.548775, -0.218489, 0.164993, 0.0688171, 0.0270699
+13.518, 0.548749, -0.155838, 0.164995, 0.0723133, 0.0404475
+13.618, 0.548716, -0.0900383, 0.164996, 0.0772917, 0.0510378
+13.718, 0.548683, -0.0358494, 0.164996, 0.0819057, 0.0460539
+13.818, 0.548648, 0.0184059, 0.164996, 0.0868925, 0.0507322
+13.918, 0.548613, 0.0675237, 0.164996, 0.0918074, 0.0505273
+14.018, 0.54858, 0.108309, 0.164996, 0.0962681, 0.0454575
+14.118, 0.548543, 0.150144, 0.164996, 0.101334, 0.0452504
+14.218, 0.548508, 0.185722, 0.164996, 0.106189, 0.0450535
+14.318, 0.548476, 0.213877, 0.164996, 0.11055, 0.0448779
+14.418, 0.54844, 0.240729, 0.164996, 0.115367, 0.0446852
+14.518, 0.548404, 0.262992, 0.164996, 0.120164, 0.0444948
+14.618, 0.548369, 0.280213, 0.164996, 0.124803, 0.049189
+end, free
+
+
+box_properties,  0.26, 0.26, 0.23, 0, 0, 0, 0.363, 0.045, 0.045
+pre_hit_joints,  -0.0704465, 1.19544, -0.102001, -1.49982, 1.50733, -1.46221, 1.77148
+post_hit_joints, -0.093517, 1.1939, -0.113236, -1.49845, 1.48916, -1.44566, 1.81346
+pre_hit_ee,      0.558088, 0.48889, 0.157028, 0.66278, -0.220792, 0.223445, 0.679739, -0.0978162, -0.913346, 0.0669993, -0.223026, -2.02057, -0.165315
+post_hit_ee,     0.556216, 0.473365, 0.158634, 0.657119, -0.233815, 0.235253, 0.67689, -0.106498, -0.890106, 0.102957, -0.160075, -2.08209, -0.124258
+pre_hit_object,  0.548241, 0.306695, 0.164996, 0.13924
+post_hit_trajectory:
+15.218, 0.549407, 0.294471, 0.164997, 0.0841548, -3.27837
+15.318, 0.555885, 0.205206, 0.164996, -0.240674, -3.01598
+15.418, 0.562456, 0.114476, 0.164996, -0.522968, -2.53494
+15.518, 0.568399, 0.0349248, 0.164996, -0.742697, -2.16312
+15.618, 0.573088, -0.0469888, 0.164996, -0.943334, -1.77277
+15.718, 0.577067, -0.122105, 0.165, -1.09777, -1.33992
+15.818, 0.581154, -0.192206, 0.165, -1.20712, -0.887192
+15.918, 0.585446, -0.260021, 0.164996, -1.27277, -0.439472
+16.018, 0.588447, -0.32515, 0.164996, -1.30038, -0.110466
+16.118, 0.586451, -0.372166, 0.164995, -1.35168, -1.76598
+16.218, 0.575973, -0.374424, 0.165, -1.47487, -0.847086
+16.318, 0.566793, -0.376778, 0.164996, -1.53226, -0.282366
+16.418, 0.562571, -0.378288, 0.164996, -1.54459, -0.0232582
+end, free
+
+
+end, free
+
+
+box_properties,  0.26, 0.26, 0.23, 0, 0, 0, 0.363, 0.045, 0.045
+pre_hit_joints,  -0.0345685, 1.18185, 0.0817548, -1.43919, -1.57426, -1.52775, -2.19533
+post_hit_joints, -0.0139404, 1.17388, 0.0938048, -1.44562, -1.55937, -1.51102, -2.22461
+pre_hit_ee,      0.571303, -0.55805, 0.14852, -0.588212, -0.368722, -0.39586, 0.60112, -0.0587323, 0.842514, 0.164998, 0.218089, -1.54235, 0.189919
+post_hit_ee,     0.569876, -0.542337, 0.152188, -0.581, -0.377476, -0.403678, 0.597491, -0.0819906, 0.826833, 0.202594, 0.14848, -1.45126, 0.168339
+pre_hit_object,  0.560672, -0.378345, 0.164993, -1.54491
+post_hit_trajectory:
+17.208, 0.560911, -0.366689, 0.165901, -1.55701, -0.812522
+17.308, 0.563242, -0.276591, 0.164996, -1.61633, -0.312467
+17.408, 0.564684, -0.192797, 0.164994, -1.62969, -0.0142244
+17.508, 0.564635, -0.118827, 0.165, -1.63063, -0.0041237
+17.608, 0.564334, -0.0413547, 0.164995, -1.63166, -0.0231585
+17.708, 0.564149, 0.0252651, 0.164995, -1.63421, -0.035827
+17.808, 0.564102, 0.0944315, 0.164996, -1.63846, -0.0505371
+17.908, 0.564134, 0.154643, 0.164996, -1.64319, -0.0464567
+18.008, 0.564171, 0.215697, 0.164996, -1.64836, -0.046237
+18.108, 0.564203, 0.266205, 0.164996, -1.65298, -0.05093
+18.208, 0.564239, 0.317399, 0.164996, -1.65805, -0.04583
+18.308, 0.561725, 0.325235, 0.168574, -1.62253, 0.557032
+18.408, 0.557519, 0.311279, 0.164996, -1.58742, 0.194594
+18.508, 0.556261, 0.302962, 0.164995, -1.57799, 0.0109225
+18.608, 0.556077, 0.299184, 0.164996, -1.5774, 0.00289944
+end, free
+
+
+box_properties,  0.26, 0.26, 0.23, 0, 0, 0, 0.363, 0.045, 0.045
+pre_hit_joints,  -0.588093, 1.13865, 0.542471, -1.57032, 1.56679, -0.871308, 1.27818
+post_hit_joints, -0.602447, 1.12753, 0.520369, -1.56932, 1.5396, -0.8587, 1.31114
+pre_hit_ee,      0.563712, 0.489845, 0.155547, 0.947449, -0.175884, 0.124962, 0.236199, -0.0866095, -0.966617, 0.129694, -1.22093, -1.35208, -1.29315
+post_hit_ee,     0.561767, 0.473415, 0.158539, 0.941109, -0.188269, 0.135845, 0.245794, -0.115412, -0.891169, 0.177393, -1.21413, -1.37585, -1.26645
+pre_hit_object,  0.555045, 0.298725, 0.164997, -1.57705
+post_hit_trajectory:
+19.138, 0.554478, 0.287991, 0.165206, -1.57906, -0.178579
+19.238, 0.551599, 0.19228, 0.165, -1.59419, -0.0941323
+19.338, 0.551321, 0.0976214, 0.165, -1.59631, -4.10714e-08
+19.438, 0.551321, 0.00841131, 0.164996, -1.59631, -4.52506e-08
+19.538, 0.551321, -0.069754, 0.165, -1.59631, -4.04088e-08
+19.638, 0.55132, -0.150323, 0.164994, -1.59631, -4.01716e-08
+19.738, 0.551321, -0.226393, 0.165, -1.59631, -4.44601e-08
+19.838, 0.55132, -0.299337, 0.164994, -1.59631, -3.96904e-08
+19.938, 0.551321, -0.362467, 0.165, -1.59631, -3.94653e-08
+20.038, 0.550003, -0.374961, 0.164996, -1.56886, 0.00204419
+end, free
+
+
+end, free
+
+
+box_properties,  0.26, 0.26, 0.23, 0, 0, 0, 0.363, 0.045, 0.045
+pre_hit_joints,  -0.059438, 1.15544, 0.112519, -1.50409, -1.58118, -1.50529, -2.27407
+post_hit_joints, -0.0384829, 1.148, 0.126057, -1.50942, -1.56523, -1.48688, -2.30078
+pre_hit_ee,      0.555055, -0.557938, 0.152377, -0.581499, -0.376712, -0.413243, 0.590912, -0.0537367, 0.857175, 0.181641, 0.167884, -1.41848, 0.185886
+post_hit_ee,     0.553924, -0.542644, 0.155907, -0.575187, -0.384343, -0.419822, 0.587529, -0.0666919, 0.836815, 0.19811, 0.100059, -1.33337, 0.166663
+pre_hit_object,  0.547128, -0.374961, 0.164997, -1.56896
+post_hit_trajectory:
+21.048, 0.547359, -0.366853, 0.16592, -1.57349, -0.46252
+21.148, 0.549524, -0.280814, 0.164996, -1.60547, -0.135931
+21.248, 0.550051, -0.198932, 0.164996, -1.60957, -0.00851132
+21.348, 0.550071, -0.114197, 0.164996, -1.61125, -0.0280372
+21.448, 0.550095, -0.0388013, 0.164995, -1.61482, -0.0451986
+21.548, 0.550123, 0.0294298, 0.164996, -1.61908, -0.0491402
+21.648, 0.550154, 0.0961822, 0.164996, -1.62393, -0.0521583
+21.748, 0.550187, 0.157321, 0.164996, -1.62879, -0.0519684
+21.848, 0.550223, 0.219238, 0.164996, -1.63408, -0.0468483
+21.948, 0.550255, 0.269466, 0.164996, -1.6387, -0.0466488
+22.048, 0.550289, 0.319092, 0.164996, -1.64365, -0.0513258
+box_properties,  0.26, 0.26, 0.23, 0, 0, 0, 0.363, 0.045, 0.045
+pre_hit_joints,  -0.711875, 1.1911, 0.752523, -1.579, 2.4245, -0.783244, 0.280438
+post_hit_joints, -0.730567, 1.20608, 0.776314, -1.57651, 2.4493, -0.786047, 0.25489
+pre_hit_ee,      0.5494, 0.552122, 0.164546, 0.993418, -0.00989857, -0.0271801, -0.110831, 0.000590516, -0.00328792, 0.0017733, 2.12056, -0.0106237, -0.152435
+post_hit_ee,     0.549382, 0.55265, 0.164653, 0.991109, -0.0107108, -0.027101, -0.12982, 0.000382308, -0.00046429, -0.00881076, 2.135, -0.0189781, -0.146609
+pre_hit_object,  0.550296, 0.327924, 0.164996, -1.64458
+post_hit_trajectory:
+22.088, 0.549444, 0.327565, 0.167929, -1.62852, 0.920714

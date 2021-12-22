@@ -1,11 +1,14 @@
 object_real: false
 iiwa_real: false
-
-hollow: false
 manual_mode: false
+hollow: false
+
+#average of desired workspace of iiwa1 wrt center between both iiwas
+center1: [0.55, -0.45, 0.05]  
+center2: [0.55, 0.45, 0.05]
 
 table:
-  properties:
+  properties:           # keep in mind that the iiwa base has a max radius of 0.3
     size:
       x: 0.8
       y: 2.0

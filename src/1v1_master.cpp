@@ -67,7 +67,7 @@ double stdev;
 double predict_th;
 
 
-
+//Quaternion tools
 Eigen::Vector4d quatProd(Eigen::Vector4d a, Eigen::Vector4d b){
   Eigen::Vector4d p;
   p[0] = a[0]*b[0] - a[1]*b[1] - a[2]*b[2] - a[3]*b[3];
@@ -113,6 +113,8 @@ Eigen::Vector4d rpyToQuat(double r, double p, double y){
 }
 
 
+//Callback functions for subscribers
+//Gazebo
 int getIndex(std::vector<std::string> v, std::string value){
     for(int i = 0; i < v.size(); i++)
     {
@@ -155,6 +157,7 @@ void iiwaSimCallback(const gazebo_msgs::LinkStates link_states){
   max_y = iiwa2_base_pos[1] - 0.1;
 }
 
+//Optitrack
 void objectCallback(const geometry_msgs::Pose object_pose){
   object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;
   object_pos = R_Opti*object_pos;
@@ -186,6 +189,7 @@ void iiwa1EEPoseCallback(const geometry_msgs::Pose ee_pose){
   ee1_pose.orientation.y = ee_pose.orientation.y;
   ee1_pose.orientation.z = ee_pose.orientation.z;
   ee1_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
+  ee1_pos = R_Opti*ee1_pos;
 }
 
 void iiwa2EEPoseCallback(const geometry_msgs::Pose ee_pose){
@@ -197,8 +201,10 @@ void iiwa2EEPoseCallback(const geometry_msgs::Pose ee_pose){
   ee2_pose.orientation.y = ee_pose.orientation.y;
   ee2_pose.orientation.z = ee_pose.orientation.z;
   ee2_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
+  ee2_pos = R_Opti*ee2_pos;
 }
 
+//Passive_track (iiwa_toolkit)
 void iiwa1EETwistCallback(const geometry_msgs::Twist ee_twist){
   ee1_twist.linear.x = ee_twist.linear.x;
   ee1_twist.linear.y = ee_twist.linear.y;
@@ -227,6 +233,7 @@ void iiwa2JointCallback(sensor_msgs::JointState joint_states){
   iiwa2_joint_angles = joint_states.position;
 }
 
+//i_am_predict
 void estimateObjectCallback(std_msgs::Float64MultiArray estimation){
   stdev = estimation.data[0];
   ETA = estimation.data[1];
@@ -235,13 +242,14 @@ void estimateObjectCallback(std_msgs::Float64MultiArray estimation){
   //predict_th = estimation.data[8];
 }
 
-
+//manual control
 void modeCallback(std_msgs::Int16 msg){
   //if (msg.data <= 5){manual_mode1 = msg.data;}
   //if (msg.data >= 6){manual_mode2 = msg.data-5;} 
   //if (msg.data == 0){manual_mode2 = 5;}
   key_ctrl = msg.data;
 }
+
 
 int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos, const int prev_mode, const int iiwa_no){
   int mode = prev_mode;           // if none of the conditions are met, mode remains the same
@@ -371,12 +379,39 @@ int main (int argc, char** argv){
   ros::NodeHandle nh;
   ros::Rate rate(100);
 
+
+  //Get environment setting from param
+  bool object_real;
+  bool iiwa_real;
+  bool manual_mode;
+  bool hollow;
+  if(!nh.getParam("object_real", object_real)){ROS_ERROR("Param object_real not found");}
+  if(!nh.getParam("iiwa_real", iiwa_real)){ROS_ERROR("Param iiwa_real not found");}
+  if(!nh.getParam("manual_mode", manual_mode)){ROS_ERROR("Param manual_mode not found");}
+  if(!nh.getParam("hollow", hollow)){ROS_ERROR("Param hollow not found");}
+
+
   //Subscribers to object and IIWA states
-  //ros::Subscriber object_subs = nh.subscribe("/simo_track/object_pose", 10 , objectCallback);               //from real_pose and gazebo
-  ros::Subscriber object_subs = nh.subscribe("/gazebo/model_states", 10, objectCallback);
-  ros::Subscriber iiwa_subs = nh.subscribe("/gazebo/link_states", 10, iiwaCallback);
-  //ros::Subscriber iiwa1_base_subs = nh.subscribe("/simo_track/robot_left/pose", 10, iiwa1BaseCallback);
-  //ros::Subscriber iiwa2_base_subs = nh.subscribe("/simo_track/robot_right/pose", 10, iiwa2BaseCallback);
+  if (object_real){
+    ros::Subscriber object_subs = nh.subscribe("/simo_track/object_pose", 10 , objectCallback);
+  }
+  else{
+    ros::Subscriber object_subs = nh.subscribe("/gazebo/model_states", 10, objectSimCallback);
+    //Client to reset object pose
+    ros::service::waitForService("gazebo/set_model_state");
+    ros::ServiceClient set_state_client = nh.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
+    gazebo_msgs::SetModelState setmodelstate;
+  }
+  
+  if (iiwa_real){
+    ros::Subscriber iiwa1_base_subs = nh.subscribe("/simo_track/robot_left/pose", 10, iiwa1BaseCallback);
+    ros::Subscriber iiwa2_base_subs = nh.subscribe("/simo_track/robot_right/pose", 10, iiwa2BaseCallback);
+    ros::Subscriber iiwa1_ee_subs = nh.subscribe("/simo_track/robot_left/ee_pose", 10, iiwa1EEPoseCallback);
+    ros::Subscriber iiwa2_ee_subs = nh.subscribe("/simo_track/robot_right/ee_pose", 10, iiwa2EEPoseCallback);
+  }
+  else{
+    ros::Subscriber iiwa_subs = nh.subscribe("/gazebo/link_states", 10, iiwaSimCallback);
+  }
 
   ros::Subscriber iiwa1_ee_twist_subs = nh.subscribe("iiwa1/ee_twist", 100, iiwa1EETwistCallback);          //from passive_control and iiwa_ros
   ros::Subscriber iiwa2_ee_twist_subs = nh.subscribe("iiwa2/ee_twist", 100, iiwa2EETwistCallback);
@@ -386,17 +421,27 @@ int main (int argc, char** argv){
   //Subcriber to position estimator
   ros::Subscriber estimate_object_subs = nh.subscribe("estimate/object",10,estimateObjectCallback);
 
+  //Subscriber to key control
+  ros::Subscriber mode_sub = nh.subscribe("mode",10,modeCallback);
+
+
   //Publishers for position and velocity commands for IIWA end-effectors
   ros::Publisher pub_vel_quat1 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/vel_quat", 1);
   ros::Publisher pub_pos_quat1 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/pos_quat", 1);
   ros::Publisher pub_vel_quat2 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/vel_quat", 1);
   ros::Publisher pub_pos_quat2 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/pos_quat", 1);
-
   
-  //For manual control
-  ros::Subscriber mode_sub = nh.subscribe("mode",10,modeCallback);
-  bool manual_mode;
-  nh.getParam("manual_mode", manual_mode);
+  
+  //Center points of desired workspaces (used to aim for and tell what orientation)
+  std::vector<double> center1vec;
+  std::vector<double> center2vec;
+  Eigen::Vector3d center1;
+  Eigen::Vector3d center2;
+  if(!nh.getParam("center1", center1vec)){ROS_ERROR("Param center1 not found");}
+  if(!nh.getParam("center2", center2vec)){ROS_ERROR("Param center2 not found");}
+  center1 << center1vec[0], center1vec[1], center1vec[2];
+  center2 << center2vec[0], center2vec[1], center2vec[2];
+  
 
   //Object properties from param file
   struct modelProperties {
@@ -422,8 +467,7 @@ int main (int argc, char** argv){
     nh.getParam("box/properties/mu", box.mu);
     nh.getParam("box/properties/mu2", box.mu2);
   box.izz = 1.0/12* box.mass* (pow(box.size_x,2) + pow(box.size_y,2));
-  bool hollow;
-  nh.getParam("hollow", hollow);
+  
   
   //Set hitting speed and direction. Once we change attractor to something more related to the game, we no longer need this
     std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;
@@ -442,9 +486,6 @@ int main (int argc, char** argv){
       std::cin >> theta;
   }
 
-
-
-  
   int prev_mode1 = mode1;
   int prev_mode2 = mode2;
 
@@ -461,25 +502,25 @@ int main (int argc, char** argv){
 
 
   //Storing data to get the right values in time. The data we want is actually from right before events that we can recognize (e.g. speed right before hitting)
-  std::queue<Eigen::Vector3d> object_pos_q;
-  std::queue<Eigen::Vector3d> predict_pos_q;
-  std::queue<double> object_theta_q;
-  std::queue<geometry_msgs::Pose> ee1_pose_q;
-  std::queue<geometry_msgs::Pose> ee2_pose_q;
-  std::queue<geometry_msgs::Twist> ee1_twist_q;
-  std::queue<geometry_msgs::Twist> ee2_twist_q;
-  std::queue<std::vector<double>> iiwa1_joint_angles_q;
-  std::queue<std::vector<double>> iiwa2_joint_angles_q;
+    std::queue<Eigen::Vector3d> object_pos_q;
+    std::queue<Eigen::Vector3d> predict_pos_q;
+    std::queue<double> object_theta_q;
+    std::queue<geometry_msgs::Pose> ee1_pose_q;
+    std::queue<geometry_msgs::Pose> ee2_pose_q;
+    std::queue<geometry_msgs::Twist> ee1_twist_q;
+    std::queue<geometry_msgs::Twist> ee2_twist_q;
+    std::queue<std::vector<double>> iiwa1_joint_angles_q;
+    std::queue<std::vector<double>> iiwa2_joint_angles_q;
 
-  bool once11 = true;
-  bool once12 = true;
-  bool once21 = false;
-  bool once22 = false;
-  bool tracking = false;
-  int oneinten;
-  std::stringstream data_path;
-  data_path << ros::package::getPath("i_am_project") << "/data/hitting/object_data.csv";
-  std::ofstream object_data;
+    bool once11 = true;
+    bool once12 = true;
+    bool once21 = false;
+    bool once22 = false;
+    bool tracking = false;
+    int oneinten;
+    std::stringstream data_path;
+    data_path << ros::package::getPath("i_am_project") << "/data/hitting/object_data.csv";
+    std::ofstream object_data;
   bool store_data = 0;
 
 
@@ -559,7 +600,62 @@ int main (int argc, char** argv){
 
 
 
+    // Reset object position once out of reach if it is in gazebo (otherwise, there is little our code can do for us)
+    if (object_real == false && object_vel.norm()<0.01 && (!hittable(object_pos, iiwa1_base_pos, 1) && !hittable(object_pos, iiwa1_base_pos, 2))) {
+      //Set new pose of box
+      geometry_msgs::Pose new_box_pose;
+      nh.getParam("box/initial_pos/x",new_box_pose.position.x);
+      nh.getParam("box/initial_pos/y",new_box_pose.position.y);
+      nh.getParam("box/initial_pos/z",new_box_pose.position.z);
+      new_box_pose.orientation.x = 0.0;
+      new_box_pose.orientation.y = 0.0;
+      new_box_pose.orientation.z = 0.0;
+      new_box_pose.orientation.w = 0.0;
 
+      gazebo_msgs::ModelState modelstate;
+      modelstate.model_name = (std::string) "my_box";
+      modelstate.reference_frame = (std::string) "world";
+      modelstate.pose = new_box_pose;
+      setmodelstate.request.model_state = modelstate;
+      set_state_client.call(setmodelstate);
+
+      if (hollow == true){
+        //Set new pose of minibox
+        geometry_msgs::Pose new_mini_pose;
+        nh.getParam("mini/initial_pos/x", new_mini_pose.position.x);
+        nh.getParam("mini/initial_pos/y", new_mini_pose.position.y);
+        nh.getParam("mini/initial_pos/z", new_mini_pose.position.z);
+        new_mini_pose.position.x += new_box_pose.position.x;
+        new_mini_pose.position.y += new_box_pose.position.y;
+        new_mini_pose.position.z += new_box_pose.position.z;
+        new_mini_pose.orientation.x = 0.0;
+        new_mini_pose.orientation.y = 0.0;
+        new_mini_pose.orientation.z = 0.0;
+        new_mini_pose.orientation.w = 0.0;
+
+        modelstate.model_name = (std::string) "my_mini";
+        modelstate.pose = new_mini_pose;
+        setmodelstate.request.model_state = modelstate;
+        set_state_client.call(setmodelstate);
+      }
+
+      ROS_INFO("Resetting object pose");
+      tracking = false;
+      if (once11 == false){
+        once12 = false;
+        tracking = false;
+        object_data << "end, reset" << "\n\n\n";
+        once21 = true;
+        once22 = true;
+      }
+      if (once21 == false){
+        once22 = false;
+        tracking = false;
+        object_data << "end, reset" << "\n\n\n";
+        once11 = true;
+        once12 = true;
+      }
+    }
 
 
     

@@ -121,43 +121,21 @@ int getIndex(std::vector<std::string> v, std::string value){
     }
     return -1;
 }
-/*
-void objectCallback(const geometry_msgs::Pose object_pose){
-  object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;
-  object_pos = R_Opti*object_pos;
 
-  object_rpy = quatToRPY({object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z}); //get orientation in rpy
-  object_th = object_rpy[2];                                                                                             //only the z-axis
-  object_th_mod = std::fmod(object_th+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
-  th_quat = rpyToQuat(0.0, 0.0, object_th_mod);                                                                                    //convert back to quat
-}
-*/
-void objectCallback(const gazebo_msgs::ModelStates model_states){
+void objectSimCallback(const gazebo_msgs::ModelStates model_states){
   int box_index = getIndex(model_states.name, "my_box");
+
   object_pose = model_states.pose[box_index];
+  object_twist = model_states.twist[box_index];
   object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;
-  //object_pos = R_Opti*object_pos;
 
   object_rpy = quatToRPY({object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z}); //get orientation in rpy
   object_th = object_rpy[2];                                                                                             //only the z-axis
   object_th_mod = std::fmod(object_th+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
   th_quat = rpyToQuat(0.0, 0.0, object_th_mod);                                                                                    //convert back to quat
 }
-/*
-void iiwa1BaseCallback(const geometry_msgs::Pose base_pose){
-  iiwa1_base_pos << base_pose.position.x, base_pose.position.y, base_pose.position.z;
-  iiwa1_base_pos = R_Opti*iiwa1_base_pos;
-}
 
-void iiwa2BaseCallback(const geometry_msgs::Pose base_pose){
-  iiwa2_base_pos << base_pose.position.x, base_pose.position.y, base_pose.position.z;
-  iiwa2_base_pos = R_Opti*iiwa2_base_pos;
-  min_y = iiwa2_base_pos[1] - 0.5;
-  max_y = iiwa2_base_pos[1] - 0.1;
-}
-*/
-
-void iiwaCallback(const gazebo_msgs::LinkStates link_states){
+void iiwaSimCallback(const gazebo_msgs::LinkStates link_states){
   int iiwa1_ee_index = getIndex(link_states.name, "iiwa1::iiwa1_link_7");
   int iiwa2_ee_index = getIndex(link_states.name, "iiwa2::iiwa2_link_7");
   int iiwa1_base_index = getIndex(link_states.name, "iiwa1::iiwa1_link_0");
@@ -177,6 +155,27 @@ void iiwaCallback(const gazebo_msgs::LinkStates link_states){
   max_y = iiwa2_base_pos[1] - 0.1;
 }
 
+void objectCallback(const geometry_msgs::Pose object_pose){
+  object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;
+  object_pos = R_Opti*object_pos;
+
+  object_rpy = quatToRPY({object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z}); //get orientation in rpy
+  object_th = object_rpy[2];                                                                                             //only the z-axis
+  object_th_mod = std::fmod(object_th+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
+  th_quat = rpyToQuat(0.0, 0.0, object_th_mod);                                                                                    //convert back to quat
+}
+
+void iiwa1BaseCallback(const geometry_msgs::Pose base_pose){
+  iiwa1_base_pos << base_pose.position.x, base_pose.position.y, base_pose.position.z;
+  iiwa1_base_pos = R_Opti*iiwa1_base_pos;
+}
+
+void iiwa2BaseCallback(const geometry_msgs::Pose base_pose){
+  iiwa2_base_pos << base_pose.position.x, base_pose.position.y, base_pose.position.z;
+  iiwa2_base_pos = R_Opti*iiwa2_base_pos;
+  min_y = iiwa2_base_pos[1] - 0.5;
+  max_y = iiwa2_base_pos[1] - 0.1;
+}
 
 void iiwa1EETwistCallback(const geometry_msgs::Twist ee_twist){
   ee1_twist.linear.x = ee_twist.linear.x;

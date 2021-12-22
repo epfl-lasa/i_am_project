@@ -177,6 +177,28 @@ void iiwa2BaseCallback(const geometry_msgs::Pose base_pose){
   max_y = iiwa2_base_pos[1] - 0.1;
 }
 
+void iiwa1EEPoseCallback(const geometry_msgs::Pose ee_pose){
+  ee1_pose.position.x = ee_pose.position.x;
+  ee1_pose.position.y = ee_pose.position.y;
+  ee1_pose.position.z = ee_pose.position.z;
+  ee1_pose.orientation.w = ee_pose.orientation.w;
+  ee1_pose.orientation.x = ee_pose.orientation.x;
+  ee1_pose.orientation.y = ee_pose.orientation.y;
+  ee1_pose.orientation.z = ee_pose.orientation.z;
+  ee1_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
+}
+
+void iiwa2EEPoseCallback(const geometry_msgs::Pose ee_pose){
+  ee2_pose.position.x = ee_pose.position.x;
+  ee2_pose.position.y = ee_pose.position.y;
+  ee2_pose.position.z = ee_pose.position.z;
+  ee2_pose.orientation.w = ee_pose.orientation.w;
+  ee2_pose.orientation.x = ee_pose.orientation.x;
+  ee2_pose.orientation.y = ee_pose.orientation.y;
+  ee2_pose.orientation.z = ee_pose.orientation.z;
+  ee2_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
+}
+
 void iiwa1EETwistCallback(const geometry_msgs::Twist ee_twist){
   ee1_twist.linear.x = ee_twist.linear.x;
   ee1_twist.linear.y = ee_twist.linear.y;

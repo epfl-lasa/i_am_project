@@ -1,16 +1,22 @@
 #include "../include/post_hit.h"
 
-geometry_msgs::Pose postHit(const Eigen::Vector3d object_pos_init, const Eigen::Vector4d rest_quat, const Eigen::Vector3d iiwa_base_pos, Eigen::Vector3d iiwa_flip, const int iiwa_no){
-  geometry_msgs::Pose pos_quat;
-  int iiwa_sel = 3-2*iiwa_no;
-  Eigen::Vector3d flip_vec = Eigen::Vector3d::Ones() + iiwa_flip*(iiwa_sel-1);
+geometry_msgs::Pose postHit(Eigen::Vector3d object_pos_init, Eigen::Vector3d center2, Eigen::Vector3d iiwa_base_pos){
+  geometry_msgs::Pose pose;
 
-  pos_quat.position.x = (object_pos_init[0] - iiwa_base_pos[0]);
-  pos_quat.position.y = (object_pos_init[1] - iiwa_base_pos[1]);
-  pos_quat.position.z = (object_pos_init[2] - iiwa_base_pos[2]);
-  pos_quat.orientation.w = rest_quat[0];
-  pos_quat.orientation.x = rest_quat[1];
-  pos_quat.orientation.y = rest_quat[2];
-  pos_quat.orientation.z = rest_quat[3];
-  return pos_quat;
+  //Calculate pos and quat wrt to world frame
+  Eigen::Vector3d pos_world = object_pos_init;
+  Eigen::Vector4d quat_world = pointsToQuat(object_pos_init, center2);
+
+  //Transform pos and quat from world to iiwa frame
+  Eigen::Vector3d pos_iiwa = pos_world - iiwa_base_pos;
+  Eigen::Vector4d quat_iiwa = quat_world;
+
+  pose.position.x = pos_iiwa[0];
+  pose.position.y = pos_iiwa[1];
+  pose.position.z = pos_iiwa[2];
+  pose.orientation.w = quat_iiwa[0];
+  pose.orientation.x = quat_iiwa[1];
+  pose.orientation.y = quat_iiwa[2];
+  pose.orientation.z = quat_iiwa[3];
+  return pose;
 }

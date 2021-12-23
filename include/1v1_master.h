@@ -29,4 +29,16 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
+#include "../include/track.h"
+#include "../include/block.h"
+#include "../include/hit_DS.h"
+#include "../include/post_hit.h"
+#include "../include/rest.h"
+
+#include "../include/quattools.h"
+#include "../include/hittable.h"
+#include "../include/modeselektor.h"
+
+
+#include <experimental/filesystem>
 #define _USE_MATH_DEFINES

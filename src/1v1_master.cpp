@@ -1,20 +1,9 @@
 //|    Copyright (C) 2020 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
-//|    Authors:  Harshit Khurana (maintainer)
+//|    Authors:  Harshit Khurana (maintainer), Daan Stokbroekx
 //|    email:   harshit.khurana@epfl.ch
 //|    website: lasa.epfl.ch
 
 #include "../include/1v1_master.h"
-
-#include "../include/track.h"
-#include "../include/block.h"
-#include "../include/hit_DS.h"
-#include "../include/post_hit.h"
-#include "../include/rest.h"
-
-#include "../include/hittable.h"
-
-
-#include <experimental/filesystem>
 
 using namespace std;
 
@@ -22,22 +11,7 @@ using namespace std;
 double des_speed;
 double theta;
 
-int mode1 = 5;
-int mode2 = 5;
-//int manual_mode1 = 5;
-//int manual_mode2 = 5;
 int key_ctrl = 0;
-
-
-// Stuff to set
-Eigen::Vector3d rest1_pos = {0.55, -0.2, 0.4};           //relative to iiwa base
-Eigen::Vector3d rest2_pos = {0.55, 0.2, 0.4};
-Eigen::Vector4d rest1_quat = {0.707, -0.707, 0.0, 0.0};
-Eigen::Vector4d rest2_quat = {-0.707, -0.707, 0.0, 0.0};
-
-Eigen::Vector3d ee_offset = {0.0, -0.4, 0.225};         //relative to object in relation to iiwa 1
-
-Eigen::Vector3d des_pos_set = {0.55, 0.5, 0.0};              // Seen from IIWA 1, relative to world base. Same coordinate is used for iiwa 2, flipped 180 deg
 
 double min_y, max_y;
 
@@ -67,52 +41,6 @@ double stdev;
 double predict_th;
 
 
-//Quaternion tools
-Eigen::Vector4d quatProd(Eigen::Vector4d a, Eigen::Vector4d b){
-  Eigen::Vector4d p;
-  p[0] = a[0]*b[0] - a[1]*b[1] - a[2]*b[2] - a[3]*b[3];
-  p[1] = a[0]*b[1] + a[1]*b[0] + a[2]*b[3] - a[3]*b[2];
-  p[2] = a[0]*b[2] - a[1]*b[3] + a[2]*b[0] + a[3]*b[1];
-  p[3] = a[0]*b[3] + a[1]*b[2] - a[2]*b[1] + a[3]*b[0];
-  return p;
-}
-
-Eigen::Vector3d quatToRPY(Eigen::Vector4d q) {
-    Eigen::Vector3d angles;
-
-    // roll (x-axis rotation)
-    double sinr_cosp = 2 * (q[0] * q[1] + q[2] * q[3]);
-    double cosr_cosp = 1 - 2 * (q[1] * q[1] + q[2] * q[2]);
-    angles[0] = std::atan2(sinr_cosp, cosr_cosp);
-
-    // pitch (y-axis rotation)
-    double sinp = 2 * (q[0] * q[2] - q[3] * q[1]);
-    if (std::abs(sinp) >= 1)
-        angles[1] = std::copysign(M_PI / 2, sinp); // use 90 degrees if out of range
-    else
-        angles[1] = std::asin(sinp);
-
-    // yaw (z-axis rotation)
-    double siny_cosp = 2 * (q[0] * q[3] + q[1] * q[2]);
-    double cosy_cosp = 1 - 2 * (q[2] * q[2] + q[3] * q[3]);
-    angles[2] = std::atan2(siny_cosp, cosy_cosp);
-
-    return angles;
-}
-
-Eigen::Vector4d rpyToQuat(double r, double p, double y){
-  Eigen::Vector4d q_base = {std::cos(-M_PI/4), std::sin(-M_PI/4), 0.0, 0.0}; //rotate from base quaternion (ee pointing up) to 'ready to play' rotation
-
-  Eigen::Vector4d q_r = {std::cos(r/2), std::sin(r/2), 0.0, 0.0};
-  Eigen::Vector4d q_p = {std::cos(p/2), 0.0, std::sin(p/2), 0.0};
-  Eigen::Vector4d q_y = {std::cos(y/2), 0.0, 0.0, std::sin(y/2)};
-
-  Eigen::Vector4d q = quatProd(q_r, quatProd(q_p, quatProd(q_y,q_base)));     //start with last rotation and then backwards
-
-  return q;
-}
-
-
 //Callback functions for subscribers
 //Gazebo
 int getIndex(std::vector<std::string> v, std::string value){
@@ -134,7 +62,6 @@ void objectSimCallback(const gazebo_msgs::ModelStates model_states){
   object_rpy = quatToRPY({object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z}); //get orientation in rpy
   object_th = object_rpy[2];                                                                                             //only the z-axis
   object_th_mod = std::fmod(object_th+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
-  th_quat = rpyToQuat(0.0, 0.0, object_th_mod);                                                                                    //convert back to quat
 }
 
 void iiwaSimCallback(const gazebo_msgs::LinkStates link_states){
@@ -165,7 +92,6 @@ void objectCallback(const geometry_msgs::Pose object_pose){
   object_rpy = quatToRPY({object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z}); //get orientation in rpy
   object_th = object_rpy[2];                                                                                             //only the z-axis
   object_th_mod = std::fmod(object_th+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
-  th_quat = rpyToQuat(0.0, 0.0, object_th_mod);                                                                                    //convert back to quat
 }
 
 void iiwa1BaseCallback(const geometry_msgs::Pose base_pose){
@@ -251,126 +177,6 @@ void modeCallback(std_msgs::Int16 msg){
 }
 
 
-int modeSelektor(Eigen::Vector3d predict_pos, double ETA, Eigen::Vector3d ee_pos, const int prev_mode, const int iiwa_no){
-  int mode = prev_mode;           // if none of the conditions are met, mode remains the same
-  
-  int iiwa_sel = 3-2*iiwa_no;        // multiplier used in conditional statements. iiwa = 1 -> selector = 1, iiwa = 2 -> selector = -1. This allows for directions to flip
-  Eigen::Vector3d flip_vec = Eigen::Vector3d::Ones() + iiwa_flip*(iiwa_sel-1);
-  Eigen::Matrix3d sel_mat;
-  sel_mat << flip_vec[0], 0.0,         0.0,
-             0.0,         flip_vec[1], 0.0,
-             0.0,         0.0,         flip_vec[2];
-  
-
-  
-  bool cur_hittable = hittable(object_pos, iiwa1_base_pos, iiwa_flip, iiwa_no);
-
-  bool pred_hittable = hittable(predict_pos, iiwa1_base_pos, iiwa_flip, iiwa_no);
-
-  bool too_far;
-  if (predict_pos[1]*flip_vec[1] < -max_y){too_far = true;}
-  else {too_far = false;}
-
-  bool too_close;
-  if (predict_pos[1]*flip_vec[1] > -min_y){too_close = true;}
-  else {too_close = false;}
-
-  bool moving;
-  if (object_vel.norm() > 0.03){moving = true;}
-  else {moving = false;}
-
-  bool towards;
-  if (object_vel[1]*flip_vec[1] < -0.01){towards = true;}
-  else {towards = false;}
-
-  bool ee_ready;
-  if ((ee_pos-(predict_pos+sel_mat*ee_offset)).norm() < 0.1){ee_ready = true;}
-  else {ee_ready = false;}
-
-
-
-  switch (prev_mode){
-    case 1:   //track
-      if (too_far == true && ETA < 3) {mode = 2;}                                         //if object will go too far, try to stop it
-      if (pred_hittable == true && ETA < 0.3 && ee_ready == true) {mode = 3;}             //if object will be in feasible position and stops in 0.5s and ee is in correct position, go to hit
-      if (too_close == true && ETA < 3) {mode = 5;}                                       //if object will not make it into reach, give up and go to rest
-      break;
-
-    case 2:   //stop
-      if (towards == false || pred_hittable == true) {mode = 1;}                            //if the object no longer moves towards, it has been stopped succesfully so go to track for correct ee
-    
-    case 3:   //hit
-      if (towards == false && moving == true) {mode = 4;}                                   //if object starts moving because it is hit, go to post hit and initialize kalman                                          
-      break;
-
-    case 4:   //post hit
-      if (cur_hittable == false || towards == false) {mode = 5;}                            //if object has left the range of arm, go to rest
-      break;
-
-    case 5:   //rest
-      if (too_far == true && ETA < 3) {mode = 2;}                               //if object will go too far, try to stop it
-      if (pred_hittable == true && ETA < 0.3 && ee_ready == true) {mode = 3;}   //same as when being in tracking mode, since mode is initialized in rest
-      if (pred_hittable == true && ETA < 3 && ee_ready == false) {mode = 1;}    //if object is going to be hittable but ee is not in the right position, lets track! 
-      break;
-  }
-  return mode;
-}
-
-int maniModeSelektor(Eigen::Vector3d ee_pos, const int prev_mode, const int iiwa_no){
-  int mode = prev_mode;           // if none of the conditions are met, mode remains the same
-  
-  int iiwa_sel = 3-2*iiwa_no;        // multiplier used in conditional statements. iiwa = 1 -> selector = 1, iiwa = 2 -> selector = -1. This allows for directions to flip
-  Eigen::Vector3d flip_vec = Eigen::Vector3d::Ones() + iiwa_flip*(iiwa_sel-1);
-  Eigen::Matrix3d sel_mat;
-  sel_mat << flip_vec[0], 0.0,         0.0,
-             0.0,         flip_vec[1], 0.0,
-             0.0,         0.0,         flip_vec[2];
-  
-
-  
-  bool cur_hittable = hittable(object_pos, iiwa1_base_pos, iiwa_flip, iiwa_no);
-
-
-  bool moving;
-  if (object_vel.norm() > 0.03){moving = true;}
-  else {moving = false;}
-
-  bool towards;
-  if (object_vel[1]*flip_vec[1] < -0.01){towards = true;}
-  else {towards = false;}
-
-  bool ee_ready;
-  if ((ee_pos-(object_pos+sel_mat*ee_offset)).norm() < 0.1){ee_ready = true;}
-  else {ee_ready = false;}
-
-
-
-  switch (prev_mode){
-    case 1: //track
-      if (cur_hittable == true && ee_ready == true && key_ctrl == iiwa_no) {mode = 3;}
-      if (key_ctrl == 3) {mode = 5;}
-      break;
-      
-    case 3:   //hit
-      if (towards == false && moving == true) {mode = 4;}                                   //if object starts moving because it is hit, go to post hit and initialize kalman                                          
-      if (key_ctrl == 3) {mode = 5;}
-      break;
-
-    case 4:   //post hit
-      if (cur_hittable == false || towards == false) {mode = 5;}                            //if object has left the range of arm, go to rest
-      if (key_ctrl == 3) {mode = 5;}
-      break;
-
-    case 5:   //rest
-      if (cur_hittable == true && ee_ready == true && key_ctrl == iiwa_no) {mode = 3;}   //same as when being in tracking mode, since mode is initialized in rest
-      if (cur_hittable == true && ee_ready == false && key_ctrl == iiwa_no) {mode = 1;}
-      break;
-  }
-  return mode;
-}
-
-
-
 
 int main (int argc, char** argv){
 
@@ -451,8 +257,23 @@ int main (int argc, char** argv){
   if(!nh.getParam("center2", center2vec)){ROS_ERROR("Param center2 not found");}
   center1 << center1vec[0], center1vec[1], center1vec[2];
   center2 << center2vec[0], center2vec[1], center2vec[2];
-
   
+  double ee_offset_h;
+  double ee_offset_v;
+  if(!nh.getParam("ee_offset/h", ee_offset_h)){ROS_ERROR("Param ee_offset/h not found");}
+  if(!nh.getParam("ee_offset/v", ee_offset_v)){ROS_ERROR("Param ee_offset/v not found");}
+  Eigen::Vector2d ee_offset = {ee_offset_h, ee_offset_v};
+
+  double x_reach;
+  double y_reach;
+  double x_offset;
+  double y_offset;
+  if(!nh.getParam("hittable/reach/x", x_reach)){ROS_ERROR("Param hittable/reach/x not found");}
+  if(!nh.getParam("hittable/reach/y", y_reach)){ROS_ERROR("Param hittable/reach/y not found");}
+  if(!nh.getParam("hittable/offset/x", x_offset)){ROS_ERROR("Param hittable/offset/x not found");}
+  if(!nh.getParam("hittable/offset/y", y_offset)){ROS_ERROR("Param hittable/offset/y not found");}
+  Eigen::Vector4d hittable_params = {x_reach, y_reach, x_offset, y_offset};
+
 
   //Object properties from param file
   struct modelProperties {
@@ -497,6 +318,8 @@ int main (int argc, char** argv){
       std::cin >> theta;
   }
 
+  int mode1 = 5;
+  int mode2 = 5;
   int prev_mode1 = mode1;
   int prev_mode2 = mode2;
 
@@ -541,60 +364,63 @@ int main (int argc, char** argv){
     //randx = ((double)(rand() % 2500-1250))/10000;
     //randy = ((double)(rand() % 2500-1250))/10000;
     //rand_pos = {randx, randy, 0.0};
-
-    double theta_des1 = -std::atan2((des_pos_set[0]-predict_pos[0]),(des_pos_set[1]-predict_pos[1])); //can also use cur_pos
-    double theta_des2 = -std::atan2((des_pos_set[0]-predict_pos[0]),(des_pos_set[1]+predict_pos[1]));
+    //double theta_des1 = -std::atan2((des_pos_set[0]-predict_pos[0]),(des_pos_set[1]-predict_pos[1])); //can also use cur_pos
+    //double theta_des2 = -std::atan2((des_pos_set[0]-predict_pos[0]),(des_pos_set[1]+predict_pos[1]));
 
 
     // Select correct operating mode for both arms based on conditions on (predicted) object position and velocity and ee position
-    if (manual_mode == false) {mode1 = modeSelektor(predict_pos, ETA, ee1_pos, prev_mode1, 1);}
-    else {mode1 = maniModeSelektor(ee1_pos, prev_mode1, 1);}
+    if (manual_mode){
+      mode1 = maniModeSelektor(object_pos, object_vel, ee1_pos, center1, center2, ee_offset, hittable_params, prev_mode1, key_ctrl, 1);
+    }
+    else{
+      mode1 = modeSelektor(object_pos, object_vel, predict_pos, ETA, ee1_pos, center1, center2, ee_offset, hittable_params, prev_mode1);
+    }
     switch (mode1) {
       case 1: //track
-        pub_pos_quat1.publish(track(predict_pos, rest1_quat, ee_offset, iiwa1_base_pos, iiwa_flip, 1));
+        pub_pos_quat1.publish(track(predict_pos, center2, ee_offset, iiwa1_base_pos));
         ee1_pos_init = ee1_pos; //we can go from track to hit. For hit, we need initial
-        //des_pos1 = des_pos_set + rand_pos;
         break;
       case 2: //stop
-        pub_pos_quat1.publish(block(object_pos, predict_pos, th_quat, iiwa1_base_pos, iiwa_flip, 1));
+        pub_pos_quat1.publish(block(object_pos, predict_pos, center1, center2, object_th_mod, iiwa1_base_pos));
         break;
       case 3: //hit
-        pub_vel_quat1.publish(hitDS(des_speed, theta, object_pos, ee1_pos, ee1_pos_init, iiwa_flip, 1));
+        pub_vel_quat1.publish(hitDS(des_speed, object_pos, center2, ee1_pos, ee1_pos_init));
         object_pos_init1 = object_pos; //need this for post-hit to guide the arm right after hit
         break;
       case 4: //post hit
-        pub_pos_quat1.publish(postHit(object_pos_init1, rest1_quat, iiwa1_base_pos, iiwa_flip, 1));
+        pub_pos_quat1.publish(postHit(object_pos_init1, center2, iiwa1_base_pos));
         break;
       case 5: //rest
-        pub_pos_quat1.publish(rest(rest1_pos, rest1_quat));
+        pub_pos_quat1.publish(rest(center1, center2, ee_offset, iiwa1_base_pos));
         ee1_pos_init = ee1_pos; //we can also go from rest to hit..
-        //des_pos1 = des_pos_set + rand_pos;
         break;
     }
     prev_mode1 = mode1;
 
-    if (manual_mode == false) {mode2 = modeSelektor(predict_pos, ETA, ee2_pos, prev_mode2, 2);}
-    else {mode2 = maniModeSelektor(ee2_pos, prev_mode2, 2);}
+    if (manual_mode){
+      mode2 = maniModeSelektor(object_pos, object_vel, ee2_pos, center2, center1, ee_offset, hittable_params, prev_mode2, key_ctrl, 2);
+    }
+    else{
+      mode2 = modeSelektor(object_pos, object_vel, predict_pos, ETA, ee2_pos, center2, center1, ee_offset, hittable_params, prev_mode2);
+    }
     switch (mode2) {
       case 1: //track
-        pub_pos_quat2.publish(track(predict_pos, rest2_quat, ee_offset, iiwa2_base_pos, iiwa_flip, 2));
+        pub_pos_quat2.publish(track(predict_pos, center1, ee_offset, iiwa2_base_pos));
         ee2_pos_init = ee2_pos;
-        //des_pos2 = des_pos_set + rand_pos;
         break;
       case 2: //stop
-        pub_pos_quat2.publish(block(object_pos, predict_pos, th_quat, iiwa2_base_pos, iiwa_flip, 2));
+        pub_pos_quat2.publish(block(object_pos, predict_pos, center2, center1, object_th_mod, iiwa2_base_pos));
         break;
       case 3: //hit
-        pub_vel_quat2.publish(hitDS(des_speed, theta, object_pos, ee2_pos, ee2_pos_init, iiwa_flip, 2));
+        pub_vel_quat2.publish(hitDS(des_speed, object_pos, center1, ee2_pos, ee2_pos_init));
         object_pos_init2 = object_pos;
         break;
       case 4: //post hit
-        pub_pos_quat2.publish(postHit(object_pos_init2, rest2_quat, iiwa2_base_pos, iiwa_flip, 2));
+        pub_pos_quat2.publish(postHit(object_pos_init2, center1, iiwa2_base_pos));
         break;
       case 5: //rest
-        pub_pos_quat2.publish(rest(rest2_pos, rest2_quat));
+        pub_pos_quat2.publish(rest(center2, center1, ee_offset, iiwa2_base_pos));
         ee2_pos_init = ee2_pos;
-        //des_pos2 = des_pos_set + rand_pos;
         break;
     }
     prev_mode2 = mode2;
@@ -609,10 +435,11 @@ int main (int argc, char** argv){
       std::cout << "Current path is " << std::experimental::filesystem::current_path() << '\n';
     }
 
-
-
+    bool hitta1, hitta2, farra1, farra2;
+    std::tie(hitta1, farra1) = hittable(object_pos, center1, center2, hittable_params);
+    std::tie(hitta2, farra2) = hittable(object_pos, center2, center1, hittable_params);
     // Reset object position once out of reach if it is in gazebo (otherwise, there is little our code can do for us)
-    if (object_real == false && object_vel.norm()<0.01 && (!hittable(object_pos, iiwa1_base_pos, iiwa_flip, 1) && !hittable(object_pos, iiwa1_base_pos, iiwa_flip, 2))) {
+    if (object_real == false && object_vel.norm()<0.01 && (!hitta1 && !hitta2)) {
       gazebo_msgs::SetModelState setmodelstate;
       //Set new pose of box
       geometry_msgs::Pose new_box_pose;

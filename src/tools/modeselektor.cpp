@@ -20,11 +20,11 @@ int modeSelektor(Eigen::Vector3d object_pos, Eigen::Vector3d object_vel, Eigen::
   else {too_close = false;}
 
   bool moving;
-  if (object_vel.norm() > 0.03){moving = true;}
+  if (object_vel.norm() > 0.07){moving = true;}
   else {moving = false;}
 
   bool towards;
-  if (object_vel.dot(d_center) < -0.01){towards = true;} //
+  if (object_vel.dot(d_center) < -0.05){towards = true;} //
   else {towards = false;}
 
   bool ee_ready;
@@ -81,11 +81,11 @@ int maniModeSelektor(Eigen::Vector3d object_pos, Eigen::Vector3d object_vel, Eig
 
 
   bool moving;
-  if (object_vel.norm() > 0.03){moving = true;}
+  if (object_vel.norm() > 0.07){moving = true;}
   else {moving = false;}
 
   bool towards;
-  if (object_vel.dot(d_center) < -0.01){towards = true;}
+  if (object_vel.dot(d_center) < -0.05){towards = true;}
   else {towards = false;}
 
   bool ee_ready;

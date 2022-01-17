@@ -17,6 +17,7 @@ double min_y, max_y;
 
 Eigen::Vector3d iiwa_flip = {0.0, 1.0, 0.0};
 Eigen::Matrix3d R_Opti; 
+Eigen::Matrix3d R_EE;
 
 // Stuff to measure
 geometry_msgs::Pose object_pose, iiwa1_base_pose, iiwa2_base_pose, ee1_pose, ee2_pose;
@@ -115,7 +116,7 @@ void iiwa1EEPoseCallback(const geometry_msgs::Pose ee_pose){
   ee1_pose.orientation.y = ee_pose.orientation.y;
   ee1_pose.orientation.z = ee_pose.orientation.z;
   ee1_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
-  ee1_pos = R_Opti*ee1_pos;
+  ee1_pos = R_EE*ee1_pos;
 }
 
 void iiwa2EEPoseCallback(const geometry_msgs::Pose ee_pose){
@@ -127,7 +128,7 @@ void iiwa2EEPoseCallback(const geometry_msgs::Pose ee_pose){
   ee2_pose.orientation.y = ee_pose.orientation.y;
   ee2_pose.orientation.z = ee_pose.orientation.z;
   ee2_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
-  ee2_pos = R_Opti*ee2_pos;
+  ee2_pos = R_EE*ee2_pos;
 }
 
 //Passive_track (iiwa_toolkit)
@@ -305,7 +306,7 @@ int main (int argc, char** argv){
     std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;
     std::cin >> des_speed;
 
-    while(des_speed < 0 || des_speed > 1){
+    while(des_speed < 0 || des_speed > 3){
       std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
       std::cin >> des_speed;
     }
@@ -329,7 +330,8 @@ int main (int argc, char** argv){
   Eigen::Vector3d ee2_pos_init = ee2_pos;
 
 
-  R_Opti << -1.0, 0.0, 0.0, 0.0,-1.0, 0.0, 0.0, 0.0, 1.0;
+  R_Opti << 1.0, 0.0, 0.0, 0.0,1.0, 0.0, 0.0, 0.0, 1.0;
+  R_EE << 1.0, 0.0, 0.0, 0.0,1.0, 0.0, 0.0, 0.0, 1.0;
   //Eigen::Vector3d des_pos1, des_pos2, rand_pos;
   //double randx;
   //double randy;
@@ -370,10 +372,10 @@ int main (int argc, char** argv){
 
     // Select correct operating mode for both arms based on conditions on (predicted) object position and velocity and ee position
     if (manual_mode){
-      mode1 = maniModeSelektor(object_pos, object_vel, ee1_pos, center1, center2, ee_offset, hittable_params, prev_mode1, key_ctrl, 1);
+      mode1 = maniModeSelektor(object_pos, object_pos_init1, object_vel, ee1_pos, center1, center2, ee_offset, hittable_params, prev_mode1, key_ctrl, 1);
     }
     else{
-      mode1 = modeSelektor(object_pos, object_vel, predict_pos, ETA, ee1_pos, center1, center2, ee_offset, hittable_params, prev_mode1);
+      mode1 = modeSelektor(object_pos, object_pos_init1, object_vel, predict_pos, ETA, ee1_pos, center1, center2, ee_offset, hittable_params, prev_mode1);
     }
     switch (mode1) {
       case 1: //track
@@ -398,10 +400,10 @@ int main (int argc, char** argv){
     prev_mode1 = mode1;
 
     if (manual_mode){
-      mode2 = maniModeSelektor(object_pos, object_vel, ee2_pos, center2, center1, ee_offset, hittable_params, prev_mode2, key_ctrl, 2);
+      mode2 = maniModeSelektor(object_pos, object_pos_init2, object_vel, ee2_pos, center2, center1, ee_offset, hittable_params, prev_mode2, key_ctrl, 2);
     }
     else{
-      mode2 = modeSelektor(object_pos, object_vel, predict_pos, ETA, ee2_pos, center2, center1, ee_offset, hittable_params, prev_mode2);
+      mode2 = modeSelektor(object_pos, object_pos_init2, object_vel, predict_pos, ETA, ee2_pos, center2, center1, ee_offset, hittable_params, prev_mode2);
     }
     switch (mode2) {
       case 1: //track

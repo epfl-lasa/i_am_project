@@ -16,12 +16,11 @@
   <!--Launch iiwa14_brinup.launch on the second computers connected to this rosmaster-->
 
   <!--This brings up only iiwa7 but starts both passive tracking in their namespace-->
-  <include
-      file = "$(find iiwa_toolkit)/launch/passive_track_real_dual.launch">    
+  <!--include
+      file = "$(find iiwa_toolkit)/launch/passive_track_real.launch">    
       <arg name="robot_name_1" value="$(arg robot_name_1)"/>
-      <arg name="robot_name_2" value="$(arg robot_name_2)"/>
       <arg name="iiwa_model_1" value="7"/>
-  </include>
+  </include-->
 
   <!--Optitrack and other hardwares-->
   <rosparam file="$(find real_pose)/config/topics.yaml" command="load" subst_value="true"/>           

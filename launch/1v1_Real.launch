@@ -11,7 +11,6 @@
 
 <launch>
   <arg name="robot_name_1" default="iiwa1"/>
-  <arg name="robot_name_2" default="iiwa2"/>
 
   <!--Launch iiwa14_brinup.launch on the second computers connected to this rosmaster-->
 
@@ -30,8 +29,7 @@
   
   <!--Run AH_master to control position and velocity for game of air hockey-->
   <rosparam file="$(find i_am_project)/config/1v1_params.yaml" />
-  <node name="master" pkg="i_am_project" type="AH_master"   output="screen"/>                         
-  <node name="estimator" pkg="i_am_predict" type="estimate_real" output="screen"/>
+  <node name="master" pkg="i_am_project" type="AH_master"   output="screen"/>
 
 </launch>
 

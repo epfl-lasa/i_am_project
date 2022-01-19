@@ -20,6 +20,7 @@
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/Int16.h>
+#include <std_msgs/Bool.h>
 #include <gazebo_msgs/ModelStates.h>
 #include <gazebo_msgs/LinkStates.h>
 #include <gazebo_msgs/SetModelState.h>

@@ -11,17 +11,13 @@
 
 <launch>
   <arg name="robot_name_1" default="iiwa1"/>
-  <arg name="robot_name_2" default="iiwa2"/>
 
   <!--This spawns iiwa7 and iiwa14 and starts both passive tracking in their namespace-->
   <include
-      file = "$(find iiwa_toolkit)/launch/passive_track_gazebo_dual.launch">    
+      file = "$(find iiwa_toolkit)/launch/passive_track_gazebo.launch">    
       <arg name="robot_name_1" value="$(arg robot_name_1)"/>
-      <arg name="robot_name_2" value="$(arg robot_name_2)"/>
       <arg name="iiwa_model_1" value="7"/>
-      <arg name="iiwa_model_2" value="14"/>
       <arg name="position_1" value="-x 0.0 -y -0.82"/>
-      <arg name="position_2" value="-x 0.0 -y 0.82"/>
   </include>
 
   <!--Optitrack and other hardwares-->
@@ -32,8 +28,7 @@
   
   <!--Run AH_master to control position and velocity for game of air hockey-->
   <rosparam file="$(find i_am_project)/config/1v1_params.yaml" />
-  <node name="master" pkg="i_am_project" type="AH_master"   output="screen"/>                         
-  <node name="estimator" pkg="i_am_predict" type="estimate_real" output="screen"/>
+  <node name="master" pkg="i_am_project" type="AH_master"   output="screen"/>
 
 </launch>
 

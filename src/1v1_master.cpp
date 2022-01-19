@@ -11,35 +11,20 @@ using namespace std;
 double des_speed;
 double theta;
 
-int key_ctrl = 0;
-
-double min_y, max_y;
-
-Eigen::Vector3d iiwa_flip = {0.0, 1.0, 0.0};
-Eigen::Matrix3d R_Opti; 
-Eigen::Matrix3d R_EE;
 
 // Stuff to measure
-geometry_msgs::Pose object_pose, iiwa1_base_pose, iiwa2_base_pose, ee1_pose, ee2_pose;
-geometry_msgs::Twist object_twist, ee1_twist, ee2_twist;
+geometry_msgs::Pose object_pose, iiwa_base_pose, ee_pose;
+geometry_msgs::Twist object_twist, ee_twist;
 
-Eigen::Vector3d object_pos, iiwa1_base_pos, iiwa2_base_pos, ee1_pos, ee2_pos;
-Eigen::Vector3d ee1_vel, ee2_vel;
+Eigen::Vector3d object_pos, object_pos_init, iiwa_base_pos, ee_pos, new_object_pos_init;
+Eigen::Vector3d object_vel, ee_vel;
 //Eigen::Vector3d hit_force = Eigen::Vector3d::Zero();
 
 Eigen::Vector3d object_rpy;
 double object_th, object_th_mod;
 Eigen::Vector4d th_quat;
 
-std::vector<double> iiwa1_joint_angles, iiwa2_joint_angles;
-
-
-// Stuff to estimate
-Eigen::Vector3d object_vel, predict_pos;
-double ETA;
-double stdev;
-
-double predict_th;
+std::vector<double> iiwa_joint_angles;
 
 
 //Callback functions for subscribers
@@ -59,6 +44,7 @@ void objectSimCallback(const gazebo_msgs::ModelStates model_states){
   object_pose = model_states.pose[box_index];
   object_twist = model_states.twist[box_index];
   object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;
+  object_vel << object_twist.linear.x, object_twist.linear.y, object_twist.linear.z;
 
   object_rpy = quatToRPY({object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z}); //get orientation in rpy
   object_th = object_rpy[2];                                                                                             //only the z-axis
@@ -66,117 +52,60 @@ void objectSimCallback(const gazebo_msgs::ModelStates model_states){
 }
 
 void iiwaSimCallback(const gazebo_msgs::LinkStates link_states){
-  int iiwa1_ee_index = getIndex(link_states.name, "iiwa1::iiwa1_link_7");
-  int iiwa2_ee_index = getIndex(link_states.name, "iiwa2::iiwa2_link_7");
-  int iiwa1_base_index = getIndex(link_states.name, "iiwa1::iiwa1_link_0");
-  int iiwa2_base_index = getIndex(link_states.name, "iiwa2::iiwa2_link_0");
+  int iiwa_ee_index = getIndex(link_states.name, "iiwa1::iiwa1_link_7");
+  int iiwa_base_index = getIndex(link_states.name, "iiwa1::iiwa1_link_0");
 
-  ee1_pose = link_states.pose[iiwa1_ee_index];
-  ee2_pose = link_states.pose[iiwa2_ee_index];
-  ee1_pos << ee1_pose.position.x, ee1_pose.position.y, ee1_pose.position.z;
-  ee2_pos << ee2_pose.position.x, ee2_pose.position.y, ee2_pose.position.z;
+  ee_pose = link_states.pose[iiwa_ee_index];
+  ee_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
   
-  iiwa1_base_pose = link_states.pose[iiwa1_base_index];
-  iiwa2_base_pose = link_states.pose[iiwa2_base_index];
-  iiwa1_base_pos << iiwa1_base_pose.position.x,iiwa1_base_pose.position.y,iiwa1_base_pose.position.z;
-  iiwa2_base_pos << iiwa2_base_pose.position.x,iiwa2_base_pose.position.y,iiwa2_base_pose.position.z;
+  iiwa_base_pose = link_states.pose[iiwa_base_index];
+  iiwa_base_pos << iiwa_base_pose.position.x,iiwa_base_pose.position.y,iiwa_base_pose.position.z;
 
-  min_y = iiwa2_base_pos[1] - 0.5;
-  max_y = iiwa2_base_pos[1] - 0.1;
 }
 
 //Optitrack
 void objectCallback(const geometry_msgs::Pose object_pose){
   object_pos << object_pose.position.x, object_pose.position.y, object_pose.position.z;
-  object_pos = R_Opti*object_pos;
 
   object_rpy = quatToRPY({object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z}); //get orientation in rpy
   object_th = object_rpy[2];                                                                                             //only the z-axis
   object_th_mod = std::fmod(object_th+M_PI+M_PI/4,M_PI/2)-M_PI/4;                                                            //get relative angle of box face facing the arm
 }
 
-void iiwa1BaseCallback(const geometry_msgs::Pose base_pose){
-  iiwa1_base_pos << base_pose.position.x, base_pose.position.y, base_pose.position.z;
-  iiwa1_base_pos = R_Opti*iiwa1_base_pos;
+void iiwaBaseCallback(const geometry_msgs::Pose base_pose){
+  iiwa_base_pos << base_pose.position.x, base_pose.position.y, base_pose.position.z;
 }
 
-void iiwa2BaseCallback(const geometry_msgs::Pose base_pose){
-  iiwa2_base_pos << base_pose.position.x, base_pose.position.y, base_pose.position.z;
-  iiwa2_base_pos = R_Opti*iiwa2_base_pos;
-  min_y = iiwa2_base_pos[1] - 0.5;
-  max_y = iiwa2_base_pos[1] - 0.1;
-}
-
-void iiwa1EEPoseCallback(const geometry_msgs::Pose ee_pose){
-  ee1_pose.position.x = ee_pose.position.x;
-  ee1_pose.position.y = ee_pose.position.y;
-  ee1_pose.position.z = ee_pose.position.z;
-  ee1_pose.orientation.w = ee_pose.orientation.w;
-  ee1_pose.orientation.x = ee_pose.orientation.x;
-  ee1_pose.orientation.y = ee_pose.orientation.y;
-  ee1_pose.orientation.z = ee_pose.orientation.z;
-  ee1_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
-  ee1_pos = R_EE*ee1_pos;
-}
-
-void iiwa2EEPoseCallback(const geometry_msgs::Pose ee_pose){
-  ee2_pose.position.x = ee_pose.position.x;
-  ee2_pose.position.y = ee_pose.position.y;
-  ee2_pose.position.z = ee_pose.position.z;
-  ee2_pose.orientation.w = ee_pose.orientation.w;
-  ee2_pose.orientation.x = ee_pose.orientation.x;
-  ee2_pose.orientation.y = ee_pose.orientation.y;
-  ee2_pose.orientation.z = ee_pose.orientation.z;
-  ee2_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
-  ee2_pos = R_EE*ee2_pos;
+void iiwaEEPoseCallback(const geometry_msgs::Pose ee_pose_msg){
+  ee_pose.position.x = ee_pose_msg.position.x;
+  ee_pose.position.y = ee_pose_msg.position.y;
+  ee_pose.position.z = ee_pose_msg.position.z;
+  ee_pose.orientation.w = ee_pose_msg.orientation.w;
+  ee_pose.orientation.x = ee_pose_msg.orientation.x;
+  ee_pose.orientation.y = ee_pose_msg.orientation.y;
+  ee_pose.orientation.z = ee_pose_msg.orientation.z;
+  ee_pos << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
 }
 
 //Passive_track (iiwa_toolkit)
-void iiwa1EETwistCallback(const geometry_msgs::Twist ee_twist){
-  ee1_twist.linear.x = ee_twist.linear.x;
-  ee1_twist.linear.y = ee_twist.linear.y;
-  ee1_twist.linear.z = ee_twist.linear.z;
-  ee1_twist.angular.x = ee_twist.angular.x;
-  ee1_twist.angular.y = ee_twist.angular.y;
-  ee1_twist.angular.z = ee_twist.angular.z;
-  ee1_vel << ee1_twist.linear.x, ee1_twist.linear.y, ee1_twist.linear.z;
+void iiwaEETwistCallback(const geometry_msgs::Twist ee_twist_msg){
+  ee_twist.linear.x = ee_twist_msg.linear.x;
+  ee_twist.linear.y = ee_twist_msg.linear.y;
+  ee_twist.linear.z = ee_twist_msg.linear.z;
+  ee_twist.angular.x = ee_twist_msg.angular.x;
+  ee_twist.angular.y = ee_twist_msg.angular.y;
+  ee_twist.angular.z = ee_twist_msg.angular.z;
+  ee_vel << ee_twist.linear.x, ee_twist.linear.y, ee_twist.linear.z;
 }
 
-void iiwa2EETwistCallback(const geometry_msgs::Twist ee_twist){
-  ee2_twist.linear.x = ee_twist.linear.x;
-  ee2_twist.linear.y = ee_twist.linear.y;
-  ee2_twist.linear.z = ee_twist.linear.z;
-  ee2_twist.angular.x = ee_twist.angular.x;
-  ee2_twist.angular.y = ee_twist.angular.y;
-  ee2_twist.angular.z = ee_twist.angular.z;
-  ee2_vel << ee2_twist.linear.x, ee2_twist.linear.y, ee2_twist.linear.z;
+void iiwaJointCallback(sensor_msgs::JointState joint_states){
+  iiwa_joint_angles = joint_states.position;
 }
 
-void iiwa1JointCallback(sensor_msgs::JointState joint_states){
-  iiwa1_joint_angles = joint_states.position;
-}
 
-void iiwa2JointCallback(sensor_msgs::JointState joint_states){
-  iiwa2_joint_angles = joint_states.position;
+void initCallback(const geometry_msgs::Pose object_pose_init){
+  new_object_pos_init << object_pose_init.position.x, object_pose_init.position.y, object_pose_init.position.z;
 }
-
-//i_am_predict
-void estimateObjectCallback(std_msgs::Float64MultiArray estimation){
-  stdev = estimation.data[0];
-  ETA = estimation.data[1];
-  predict_pos << estimation.data[2], estimation.data[3], estimation.data[4];
-  object_vel << estimation.data[5], estimation.data[6], estimation.data[7];
-  //predict_th = estimation.data[8];
-}
-
-//manual control
-void modeCallback(std_msgs::Int16 msg){
-  //if (msg.data <= 5){manual_mode1 = msg.data;}
-  //if (msg.data >= 6){manual_mode2 = msg.data-5;} 
-  //if (msg.data == 0){manual_mode2 = 5;}
-  key_ctrl = msg.data;
-}
-
 
 
 int main (int argc, char** argv){
@@ -190,11 +119,9 @@ int main (int argc, char** argv){
   //Get environment setting from param
   bool object_real;
   bool iiwa_real;
-  bool manual_mode;
   bool hollow;
   if(!nh.getParam("object_real", object_real)){ROS_ERROR("Param object_real not found");}
   if(!nh.getParam("iiwa_real", iiwa_real)){ROS_ERROR("Param iiwa_real not found");}
-  if(!nh.getParam("manual_mode", manual_mode)){ROS_ERROR("Param manual_mode not found");}
   if(!nh.getParam("hollow", hollow)){ROS_ERROR("Param hollow not found");}
 
 
@@ -212,68 +139,37 @@ int main (int argc, char** argv){
     
   }
   
-  ros::Subscriber iiwa1_base_subs;
-  ros::Subscriber iiwa2_base_subs;
-  ros::Subscriber iiwa1_ee_subs;
-  ros::Subscriber iiwa2_ee_subs;
+  ros::Subscriber iiwa_base_subs;
+  ros::Subscriber iiwa_ee_subs;
   ros::Subscriber iiwa_subs;
   if (iiwa_real){
-    iiwa1_base_subs = nh.subscribe("/simo_track/robot_left/pose", 10, iiwa1BaseCallback);
-    iiwa2_base_subs = nh.subscribe("/simo_track/robot_right/pose", 10, iiwa2BaseCallback);
-    iiwa1_ee_subs = nh.subscribe("/simo_track/robot_left/ee_pose", 10, iiwa1EEPoseCallback);
-    iiwa2_ee_subs = nh.subscribe("/simo_track/robot_right/ee_pose", 10, iiwa2EEPoseCallback);
+    iiwa_base_subs = nh.subscribe("/simo_track/robot_left/pose", 10, iiwaBaseCallback);
+    iiwa_ee_subs = nh.subscribe("/simo_track/robot_left/ee_pose", 10, iiwaEEPoseCallback);
     }
     else{
     iiwa_subs = nh.subscribe("/gazebo/link_states", 10, iiwaSimCallback);
   }
 
-  ros::Subscriber iiwa1_ee_twist_subs = nh.subscribe("iiwa1/ee_twist", 100, iiwa1EETwistCallback);          //from passive_control and iiwa_ros
-  ros::Subscriber iiwa2_ee_twist_subs = nh.subscribe("iiwa2/ee_twist", 100, iiwa2EETwistCallback);
-  ros::Subscriber iiwa1_joint_subs = nh.subscribe("/iiwa1/joint_states", 100, iiwa1JointCallback);
-  ros::Subscriber iiwa2_joint_subs = nh.subscribe("/iiwa2/joint_states", 100, iiwa2JointCallback);
+  ros::Subscriber iiwa_ee_twist_subs = nh.subscribe("iiwa1/ee_twist", 100, iiwaEETwistCallback);          //from passive_control and iiwa_ros
+  ros::Subscriber iiwa_joint_subs = nh.subscribe("/iiwa1/joint_states", 100, iiwaJointCallback);
   
-  //Subcriber to position estimator
-  ros::Subscriber estimate_object_subs = nh.subscribe("estimate/object",10,estimateObjectCallback);
-
-  //Subscriber to key control
-  ros::Subscriber mode_sub = nh.subscribe("mode",10,modeCallback);
-
 
   //Publishers for position and velocity commands for IIWA end-effectors
-  ros::Publisher pub_vel_quat1 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/vel_quat", 1);
-  ros::Publisher pub_pos_quat1 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/pos_quat", 1);
-  ros::Publisher pub_vel_quat2 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/vel_quat", 1);
-  ros::Publisher pub_pos_quat2 = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/pos_quat", 1);
+  ros::Publisher pub_vel_quat = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/vel_quat", 1);
+  ros::Publisher pub_pos_quat = nh.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/pos_quat", 1);
   
 
-  
+  //Information exchange for initializing trials
+  ros::Publisher update_pub = nh.advertise<std_msgs::Bool>("trials/update", 100);
+  ros::Subscriber init_subs = nh.subscribe("trials/init", 100, initCallback);
 
 
-  //Center points of desired workspaces (used to aim for and tell what orientation)
-  std::vector<double> center1vec;
-  std::vector<double> center2vec;
-  Eigen::Vector3d center1;
-  Eigen::Vector3d center2;
-  if(!nh.getParam("center1", center1vec)){ROS_ERROR("Param center1 not found");}
-  if(!nh.getParam("center2", center2vec)){ROS_ERROR("Param center2 not found");}
-  center1 << center1vec[0], center1vec[1], center1vec[2];
-  center2 << center2vec[0], center2vec[1], center2vec[2];
   
   double ee_offset_h;
   double ee_offset_v;
   if(!nh.getParam("ee_offset/h", ee_offset_h)){ROS_ERROR("Param ee_offset/h not found");}
   if(!nh.getParam("ee_offset/v", ee_offset_v)){ROS_ERROR("Param ee_offset/v not found");}
   Eigen::Vector2d ee_offset = {ee_offset_h, ee_offset_v};
-
-  double x_reach;
-  double y_reach;
-  double x_offset;
-  double y_offset;
-  if(!nh.getParam("hittable/reach/x", x_reach)){ROS_ERROR("Param hittable/reach/x not found");}
-  if(!nh.getParam("hittable/reach/y", y_reach)){ROS_ERROR("Param hittable/reach/y not found");}
-  if(!nh.getParam("hittable/offset/x", x_offset)){ROS_ERROR("Param hittable/offset/x not found");}
-  if(!nh.getParam("hittable/offset/y", y_offset)){ROS_ERROR("Param hittable/offset/y not found");}
-  Eigen::Vector4d hittable_params = {x_reach, y_reach, x_offset, y_offset};
 
 
   //Object properties from param file
@@ -288,6 +184,7 @@ int main (int argc, char** argv){
     double mu;
     double mu2;
     double izz;
+    geometry_msgs::Pose pose;
 };
   struct modelProperties box;
     nh.getParam("box/properties/size/x", box.size_x);
@@ -299,6 +196,9 @@ int main (int argc, char** argv){
     nh.getParam("box/properties/mass", box.mass);
     nh.getParam("box/properties/mu", box.mu);
     nh.getParam("box/properties/mu2", box.mu2);
+    nh.getParam("box/initial_pos/x", box.pose.position.x);
+    nh.getParam("box/initial_pos/y", box.pose.position.y);
+    nh.getParam("box/initial_pos/z", box.pose.position.z);
   box.izz = 1.0/12* box.mass* (pow(box.size_x,2) + pow(box.size_y,2));
   
   
@@ -319,114 +219,67 @@ int main (int argc, char** argv){
       std::cin >> theta;
   }
 
-  int mode1 = 5;
-  int mode2 = 5;
-  int prev_mode1 = mode1;
-  int prev_mode2 = mode2;
 
-  Eigen::Vector3d object_pos_init1 = object_pos;
-  Eigen::Vector3d object_pos_init2 = object_pos;
-  Eigen::Vector3d ee1_pos_init = ee1_pos;
-  Eigen::Vector3d ee2_pos_init = ee2_pos;
+  int mode = 4;
+  int prev_mode = mode;
 
+  Eigen::Vector3d ee_pos_init = ee_pos;
+  object_pos_init << box.pose.position.x, box.pose.position.y, box.pose.position.z;
 
-  R_Opti << 1.0, 0.0, 0.0, 0.0,1.0, 0.0, 0.0, 0.0, 1.0;
-  R_EE << 1.0, 0.0, 0.0, 0.0,1.0, 0.0, 0.0, 0.0, 1.0;
-  //Eigen::Vector3d des_pos1, des_pos2, rand_pos;
-  //double randx;
-  //double randy;
+  std_msgs::Bool update;
+  bool infeasible = false;
+  bool reset = false;
+  bool once_reset = true;
+  std::queue<double> object_pos_norm_q;
 
-
+  int trial = 1;
+  
   //Storing data to get the right values in time. The data we want is actually from right before events that we can recognize (e.g. speed right before hitting)
     std::queue<Eigen::Vector3d> object_pos_q;
-    std::queue<Eigen::Vector3d> predict_pos_q;
     std::queue<double> object_theta_q;
-    std::queue<geometry_msgs::Pose> ee1_pose_q;
-    std::queue<geometry_msgs::Pose> ee2_pose_q;
-    std::queue<geometry_msgs::Twist> ee1_twist_q;
-    std::queue<geometry_msgs::Twist> ee2_twist_q;
-    std::queue<std::vector<double>> iiwa1_joint_angles_q;
-    std::queue<std::vector<double>> iiwa2_joint_angles_q;
+    std::queue<geometry_msgs::Pose> ee_pose_q;
+    std::queue<geometry_msgs::Twist> ee_twist_q;
+    std::queue<std::vector<double>> iiwa_joint_angles_q;
 
-    bool once11 = true;
-    bool once12 = true;
-    bool once21 = false;
-    bool once22 = false;
+    bool once1 = true;
+    bool once2 = true;
     bool tracking = false;
     int oneinten;
     std::stringstream data_path;
     data_path << ros::package::getPath("i_am_project") << "/data/hitting/object_data.csv";
     std::ofstream object_data;
+    std::stringstream regression_path;
+    regression_path << ros::package::getPath("i_am_project") << "/data/hitting/regression_data.csv";
+    std::ofstream regression_data;
   bool store_data = 0;
 
 
 
   while(ros::ok()){
-    //Determine desired direction of hit
-    //randx = ((double)(rand() % 2500-1250))/10000;
-    //randy = ((double)(rand() % 2500-1250))/10000;
-    //rand_pos = {randx, randy, 0.0};
-    //double theta_des1 = -std::atan2((des_pos_set[0]-predict_pos[0]),(des_pos_set[1]-predict_pos[1])); //can also use cur_pos
-    //double theta_des2 = -std::atan2((des_pos_set[0]-predict_pos[0]),(des_pos_set[1]+predict_pos[1]));
-
+    Eigen::Vector3d unitY = {0.0, 1.0, 0.0};
+    Eigen::Vector3d aim = object_pos_init + unitY;
+    Eigen::Vector3d d_center = aim - object_pos_init;
+    Eigen::Vector3d v_offset = {0.0, 0.0, ee_offset[1]};
 
     // Select correct operating mode for both arms based on conditions on (predicted) object position and velocity and ee position
-    if (manual_mode){
-      mode1 = maniModeSelektor(object_pos, object_pos_init1, object_vel, ee1_pos, center1, center2, ee_offset, hittable_params, prev_mode1, key_ctrl, 1);
-    }
-    else{
-      mode1 = modeSelektor(object_pos, object_pos_init1, object_vel, predict_pos, ETA, ee1_pos, center1, center2, ee_offset, hittable_params, prev_mode1);
-    }
-    switch (mode1) {
+    mode = modeSelektor(object_pos, object_vel, ee_pos, ee_vel, object_pos_init, aim, ee_offset, prev_mode);
+    switch (mode) {
       case 1: //track
-        pub_pos_quat1.publish(track(predict_pos, center2, ee_offset, iiwa1_base_pos));
-        ee1_pos_init = ee1_pos; //we can go from track to hit. For hit, we need initial
+        pub_pos_quat.publish(track(object_pos, aim, ee_offset, iiwa_base_pos));
+        ee_pos_init = ee_pos; //we can go from track to hit. For hit, we need initial
         break;
-      case 2: //stop
-        pub_pos_quat1.publish(block(object_pos, predict_pos, center1, center2, object_th_mod, iiwa1_base_pos));
+      case 2: //hit
+        pub_vel_quat.publish(hitDS(des_speed, object_pos, aim, ee_pos, ee_pos_init));
         break;
-      case 3: //hit
-        pub_vel_quat1.publish(hitDS(des_speed, object_pos, center2, ee1_pos, ee1_pos_init));
-        object_pos_init1 = object_pos; //need this for post-hit to guide the arm right after hit
+      case 3: //post hit
+        pub_pos_quat.publish(postHit(object_pos_init, aim, iiwa_base_pos));
         break;
-      case 4: //post hit
-        pub_pos_quat1.publish(postHit(object_pos_init1, center2, iiwa1_base_pos));
-        break;
-      case 5: //rest
-        pub_pos_quat1.publish(rest(center1, center2, ee_offset, iiwa1_base_pos));
-        ee1_pos_init = ee1_pos; //we can also go from rest to hit..
+      case 4: //rest
+        pub_pos_quat.publish(rest(object_pos_init, aim, ee_offset, iiwa_base_pos));
+        ee_pos_init = ee_pos; //we can also go from rest to hit..
         break;
     }
-    prev_mode1 = mode1;
-
-    if (manual_mode){
-      mode2 = maniModeSelektor(object_pos, object_pos_init2, object_vel, ee2_pos, center2, center1, ee_offset, hittable_params, prev_mode2, key_ctrl, 2);
-    }
-    else{
-      mode2 = modeSelektor(object_pos, object_pos_init2, object_vel, predict_pos, ETA, ee2_pos, center2, center1, ee_offset, hittable_params, prev_mode2);
-    }
-    switch (mode2) {
-      case 1: //track
-        pub_pos_quat2.publish(track(predict_pos, center1, ee_offset, iiwa2_base_pos));
-        ee2_pos_init = ee2_pos;
-        break;
-      case 2: //stop
-        pub_pos_quat2.publish(block(object_pos, predict_pos, center2, center1, object_th_mod, iiwa2_base_pos));
-        break;
-      case 3: //hit
-        pub_vel_quat2.publish(hitDS(des_speed, object_pos, center1, ee2_pos, ee2_pos_init));
-        object_pos_init2 = object_pos;
-        break;
-      case 4: //post hit
-        pub_pos_quat2.publish(postHit(object_pos_init2, center1, iiwa2_base_pos));
-        break;
-      case 5: //rest
-        pub_pos_quat2.publish(rest(center2, center1, ee_offset, iiwa2_base_pos));
-        ee2_pos_init = ee2_pos;
-        break;
-    }
-    prev_mode2 = mode2;
-    
+    prev_mode = mode;
 
 
 
@@ -436,153 +289,122 @@ int main (int argc, char** argv){
       std::cerr << "Error opening output file.\n";
       std::cout << "Current path is " << std::experimental::filesystem::current_path() << '\n';
     }
+    regression_data.open(regression_path.str(), std::ofstream::out | std::ofstream::app);
+    if(!regression_data.is_open()){
+      std::cerr << "Error opening output file.\n";
+      std::cout << "Current path is " << std::experimental::filesystem::current_path() << '\n';
+    }
 
-    bool hitta1, hitta2, farra1, farra2;
-    std::tie(hitta1, farra1) = hittable(object_pos, center1, center2, hittable_params);
-    std::tie(hitta2, farra2) = hittable(object_pos, center2, center1, hittable_params);
-    // Reset object position once out of reach if it is in gazebo (otherwise, there is little our code can do for us)
-    if (object_real == false && object_vel.norm()<0.01 && (!hitta1 && !hitta2)) {
-      gazebo_msgs::SetModelState setmodelstate;
+
+    object_pos_norm_q.push(object_pos.norm());
+    while (object_pos_norm_q.size() > 500){object_pos_norm_q.pop();}
+
+    if (object_pos_norm_q.front() - object_pos_norm_q.back() < 0.005 && object_pos_norm_q.size() > 490){
+      infeasible = true;
+    } else {infeasible = false;}
+
+    if (((object_pos-object_pos_init).dot(d_center) > 0.1 && object_vel.norm()<0.01 || infeasible == true) && (ee_pos-(object_pos_init - ee_offset[0]*d_center/d_center.norm() + v_offset)).norm() < 0.05){
+      reset = true;
+    } else {reset = false;}
+
+    if (reset == true && once_reset == true) {
+      once_reset = false;
+
+      std::queue<double> empty;
+      std::swap(object_pos_norm_q, empty);
+
+      update.data = true;
+      object_pos_init = new_object_pos_init;
       //Set new pose of box
-      geometry_msgs::Pose new_box_pose;
-      nh.getParam("box/initial_pos/x",new_box_pose.position.x);
-      nh.getParam("box/initial_pos/y",new_box_pose.position.y);
-      nh.getParam("box/initial_pos/z",new_box_pose.position.z);
-      new_box_pose.orientation.x = 0.0;
-      new_box_pose.orientation.y = 0.0;
-      new_box_pose.orientation.z = 0.0;
-      new_box_pose.orientation.w = 0.0;
+        gazebo_msgs::SetModelState setmodelstate;
+        geometry_msgs::Pose new_box_pose;
+        new_box_pose.position.x = object_pos_init[0];
+        new_box_pose.position.y = object_pos_init[1];
+        new_box_pose.position.z = object_pos_init[2];
+        new_box_pose.orientation.x = 0.0;
+        new_box_pose.orientation.y = 0.0;
+        new_box_pose.orientation.z = 0.0;
+        new_box_pose.orientation.w = 0.0;
 
-      gazebo_msgs::ModelState modelstate;
-      modelstate.model_name = (std::string) "my_box";
-      modelstate.reference_frame = (std::string) "world";
-      modelstate.pose = new_box_pose;
-      setmodelstate.request.model_state = modelstate;
-      set_state_client.call(setmodelstate);
-
-      if (hollow == true){
-        //Set new pose of minibox
-        geometry_msgs::Pose new_mini_pose;
-        nh.getParam("mini/initial_pos/x", new_mini_pose.position.x);
-        nh.getParam("mini/initial_pos/y", new_mini_pose.position.y);
-        nh.getParam("mini/initial_pos/z", new_mini_pose.position.z);
-        new_mini_pose.position.x += new_box_pose.position.x;
-        new_mini_pose.position.y += new_box_pose.position.y;
-        new_mini_pose.position.z += new_box_pose.position.z;
-        new_mini_pose.orientation.x = 0.0;
-        new_mini_pose.orientation.y = 0.0;
-        new_mini_pose.orientation.z = 0.0;
-        new_mini_pose.orientation.w = 0.0;
-
-        modelstate.model_name = (std::string) "my_mini";
-        modelstate.pose = new_mini_pose;
+        gazebo_msgs::ModelState modelstate;
+        modelstate.model_name = (std::string) "my_box";
+        modelstate.reference_frame = (std::string) "world";
+        modelstate.pose = new_box_pose;
         setmodelstate.request.model_state = modelstate;
         set_state_client.call(setmodelstate);
-      }
+
+        if (hollow == true){
+          //Set new pose of minibox
+          geometry_msgs::Pose new_mini_pose;
+          nh.getParam("mini/initial_pos/x", new_mini_pose.position.x);
+          nh.getParam("mini/initial_pos/y", new_mini_pose.position.y);
+          nh.getParam("mini/initial_pos/z", new_mini_pose.position.z);
+          new_mini_pose.position.x += new_box_pose.position.x;
+          new_mini_pose.position.y += new_box_pose.position.y;
+          new_mini_pose.position.z += new_box_pose.position.z;
+          new_mini_pose.orientation.x = 0.0;
+          new_mini_pose.orientation.y = 0.0;
+          new_mini_pose.orientation.z = 0.0;
+          new_mini_pose.orientation.w = 0.0;
+
+          modelstate.model_name = (std::string) "my_mini";
+          modelstate.pose = new_mini_pose;
+          setmodelstate.request.model_state = modelstate;
+          set_state_client.call(setmodelstate);
+        }
 
       ROS_INFO("Resetting object pose");
-      tracking = false;
-      if (once11 == false){
-        once12 = false;
-        tracking = false;
-        object_data << "end, reset" << "\n\n\n";
-        once21 = true;
-        once22 = true;
-      }
-      if (once21 == false){
-        once22 = false;
-        tracking = false;
-        object_data << "end, reset" << "\n\n\n";
-        once11 = true;
-        once12 = true;
-      }
+    }
+
+    update_pub.publish(update);
+
+    if ((object_pos-object_pos_init).norm() < 0.01){ 
+      update.data = false;
+      once_reset = true;
     }
 
 
-    
 
-
-    ros::Time current_time = ros::Time::now();
-    //Store the actual data for three time steps. This turns out to be the right time. In other words, post-hit is initiated three time steps after the step right before impact, which is the step we want data from.
     object_pos_q.push(object_pos);
-    predict_pos_q.push(predict_pos);
     object_theta_q.push(object_th);
-    ee1_pose_q.push(ee1_pose);
-    ee2_pose_q.push(ee2_pose);
-    ee1_twist_q.push(ee1_twist);
-    ee2_twist_q.push(ee2_twist);
-    iiwa1_joint_angles_q.push(iiwa1_joint_angles);
-    iiwa2_joint_angles_q.push(iiwa2_joint_angles);
+    ee_pose_q.push(ee_pose);
+    ee_twist_q.push(ee_twist);
+    iiwa_joint_angles_q.push(iiwa_joint_angles);
 
     while (object_pos_q.size() > 3){object_pos_q.pop();}
-    while (predict_pos_q.size() > 3){predict_pos_q.pop();}
     while (object_theta_q.size() > 3){object_theta_q.pop();}
-    while (ee1_pose_q.size() > 3){ee1_pose_q.pop();}
-    while (ee2_pose_q.size() > 3){ee2_pose_q.pop();}
-    while (ee1_twist_q.size() > 3){ee1_twist_q.pop();}
-    while (ee2_twist_q.size() > 3){ee2_twist_q.pop();}
-    while (iiwa1_joint_angles_q.size() > 3){iiwa1_joint_angles_q.pop();}
-    while (iiwa2_joint_angles_q.size() > 3){iiwa2_joint_angles_q.pop();}
+    while (ee_pose_q.size() > 3){ee_pose_q.pop();}
+    while (ee_twist_q.size() > 3){ee_twist_q.pop();}
+    while (iiwa_joint_angles_q.size() > 3){iiwa_joint_angles_q.pop();}
 
 
     
 
-    if (mode1 == 4 && once11 == true){  //store data right before hit (this is once, directly after hit)
-      once11 = false;
-      object_data << "box_properties,  " << box.size_x << ", " << box.size_y << ", " << box.size_z << ", " << box.com_x << ", " << box.com_y << ", " << box.com_z << ", " << box.mass << ", " << box.mu << ", " << box.mu2 << "\n";
-      object_data << "pre_hit_joints,  " << iiwa1_joint_angles_q.front()[0] << ", " << iiwa1_joint_angles_q.front()[1] << ", " << iiwa1_joint_angles_q.front()[2] << ", " << iiwa1_joint_angles_q.front()[3] << ", " << iiwa1_joint_angles_q.front()[4] << ", " << iiwa1_joint_angles_q.front()[5] << ", " << iiwa1_joint_angles_q.front()[6] << "\n";
-      object_data << "post_hit_joints, " << iiwa1_joint_angles[0] << ", " << iiwa1_joint_angles[1] << ", " << iiwa1_joint_angles[2] << ", " << iiwa1_joint_angles[3] << ", " << iiwa1_joint_angles[4] << ", " << iiwa1_joint_angles[5] << ", " << iiwa1_joint_angles[6] << "\n";
-      object_data << "pre_hit_ee,      " << ee1_pose_q.front().position.x << ", " << ee1_pose_q.front().position.y << ", " << ee1_pose_q.front().position.z << ", " << ee1_pose_q.front().orientation.x << ", " << ee1_pose_q.front().orientation.y << ", " << ee1_pose_q.front().orientation.z << ", " << ee1_pose_q.front().orientation.w << ", " << ee1_twist_q.front().linear.x << ", " << ee1_twist_q.front().linear.y << ", " << ee1_twist_q.front().linear.z << ", " << ee1_twist_q.front().angular.x << ", " << ee1_twist_q.front().angular.y << ", " << ee1_twist_q.front().angular.z << "\n";
-      object_data << "post_hit_ee,     " << ee1_pose.position.x << ", " << ee1_pose.position.y << ", " << ee1_pose.position.z << ", " << ee1_pose.orientation.x << ", " << ee1_pose.orientation.y << ", " << ee1_pose.orientation.z << ", " << ee1_pose.orientation.w << ", " << ee1_twist.linear.x << ", " << ee1_twist.linear.y << ", " << ee1_twist.linear.z << ", " << ee1_twist.angular.x << ", " << ee1_twist.angular.y << ", " << ee1_twist.angular.z << "\n";
-      object_data << "pre_hit_object,  " << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << object_pos_q.front()[2] << ", " << object_theta_q.front() << "\n";
-      object_data << "post_hit_trajectory:\n";
-      tracking = true;
-      oneinten = 10;
+    if (mode == 3 && once1 == true){  //store data right before hit (this is once, directly after hit)
+      once1 = false;
+      once2 = true;
+      object_data << "trial_no.       ," << trial << "\n";
+      trial++;
+      object_data << "box_properties  ," << box.size_x << ", " << box.size_y << ", " << box.size_z << ", " << box.com_x << ", " << box.com_y << ", " << box.com_z << ", " << box.mass << ", " << box.mu << ", " << box.mu2 << "\n";
+      object_data << "pre_hit_joints  ," << iiwa_joint_angles_q.front()[0] << ", " << iiwa_joint_angles_q.front()[1] << ", " << iiwa_joint_angles_q.front()[2] << ", " << iiwa_joint_angles_q.front()[3] << ", " << iiwa_joint_angles_q.front()[4] << ", " << iiwa_joint_angles_q.front()[5] << ", " << iiwa_joint_angles_q.front()[6] << "\n";
+      object_data << "post_hit_joints ," << iiwa_joint_angles[0] << ", " << iiwa_joint_angles[1] << ", " << iiwa_joint_angles[2] << ", " << iiwa_joint_angles[3] << ", " << iiwa_joint_angles[4] << ", " << iiwa_joint_angles[5] << ", " << iiwa_joint_angles[6] << "\n";
+      object_data << "pre_hit_ee      ," << ee_pose_q.front().position.x << ", " << ee_pose_q.front().position.y << ", " << ee_pose_q.front().position.z << ", " << ee_pose_q.front().orientation.x << ", " << ee_pose_q.front().orientation.y << ", " << ee_pose_q.front().orientation.z << ", " << ee_pose_q.front().orientation.w << ", " << ee_twist_q.front().linear.x << ", " << ee_twist_q.front().linear.y << ", " << ee_twist_q.front().linear.z << ", " << ee_twist_q.front().angular.x << ", " << ee_twist_q.front().angular.y << ", " << ee_twist_q.front().angular.z << "\n";
+      object_data << "post_hit_ee     ," << ee_pose.position.x << ", " << ee_pose.position.y << ", " << ee_pose.position.z << ", " << ee_pose.orientation.x << ", " << ee_pose.orientation.y << ", " << ee_pose.orientation.z << ", " << ee_pose.orientation.w << ", " << ee_twist.linear.x << ", " << ee_twist.linear.y << ", " << ee_twist.linear.z << ", " << ee_twist.angular.x << ", " << ee_twist.angular.y << ", " << ee_twist.angular.z << "\n";
+      object_data << "pre_hit_object  ," << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << object_pos_q.front()[2] << "\n";
+
+      regression_data << trial << ", " << "ee_inertia, " << ee_twist_q.front().linear.y << ", " << ee_twist.linear.y << ", " << object_pos_q.front()[1] << ", ";
     }
-    if (mode2 == 2 && object_pos[1] > min_y + 0.25 && once12 == true){  //store predicted pos if it will be stopped
-      once12 = false;
-      tracking = false;
-      object_data << "end, stopped" << "\n";
-      object_data << "pred_stop_pos, " << predict_pos_q.front()[0] << ", " << predict_pos_q.front()[1] << ", " << predict_pos_q.front()[2] << "\n\n\n";
-      once21 = true;
-      once22 = true;
+    if (reset == true && once2 == true){  //or if it will be hit back just before it came to a halt
+      once2 = false;
+      once1 = true;
+      object_data << "end_object      ," << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << object_pos_q.front()[2] << "\n\n\n";
+
+      regression_data << object_pos_q.front()[1] << "\n";
     }
-    if (mode2 == 3 && once12 == true){  //or if it will be hit back just before it came to a halt
-      once12 = false;
-      tracking = false;
-      object_data << "end, free" << "\n\n\n";
-      once21 = true;
-      once22 = true;
-    }
+
     
-    if (mode2 == 4 && once21 == true){
-      once21 = false;
-      object_data << "box_properties,  " << box.size_x << ", " << box.size_y << ", " << box.size_z << ", " << box.com_x << ", " << box.com_y << ", " << box.com_z << ", " << box.mass << ", " << box.mu << ", " << box.mu2 << "\n";
-      object_data << "pre_hit_joints,  " << iiwa2_joint_angles_q.front()[0] << ", " << iiwa2_joint_angles_q.front()[1] << ", " << iiwa2_joint_angles_q.front()[2] << ", " << iiwa2_joint_angles_q.front()[3] << ", " << iiwa2_joint_angles_q.front()[4] << ", " << iiwa2_joint_angles_q.front()[5] << ", " << iiwa2_joint_angles_q.front()[6] << "\n";
-      object_data << "post_hit_joints, " << iiwa2_joint_angles[0] << ", " << iiwa2_joint_angles[1] << ", " << iiwa2_joint_angles[2] << ", " << iiwa2_joint_angles[3] << ", " << iiwa2_joint_angles[4] << ", " << iiwa2_joint_angles[5] << ", " << iiwa2_joint_angles[6] << "\n";
-      object_data << "pre_hit_ee,      " << ee2_pose_q.front().position.x << ", " << ee2_pose_q.front().position.y << ", " << ee2_pose_q.front().position.z << ", " << ee2_pose_q.front().orientation.x << ", " << ee2_pose_q.front().orientation.y << ", " << ee2_pose_q.front().orientation.z << ", " << ee2_pose_q.front().orientation.w << ", " << ee2_twist_q.front().linear.x << ", " << ee2_twist_q.front().linear.y << ", " << ee2_twist_q.front().linear.z << ", " << ee2_twist_q.front().angular.x << ", " << ee2_twist_q.front().angular.y << ", " << ee2_twist_q.front().angular.z << "\n";
-      object_data << "post_hit_ee,     " << ee2_pose.position.x << ", " << ee2_pose.position.y << ", " << ee2_pose.position.z << ", " << ee2_pose.orientation.x << ", " << ee2_pose.orientation.y << ", " << ee2_pose.orientation.z << ", " << ee2_pose.orientation.w << ", " << ee2_twist.linear.x << ", " << ee2_twist.linear.y << ", " << ee2_twist.linear.z << ", " << ee2_twist.angular.x << ", " << ee2_twist.angular.y << ", " << ee2_twist.angular.z << "\n";
-      object_data << "pre_hit_object,  " << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << object_pos_q.front()[2] << ", " << object_theta_q.front() << "\n";
-      object_data << "post_hit_trajectory:\n";
-      tracking = true;
-      oneinten = 10;
-    }
-    if (mode1 == 2 && object_pos[1] < -(min_y+0.25) && once22 == true){
-      once22 = false;
-      tracking = false;
-      object_data << "end, stopped" << "\n";
-      object_data << "pred_final_pos, " << predict_pos_q.front()[0] << ", " << predict_pos_q.front()[1] << ", " << predict_pos_q.front()[2] << "\n\n\n";
-      once11 = true;
-      once12 = true;
-    }
-    if (mode1 == 3 && once22 == true){
-      once22 = false;
-      tracking = false;
-      object_data << "end, free" << "\n\n\n";
-      once11 = true;
-      once12 = true;
-    }
-    
+
+    /*
     if (tracking == true && oneinten >= 10){
       oneinten = 0;
       object_data << current_time.toSec() << ", " << object_pos[0] << ", " << object_pos[1] << ", " << object_pos[2] << ", " << object_th << ", " << object_twist.angular.z << "\n";
@@ -605,29 +427,18 @@ int main (int argc, char** argv){
       }
     }
     oneinten++;
-
+    
+    */
     object_data.close();
+    regression_data.close();
     
     
     // Some infos
       std::stringstream ss1;
-      std::stringstream ss2;
 
-      ss1 << "mode1: " << mode1;
-      ss2 << "mode2: " << mode2;
+      ss1 << "mode: " << mode;
 
       ROS_INFO("%s",ss1.str().c_str());
-      ROS_INFO("%s",ss2.str().c_str());
-
-      std::stringstream ss3;
-      std::stringstream ss4;
-      std::stringstream ss5;
-      std::stringstream ss6;
-      std::stringstream ss7;
-      std::stringstream ss8;
-      std::stringstream ss9;
-      std::stringstream ss10;
-      std::stringstream ss11;
       
 
       //ss3 << "object    : " << object_pos[0] << " " << object_pos[1] << " " << object_pos[2];
@@ -656,11 +467,3 @@ int main (int argc, char** argv){
   return 0;
 }
 
-
-
-/*std_msgs::Float32 posfloat;
-    posfloat.data = (float) ee1_pos[1];
-    std_msgs::Float32 velfloat;
-    velfloat.data = (float) ee1_vel[1];
-    pub_ee1_pos.publish(posfloat);
-    pub_ee1_vel.publish(velfloat);*/

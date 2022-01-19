@@ -48,6 +48,9 @@ set(TOOL_SOURCES
 add_executable(AH_init src/1v1_init.cpp) 
 target_link_libraries(AH_init ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 
+add_executable(AH_trail_init src/1v1_trail_init.cpp) 
+target_link_libraries(AH_trail_init ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
+
 add_executable(AH_key_ctrl src/1v1_key_ctrl.cpp) 
 target_link_libraries(AH_key_ctrl ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 

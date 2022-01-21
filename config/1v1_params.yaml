@@ -7,7 +7,7 @@ hollow: false
 trials:
   center: [0.55, 0.3, 0.165]
   range: [0.3, 0.4]
-  N: 12 #192
+  N: 192 #192
 
 
 ee_offset:

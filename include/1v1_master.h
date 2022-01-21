@@ -41,5 +41,6 @@
 #include "../include/modeselektor.h"
 
 
+#include <iiwa_tools/iiwa_tools.h>
 #include <experimental/filesystem>
 #define _USE_MATH_DEFINES

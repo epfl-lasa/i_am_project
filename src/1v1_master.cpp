@@ -24,7 +24,7 @@ Eigen::Vector3d object_rpy;
 double object_th, object_th_mod;
 Eigen::Vector4d th_quat;
 
-std::vector<double> iiwa_joint_angles;
+std::vector<double> iiwa_joint_angles, iiwa_joint_vel;
 
 
 //Callback functions for subscribers
@@ -100,6 +100,7 @@ void iiwaEETwistCallback(const geometry_msgs::Twist ee_twist_msg){
 
 void iiwaJointCallback(sensor_msgs::JointState joint_states){
   iiwa_joint_angles = joint_states.position;
+  iiwa_joint_vel = joint_states.velocity;
 }
 
 
@@ -149,6 +150,9 @@ int main (int argc, char** argv){
     else{
     iiwa_subs = nh.subscribe("/gazebo/link_states", 10, iiwaSimCallback);
   }
+
+  ros::service::waitForService("iiwa_jacobian_server");
+  get_jacobian_client = nh.serviceClient<iiwa_tools::GetJacobian::Request>("iiwa_jacobian_server");
 
   ros::Subscriber iiwa_ee_twist_subs = nh.subscribe("iiwa1/ee_twist", 100, iiwaEETwistCallback);          //from passive_control and iiwa_ros
   ros::Subscriber iiwa_joint_subs = nh.subscribe("/iiwa1/joint_states", 100, iiwaJointCallback);
@@ -240,6 +244,7 @@ int main (int argc, char** argv){
     std::queue<geometry_msgs::Pose> ee_pose_q;
     std::queue<geometry_msgs::Twist> ee_twist_q;
     std::queue<std::vector<double>> iiwa_joint_angles_q;
+    std::queue<std::vector<double>> iiwa_joint_vel_q;
 
     bool once1 = true;
     bool once2 = true;
@@ -253,6 +258,11 @@ int main (int argc, char** argv){
     std::ofstream regression_data;
   bool store_data = 0;
 
+  iiwa_tools::IiwaTools iiwatools;
+  iiwa_tools::RobotState robot_state;
+  robot_state.position.resize(7);
+  robot_state.velocity.resize(7);
+  Eigen::MatrixXd jacobian = Eigen::MatrixXd(6, 7);
 
 
   while(ros::ok()){
@@ -370,13 +380,14 @@ int main (int argc, char** argv){
     ee_pose_q.push(ee_pose);
     ee_twist_q.push(ee_twist);
     iiwa_joint_angles_q.push(iiwa_joint_angles);
+    iiwa_joint_vel_q.push(iiwa_joint_vel);
 
     while (object_pos_q.size() > 3){object_pos_q.pop();}
     while (object_theta_q.size() > 3){object_theta_q.pop();}
     while (ee_pose_q.size() > 3){ee_pose_q.pop();}
     while (ee_twist_q.size() > 3){ee_twist_q.pop();}
     while (iiwa_joint_angles_q.size() > 3){iiwa_joint_angles_q.pop();}
-
+    while (iiwa_joint_vel_q.size() > 3){iiwa_joint_vel_q.pop();}
 
     
 
@@ -384,7 +395,6 @@ int main (int argc, char** argv){
       once1 = false;
       once2 = true;
       object_data << "trial_no.       ," << trial << "\n";
-      trial++;
       object_data << "box_properties  ," << box.size_x << ", " << box.size_y << ", " << box.size_z << ", " << box.com_x << ", " << box.com_y << ", " << box.com_z << ", " << box.mass << ", " << box.mu << ", " << box.mu2 << "\n";
       object_data << "pre_hit_joints  ," << iiwa_joint_angles_q.front()[0] << ", " << iiwa_joint_angles_q.front()[1] << ", " << iiwa_joint_angles_q.front()[2] << ", " << iiwa_joint_angles_q.front()[3] << ", " << iiwa_joint_angles_q.front()[4] << ", " << iiwa_joint_angles_q.front()[5] << ", " << iiwa_joint_angles_q.front()[6] << "\n";
       object_data << "post_hit_joints ," << iiwa_joint_angles[0] << ", " << iiwa_joint_angles[1] << ", " << iiwa_joint_angles[2] << ", " << iiwa_joint_angles[3] << ", " << iiwa_joint_angles[4] << ", " << iiwa_joint_angles[5] << ", " << iiwa_joint_angles[6] << "\n";
@@ -392,7 +402,18 @@ int main (int argc, char** argv){
       object_data << "post_hit_ee     ," << ee_pose.position.x << ", " << ee_pose.position.y << ", " << ee_pose.position.z << ", " << ee_pose.orientation.x << ", " << ee_pose.orientation.y << ", " << ee_pose.orientation.z << ", " << ee_pose.orientation.w << ", " << ee_twist.linear.x << ", " << ee_twist.linear.y << ", " << ee_twist.linear.z << ", " << ee_twist.angular.x << ", " << ee_twist.angular.y << ", " << ee_twist.angular.z << "\n";
       object_data << "pre_hit_object  ," << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << object_pos_q.front()[2] << "\n";
 
+
+
+      for (int i=0; i<7; i++){
+        robot_state.position[i] = iiwa_joint_angles_q.front()[i];
+        robot_state.velocity[i] = iiwa_joint_vel_q.front()[i];
+      }
+      jacobian = get_jacobian_client.call(jacobian_request)
+      //jacobian = iiwatools.jacobian(robot_state);
+      //std::cout << jacobian << std::endl;
       regression_data << trial << ", " << "ee_inertia, " << ee_twist_q.front().linear.y << ", " << ee_twist.linear.y << ", " << object_pos_q.front()[1] << ", ";
+
+      trial++;
     }
     if (reset == true && once2 == true){  //or if it will be hit back just before it came to a halt
       once2 = false;

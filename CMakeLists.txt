@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   roslib
+  iiwa_tools
 )
 
 find_package(Eigen3 REQUIRED eigen3) 
@@ -21,7 +22,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS roscpp std_msgs roslib
+  CATKIN_DEPENDS roscpp std_msgs roslib iiwa_tools
 )
 
 

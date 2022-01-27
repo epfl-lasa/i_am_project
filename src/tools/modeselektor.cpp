@@ -39,7 +39,7 @@ int modeSelektor(Eigen::Vector3d object_pos, Eigen::Vector3d object_vel, Eigen::
       break;
 
     case 3:   //post hit
-      if ((object_pos-object_pos_init).dot(d_center) > 0.2) {mode = 4;}                            //if object has left the range of arm, go to rest
+      if ((object_pos-object_pos_init).dot(d_center) > 0.1) {mode = 4;}                            //if object has left the range of arm, go to rest
       break;
 
     case 4:   //rest

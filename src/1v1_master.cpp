@@ -27,6 +27,17 @@ Eigen::Vector4d th_quat;
 std::vector<double> iiwa_joint_angles, iiwa_joint_vel;
 
 
+template<typename _Matrix_Type_>
+_Matrix_Type_ pseudoInverse(const _Matrix_Type_ &a, double epsilon = std::numeric_limits<double>::epsilon())
+{
+
+	//Eigen::JacobiSVD< _Matrix_Type_ > svd(a ,Eigen::ComputeFullU | Eigen::ComputeFullV);
+        // For a non-square matrix
+  Eigen::JacobiSVD< _Matrix_Type_ > svd(a ,Eigen::ComputeThinU | Eigen::ComputeThinV);
+	double tolerance = epsilon * std::max(a.cols(), a.rows()) *svd.singularValues().array().abs()(0);
+	return svd.matrixV() *  (svd.singularValues().array().abs() > tolerance).select(svd.singularValues().array().inverse(), 0).matrix().asDiagonal() * svd.matrixU().adjoint();
+}
+
 //Callback functions for subscribers
 //Gazebo
 int getIndex(std::vector<std::string> v, std::string value){
@@ -151,9 +162,6 @@ int main (int argc, char** argv){
     iiwa_subs = nh.subscribe("/gazebo/link_states", 10, iiwaSimCallback);
   }
 
-  ros::service::waitForService("iiwa_jacobian_server");
-  get_jacobian_client = nh.serviceClient<iiwa_tools::GetJacobian::Request>("iiwa_jacobian_server");
-
   ros::Subscriber iiwa_ee_twist_subs = nh.subscribe("iiwa1/ee_twist", 100, iiwaEETwistCallback);          //from passive_control and iiwa_ros
   ros::Subscriber iiwa_joint_subs = nh.subscribe("/iiwa1/joint_states", 100, iiwaJointCallback);
   
@@ -258,11 +266,44 @@ int main (int argc, char** argv){
     std::ofstream regression_data;
   bool store_data = 0;
 
-  iiwa_tools::IiwaTools iiwatools;
+  iiwa_tools::IiwaTools my_iiwa_tools;
+    std::string urdf_string, full_param;
+    std::string robot_description = "iiwa1/robot_description";
+    std::string end_effector;
+    // gets the location of the robot description on the parameter server
+    if (!nh.searchParam(robot_description, full_param)) {
+        ROS_ERROR("Could not find parameter %s on parameter server", robot_description.c_str());
+        return false;
+    }
+    // search and wait for robot_description on param server
+    while (urdf_string.empty()) {
+        ROS_INFO_ONCE_NAMED("Controller", "Controller is waiting for model"
+                                                        " URDF in parameter [%s] on the ROS param server.",
+            robot_description.c_str());
+        nh.getParam(full_param, urdf_string);
+        usleep(100000);
+    }
+    ROS_INFO_STREAM_NAMED("Controller", "Received urdf from param server, parsing...");
+
+    // Get the end-effector
+    nh.param<std::string>("params/end_effector", end_effector, "iiwa1_link_ee");
+
+  my_iiwa_tools.init_rbdyn(urdf_string, end_effector);
+
   iiwa_tools::RobotState robot_state;
   robot_state.position.resize(7);
   robot_state.velocity.resize(7);
-  Eigen::MatrixXd jacobian = Eigen::MatrixXd(6, 7);
+
+  Eigen::MatrixXd J = Eigen::MatrixXd(6, 7);
+  Eigen::MatrixXd H = Eigen::MatrixXd(7, 7);
+  //Eigen::MatrixXd J_pos = Eigen::MatrixXd(3,7);
+  Eigen::MatrixXd J_inv = Eigen::MatrixXd(7,6);
+  Eigen::MatrixXd H_ee = Eigen::MatrixXd(6, 6);
+  Eigen::Matrix3d H_ee_lin;
+  Eigen::Vector3d ee_vel_prev;
+  Eigen::Vector3d ee_vel_dir;
+  //Eigen::VectorXd ee_vel_dirr(6);
+  double momentum;
 
 
   while(ros::ok()){
@@ -408,10 +449,23 @@ int main (int argc, char** argv){
         robot_state.position[i] = iiwa_joint_angles_q.front()[i];
         robot_state.velocity[i] = iiwa_joint_vel_q.front()[i];
       }
-      jacobian = get_jacobian_client.call(jacobian_request)
-      //jacobian = iiwatools.jacobian(robot_state);
-      //std::cout << jacobian << std::endl;
-      regression_data << trial << ", " << "ee_inertia, " << ee_twist_q.front().linear.y << ", " << ee_twist.linear.y << ", " << object_pos_q.front()[1] << ", ";
+      J = my_iiwa_tools.jacobian(robot_state);
+      H = my_iiwa_tools.inertia(robot_state);
+
+      //J_pos = J.bottomRows(3);
+      J_inv = pseudoInverse(J);
+      H_ee = J_inv.transpose() * H * J_inv;
+      H_ee_lin = H_ee.bottomRightCorner(3,3);
+
+      //ee_vel_prev << ee_twist_q.front().linear.x, ee_twist_q.front().linear.y, ee_twist_q.front().linear.z;
+      //ee_vel_dir = ee_vel_prev.dot(object_vel)/object_vel.norm()*object_vel/object_vel.norm();
+
+      //momentum = 0.5*ee_vel_dir.transpose()*H_ee_lin*ee_vel_dir;
+      //std::cout << momentum << std::endl;
+    
+      regression_data << trial << ", " << iiwa_joint_angles_q.front()[0] << ", " << iiwa_joint_angles_q.front()[1] << ", " << iiwa_joint_angles_q.front()[2] << ", " << iiwa_joint_angles_q.front()[3] << ", " << iiwa_joint_angles_q.front()[4] << ", " << iiwa_joint_angles_q.front()[5] << ", " << iiwa_joint_angles_q.front()[6] << ", ";
+      regression_data << H_ee_lin(0,0) << ", " << H_ee_lin(0,1) << ", " << H_ee_lin(0,2) << ", " << H_ee_lin(1,0) << ", " << H_ee_lin(1,1) << ", " << H_ee_lin(1,2) << ", " << H_ee_lin(2,0) << ", " << H_ee_lin(2,1) << ", " << H_ee_lin(2,2) << ", ";
+      regression_data << ee_twist_q.front().linear.x << ", " << ee_twist_q.front().linear.y << ", " << ee_twist_q.front().linear.z << ", " << ee_twist.linear.x << ", " << ee_twist.linear.y << ", " << ee_twist.linear.z << ", " << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << object_pos_q.front()[2] << ", ";
 
       trial++;
     }
@@ -420,7 +474,7 @@ int main (int argc, char** argv){
       once1 = true;
       object_data << "end_object      ," << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << object_pos_q.front()[2] << "\n\n\n";
 
-      regression_data << object_pos_q.front()[1] << "\n";
+      regression_data << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << object_pos_q.front()[2] << "\n";
     }
 
     

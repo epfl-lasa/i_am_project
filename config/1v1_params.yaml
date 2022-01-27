@@ -5,14 +5,15 @@ hollow: false
 
 
 trials:
-  center: [0.55, 0.3, 0.165]
-  range: [0.3, 0.4]
-  N: 192 #192
+  center: [0.55, 0.1125, 0.165]
+  range: [0.3, 0.025]
+  N: 12 #192
+  reps: 3
 
 
 ee_offset:
   h: 0.4                # horizontal offset for the end effector behind the object's center before moving to hit
-  v: 0.25             # vertical offset
+  v: 0.2             # vertical offset
 
 
 table:

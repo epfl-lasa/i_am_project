@@ -2,7 +2,7 @@
 
 geometry_msgs::Pose postHit(Eigen::Vector3d object_pos_init, Eigen::Vector3d center2, Eigen::Vector3d iiwa_base_pos){
   geometry_msgs::Pose pose;
-  Eigen::Vector3d offset = {0.0,0.0,0.025};
+  Eigen::Vector3d offset = {0.0,-0.1,0.025};
   object_pos_init += offset;
   center2 += offset;
   //Calculate pos and quat wrt to world frame

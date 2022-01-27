@@ -22,9 +22,12 @@ int main (int argc, char** argv){
     std::vector<double> centervec;
     std::vector<double> rangevec;
     int N;
+    int reps;
+    int count = 1;
     if(!nh.getParam("trials/center", centervec)){ROS_ERROR("Param trials/center not found");}
     if(!nh.getParam("trials/range", rangevec)){ROS_ERROR("Param trials/range not found");}
     if(!nh.getParam("trials/N", N)){ROS_ERROR("Param trials/N not found");}
+    if(!nh.getParam("trials/reps", reps)){ROS_ERROR("Param trials/reps not found");}
     double center_x = centervec[0];
     double center_y = centervec[1];
     double range_x = rangevec[0];
@@ -40,18 +43,21 @@ int main (int argc, char** argv){
     Eigen::Vector3d object_pos_init;
     geometry_msgs::Pose object_pose_init;
 
-    int oma;
+    
     while (nh.ok()) {
         if (update == true && prev_update == false){
-            dx += range_x/N_x;
-            if (dx > range_x/2){
-                dx = -0.5*range_x;
-                dy += range_y/N_y;
-                if (dy > range_y/2){
-                    dy = -0.5*range_y;
+            count++;
+            if (count > reps){
+                count = 1;
+                dx += range_x/N_x;
+                if (dx > range_x/2){
+                    dx = -0.5*range_x;
+                    dy += range_y/N_y;
+                    if (dy > range_y/2){
+                        dy = -0.5*range_y;
+                    }
                 }
             }
-            
         }
         prev_update = update;
 

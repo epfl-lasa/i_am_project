@@ -23,25 +23,25 @@ There are three different settings in which the branches with air hockey policy 
 (The parameters can be changed in "i_am_project/config/1v1_params.yaml")
 ### Entirely in simulation
 * `roslaunch i_am_project 1v1_Gazebo.launch`
-* Set parameter object_real to false
-* Set parameter iiwa_real to false
+* Set parameter 'object_real' to 'false'
+* Set parameter 'iiwa_real' to 'false'
 
 ### Simulated IIWA's while using real object
 * `roslaunch i_am_project 1v1_Real-Gazebo.launch`
-* Set parameter object_real to true
-* Set parameter iiwa_real to false
+* Set parameter 'object_real' to 'true'
+* Set parameter 'iiwa_real' to 'false'
 
 (note: the pose of the box is tracked with Optitrack and used in the control program.)
 
 ### Entirely physical setup
 * `roslaunch i_am_project 1v1_Real.launch`
-* Set parameter object_real to true
-* Set parameter iiwa_real to true
+* Set parameter 'object_real' to 'true'
+* Set parameter 'iiwa_real' to 'true'
 
 
 ## Other settings:
 
-* For added manual control, change parameter 'manual' to true in parameter file and run in a separate terminal: `rosrun i_am_project AH_key_ctrl`. Press '1' to initiate a switch for iiwa1 to track or hitting. press '2' to do the same for iiwa2. press '3' to switch both arms to rest. Each time, press a couple of times to make sure the command is sent.
-* To use hollow box, change parameter 'hollow' to true in parameter file
+* For added manual control, change parameter 'manual' to 'true' in parameter file and run in a separate terminal: `rosrun i_am_project AH_key_ctrl`. Press '1' to initiate a switch for iiwa1 to track or hitting. Press '2' to do the same for iiwa2. Press '3' to switch both arms to rest. Each time, press a couple of times to make sure the command is sent.
+* To use hollow box, change parameter 'hollow' to 'true' in parameter file
 
 Keep in mind for the single setup, the IIWA base is at (x,y)=(0,0) while for the dual setup, the point between the two IIWA bases is at (x,y)=(0,0)

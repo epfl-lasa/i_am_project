@@ -44,4 +44,4 @@ There are three different settings in which the branches with air hockey policy 
 * For added manual control, change parameter 'manual' to 'true' in parameter file and run in a separate terminal: `rosrun i_am_project AH_key_ctrl`. Press '1' to initiate a switch for iiwa1 to track or hitting. Press '2' to do the same for iiwa2. Press '3' to switch both arms to rest. Each time, press a couple of times to make sure the command is sent.
 * To use hollow box, change parameter 'hollow' to 'true' in parameter file
 
-Keep in mind for the single setup, the IIWA base is at (x,y)=(0,0) while for the dual setup, the point between the two IIWA bases is at (x,y)=(0,0)
+Keep in mind for the single setup, the IIWA base is at (x,y)=(0,0) while for the dual setup, the point between the two IIWA bases is at (x,y)=(0,0). Finally, it is important to set the center points in the parameter file to reasonable positions w.r.t. the IIWA_base. A good first option is 0.2 m in the direction of the other IIWA and 0.55 m perpendicular to that direction.

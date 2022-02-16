@@ -357,6 +357,12 @@ int main (int argc, char** argv){
     std::stringstream data_path;
     data_path << ros::package::getPath("i_am_project") << "/data/hitting/object_data.csv";
     std::ofstream object_data;
+    std::stringstream test_path1;
+    test_path1 << ros::package::getPath("i_am_project") << "/data/hitting/test_data1.csv";
+    std::ofstream test_data1;
+    std::stringstream test_path2;
+    test_path2 << ros::package::getPath("i_am_project") << "/data/hitting/test_data2.csv";
+    std::ofstream test_data2;
   bool store_data = 0;
 
 
@@ -436,6 +442,16 @@ int main (int argc, char** argv){
       std::cerr << "Error opening output file.\n";
       std::cout << "Current path is " << std::experimental::filesystem::current_path() << '\n';
     }
+    test_data1.open(test_path1.str(), std::ofstream::out | std::ofstream::app);
+    if(!test_data1.is_open()){
+      std::cerr << "Error opening output file.\n";
+      std::cout << "Current path is " << std::experimental::filesystem::current_path() << '\n';
+    }
+    test_data2.open(test_path2.str(), std::ofstream::out | std::ofstream::app);
+    if(!test_data2.is_open()){
+      std::cerr << "Error opening output file.\n";
+      std::cout << "Current path is " << std::experimental::filesystem::current_path() << '\n';
+    }
 
     bool hitta1, hitta2, farra1, farra2;
     std::tie(hitta1, farra1) = hittable(object_pos, center1, center2, hittable_params);
@@ -487,15 +503,17 @@ int main (int argc, char** argv){
         tracking = false;
         object_data << "end, reset" << "\n\n\n";
         once21 = true;
-        once22 = true;
+        test_data1 << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << "3" << "\n";
       }
       if (once21 == false){
         once22 = false;
         tracking = false;
         object_data << "end, reset" << "\n\n\n";
         once11 = true;
-        once12 = true;
+        test_data2 << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << "3" << "\n";
       }
+
+      ros::Duration(0.5).sleep();
     }
 
 
@@ -529,6 +547,7 @@ int main (int argc, char** argv){
 
     if (mode1 == 4 && once11 == true){  //store data right before hit (this is once, directly after hit)
       once11 = false;
+      once12 = true;
       object_data << "box_properties,  " << box.size_x << ", " << box.size_y << ", " << box.size_z << ", " << box.com_x << ", " << box.com_y << ", " << box.com_z << ", " << box.mass << ", " << box.mu << ", " << box.mu2 << "\n";
       object_data << "pre_hit_joints,  " << iiwa1_joint_angles_q.front()[0] << ", " << iiwa1_joint_angles_q.front()[1] << ", " << iiwa1_joint_angles_q.front()[2] << ", " << iiwa1_joint_angles_q.front()[3] << ", " << iiwa1_joint_angles_q.front()[4] << ", " << iiwa1_joint_angles_q.front()[5] << ", " << iiwa1_joint_angles_q.front()[6] << "\n";
       object_data << "post_hit_joints, " << iiwa1_joint_angles[0] << ", " << iiwa1_joint_angles[1] << ", " << iiwa1_joint_angles[2] << ", " << iiwa1_joint_angles[3] << ", " << iiwa1_joint_angles[4] << ", " << iiwa1_joint_angles[5] << ", " << iiwa1_joint_angles[6] << "\n";
@@ -538,25 +557,28 @@ int main (int argc, char** argv){
       object_data << "post_hit_trajectory:\n";
       tracking = true;
       oneinten = 10;
+
+      test_data1 << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", ";
     }
-    if (mode2 == 2 && object_pos[1] > min_y + 0.25 && once12 == true){  //store predicted pos if it will be stopped
+    if (mode2 == 2 && object_pos[1] > 0.1 && once12 == true){  //store predicted pos if it will be stopped
       once12 = false;
       tracking = false;
       object_data << "end, stopped" << "\n";
       object_data << "pred_stop_pos, " << predict_pos_q.front()[0] << ", " << predict_pos_q.front()[1] << ", " << predict_pos_q.front()[2] << "\n\n\n";
       once21 = true;
-      once22 = true;
+      test_data1 << predict_pos_q.front()[0] << ", " << predict_pos_q.front()[1] << ", " << "2" << "\n";
     }
     if (mode2 == 3 && once12 == true){  //or if it will be hit back just before it came to a halt
       once12 = false;
       tracking = false;
       object_data << "end, free" << "\n\n\n";
       once21 = true;
-      once22 = true;
+      test_data1 << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << "1" << "\n";
     }
     
     if (mode2 == 4 && once21 == true){
       once21 = false;
+      once22 = true;
       object_data << "box_properties,  " << box.size_x << ", " << box.size_y << ", " << box.size_z << ", " << box.com_x << ", " << box.com_y << ", " << box.com_z << ", " << box.mass << ", " << box.mu << ", " << box.mu2 << "\n";
       object_data << "pre_hit_joints,  " << iiwa2_joint_angles_q.front()[0] << ", " << iiwa2_joint_angles_q.front()[1] << ", " << iiwa2_joint_angles_q.front()[2] << ", " << iiwa2_joint_angles_q.front()[3] << ", " << iiwa2_joint_angles_q.front()[4] << ", " << iiwa2_joint_angles_q.front()[5] << ", " << iiwa2_joint_angles_q.front()[6] << "\n";
       object_data << "post_hit_joints, " << iiwa2_joint_angles[0] << ", " << iiwa2_joint_angles[1] << ", " << iiwa2_joint_angles[2] << ", " << iiwa2_joint_angles[3] << ", " << iiwa2_joint_angles[4] << ", " << iiwa2_joint_angles[5] << ", " << iiwa2_joint_angles[6] << "\n";
@@ -566,24 +588,26 @@ int main (int argc, char** argv){
       object_data << "post_hit_trajectory:\n";
       tracking = true;
       oneinten = 10;
+
+      test_data2 << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", ";
     }
-    if (mode1 == 2 && object_pos[1] < -(min_y+0.25) && once22 == true){
+    if (mode1 == 2 && object_pos[1] < -0.1 && once22 == true){ //(min_y+0.15)
       once22 = false;
       tracking = false;
       object_data << "end, stopped" << "\n";
       object_data << "pred_final_pos, " << predict_pos_q.front()[0] << ", " << predict_pos_q.front()[1] << ", " << predict_pos_q.front()[2] << "\n\n\n";
       once11 = true;
-      once12 = true;
+      test_data2 << predict_pos_q.front()[0] << ", " << predict_pos_q.front()[1] << ", " << "2" << "\n";
     }
     if (mode1 == 3 && once22 == true){
       once22 = false;
       tracking = false;
       object_data << "end, free" << "\n\n\n";
       once11 = true;
-      once12 = true;
+      test_data2 << object_pos_q.front()[0] << ", " << object_pos_q.front()[1] << ", " << "1" << "\n";
     }
     
-    if (tracking == true && oneinten >= 10){
+    /*if (tracking == true && oneinten >= 10){
       oneinten = 0;
       object_data << current_time.toSec() << ", " << object_pos[0] << ", " << object_pos[1] << ", " << object_pos[2] << ", " << object_th << ", " << object_twist.angular.z << "\n";
       if (object_vel.norm()<0.05){
@@ -604,9 +628,12 @@ int main (int argc, char** argv){
         }
       }
     }
-    oneinten++;
+    oneinten++;*/
 
+    //test_data << object_pos[1] << ", " << predict_pos[1] << ", " << object_vel_real.norm() << ", " << object_vel.norm() << ", " << box.mu*box.mass*9.81 << ", " << acc_est*box.mass << "\n";
     object_data.close();
+    test_data1.close();
+    test_data2.close();
     
     
     // Some infos
@@ -631,11 +658,12 @@ int main (int argc, char** argv){
       
 
       //ss3 << "object    : " << object_pos[0] << " " << object_pos[1] << " " << object_pos[2];
-      //ss4 << "iiwa1_base: " << predict_pos[1];
-      //ss5 << "ETA       : " << ETA*5.0;
+      //ss3 << "current:    " << object_pos[1];
+      //ss4 << "predict:    " << predict_pos[1];
+      //ss5 << "real vel:   " << object_vel_real[1];
       //ss6 << "estima vel: " << object_vel[1];
-      //ss8 << "final th  : " << predict_th;
-      //ss9 << "current th: " << object_th;
+      //ss8 << "real fric:  " << box.mu*box.mass*9.81;
+      //ss9 << "est fric:   " << acc_est*box.mass;
 
       //ROS_INFO("%s",ss3.str().c_str());
       //ROS_INFO("%s",ss4.str().c_str());
@@ -643,7 +671,7 @@ int main (int argc, char** argv){
       //ROS_INFO("%s",ss6.str().c_str());
       //ROS_INFO("%s",ss7.str().c_str());
       //ROS_INFO("%s",ss8.str().c_str());
-    //ROS_INFO("%s",ss9.str().c_str());
+      //ROS_INFO("%s",ss9.str().c_str());
 
 
 

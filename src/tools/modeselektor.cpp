@@ -21,7 +21,7 @@ int modeSelektor(Eigen::Vector3d object_pos, Eigen::Vector3d object_pos_init, Ei
   else {too_close = false;}
 
   bool moving;
-  if (object_vel.norm() > 0.07){moving = true;}
+  if (object_vel.norm() > 0.1){moving = true;}
   else {moving = false;}
 
   bool towards;
@@ -29,7 +29,7 @@ int modeSelektor(Eigen::Vector3d object_pos, Eigen::Vector3d object_pos_init, Ei
   else {towards = false;}
 
   bool ee_ready;
-  if ((ee_pos-(predict_pos - ee_offset[0]*d_points/d_points.norm() + v_offset)).norm() < 0.02){ee_ready = true;}
+  if ((ee_pos-(predict_pos - ee_offset[0]*d_points/d_points.norm() + v_offset)).norm() < 0.05){ee_ready = true;}
   else {ee_ready = false;}
 
   bool ee_hit;
@@ -53,18 +53,18 @@ int modeSelektor(Eigen::Vector3d object_pos, Eigen::Vector3d object_pos_init, Ei
       if (too_far && ETA < 3) {mode = 2;}                                         //if object will go too far, try to stop it
       if (pred_hittable && ETA < 0.3 && ee_ready) {mode = 3;}             //if object will be in feasible position and stops in 0.5s and ee is in correct position, go to hit
       if (too_close && ETA < 3) {mode = 5;}                                       //if object will not make it into reach, give up and go to rest
-      if (!cur_hittable) {mode = 5;}
+      //if (!cur_hittable) {mode = 5;}
       break;
 
     case 2:   //stop
       if (!towards || pred_hittable) {mode = 1;}                            //if the object no longer moves towards, it has been stopped succesfully so go to track for correct ee
     
     case 3:   //hit
-      if (!towards && moving || ee_hit == true) {mode = 4;}                                   //if object starts moving because it is hit, go to post hit and initialize kalman                                          
+      if (!towards && moving) {mode = 4;}                           //|| ee_hit == true       //if object starts moving because it is hit, go to post hit and initialize kalman                                          
       break;
 
     case 4:   //post hit
-      if (!cur_hittable || towards) {mode = 5;}                            //if object has left the range of arm, go to rest
+      if (!cur_hittable || towards || !moving) {mode = 5;}                            //if object has left the range of arm, go to rest
       break;
 
     case 5:   //rest

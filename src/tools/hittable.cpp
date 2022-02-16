@@ -13,7 +13,7 @@ std::tuple<bool, bool> hittable(Eigen::Vector3d object_pos, Eigen::Vector3d cent
     Eigen::Vector3d perp_center = {-d_center[1], d_center[0], d_center[2]};
     Eigen::Vector3d center = center1 + y_offset*d_center/d_center.norm() + x_offset*perp_center/perp_center.norm();
 
-    if ( sqrt( pow((object_pos-center).dot(perp_center)/x_reach,2) + pow((object_pos-center).dot(d_center)/y_reach,2) ) <1){
+    if ( sqrt( pow((object_pos-center).dot(perp_center)/perp_center.norm()/x_reach,2) + pow((object_pos-center).dot(d_center)/d_center.norm()/y_reach,2) ) <1){
         hittable = true;
     }
 

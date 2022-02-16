@@ -1,20 +1,20 @@
-object_real: true
-iiwa_real: true
-manual_mode: true
+object_real: false
+iiwa_real: false
+manual_mode: false
 hollow: false
 
 
 #average of desired workspace of iiwa1 wrt world frame. In real, world frame is exactly between iiwa_base so centers should have x =/= 0
-center1: [0.65, -0.5, 0.185]  #z is center of box
-center2: [0.65, 0.5, 0.185]
+center1: [0.55, -0.4, 0.185]  #z is center of box
+center2: [0.55, 0.4, 0.185]
 
 ee_offset:
-  h: 0.55                # horizontal offset for the end effector behind the object's center before moving to hit
-  v: 0.1              # vertical offset
+  h: 0.4                # horizontal offset for the end effector behind the object's center before moving to hit
+  v: 0.225              # vertical offset
 
 hittable:      # to create a hittable area in the form of an ellipsoid with its center at an offset from center1 (or center2)
   reach:
-    x: 0.15             # perp to centerline     
+    x: 0.12             # perp to centerline     
     y: 0.25             # along centerline
   offset: 
     x: 0.0              # currently not useful as it flips x direction for other robot
@@ -24,7 +24,7 @@ table:
   properties:           # keep in mind that the iiwa base has a max radius of 0.3
     size:
       x: 0.8
-      y: 2.0
+      y: 2.4
       z: 0.05
     COM:
       x: 0.0
@@ -49,11 +49,11 @@ box:
       y: 0.0
       z: 0.0
     mass: 0.363
-    mu: 0.03
-    mu2: 0.03
+    mu: 0.075
+    mu2: 0.075
   initial_pos:
     x: 0.55
-    y: -0.45
+    y: -0.4
     z: 0.175
   
 mini:

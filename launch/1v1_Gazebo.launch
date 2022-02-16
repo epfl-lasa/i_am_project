@@ -18,10 +18,12 @@
       file = "$(find iiwa_toolkit)/launch/passive_track_gazebo_dual.launch">    
       <arg name="robot_name_1" value="$(arg robot_name_1)"/>
       <arg name="robot_name_2" value="$(arg robot_name_2)"/>
-      <arg name="iiwa_model_1" value="7"/>
+      <arg name="iiwa_model_1" value="14"/>
       <arg name="iiwa_model_2" value="14"/>
-      <arg name="position_1" value="-x -0.0 -y -0.65"/>
-      <arg name="position_2" value="-x -0.0 -y 0.65"/>
+      <arg name="position_1" value="-x -0.0 -y -0.6"/>
+      <arg name="position_2" value="-x -0.0 -y 0.6"/>
+      <arg name="grabber_1" value="False"/>
+      <arg name="grabber_2" value="False"/>
   </include>
 
   <!--Run AH_master to control position and velocity for game of air hockey-->

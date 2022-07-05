@@ -1,0 +1,11 @@
+ref_velocity:
+  x: 0.3
+  y: 0.0
+  z: 0.0
+
+ref_orientation:
+  w: 0.707
+  x: -0.707
+  y: 0
+  z: 0
+  

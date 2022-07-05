@@ -4,7 +4,6 @@
 //|    website: lasa.epfl.ch
 
 #include "../include/momentum_hit.h"
-#include "../include/calculate_alpha.h"
 #include <experimental/filesystem>
 
 geometry_msgs::Pose box_pose, iiwa_pose;
@@ -12,8 +11,6 @@ geometry_msgs::Twist iiwa_vel;
 
 Eigen::Vector3f object_position_from_source;
 Eigen::Vector4d object_orientation_from_source;
-Eigen::Vector3f iiwa_base_position_from_source;
-Eigen::Vector4d iiwa_base_orientation_from_source;
 Eigen::Vector3f iiwa_position_from_source;
 Eigen::Vector3f iiwa_vel_from_source;
 Eigen::Vector4d iiwa_orientation_from_source;
@@ -66,25 +63,25 @@ int main (int argc, char** argv){
 
   pub_pos_quat = nh.advertise<geometry_msgs::Pose>("/passive_control/pos_quat", 1);
 
-  Eigen::Vector3f des_vel = {0.0, 0.0, 0.0};
+  Eigen::Vector3f des_vel = {0.3, 0.0, 0.0};
   
-  double des_speed;
-  std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;
-  std::cin >> des_speed;
+  // double des_speed;
+  // std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;
+  // std::cin >> des_speed;
 
-  while(des_speed < 0 || des_speed > 1){
-    std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
-    std::cin >> des_speed;
-  }
+  // while(des_speed < 0 || des_speed > 1){
+  //   std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
+  //   std::cin >> des_speed;
+  // }
 
-  double theta;
-  std::cout << "Enter the desired direction of hitting (between -pi/2 and pi/2)" << std::endl;
-  std::cin >> theta;
+  // double theta;
+  // std::cout << "Enter the desired direction of hitting (between -pi/2 and pi/2)" << std::endl;
+  // std::cin >> theta;
 
-  while(theta < -M_PI_2 || theta > M_PI_2){
-    std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
-    std::cin >> theta;
-  }
+  // while(theta < -M_PI_2 || theta > M_PI_2){
+  //   std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
+  //   std::cin >> theta;
+  // }
   
   Eigen::Quaterniond rot_quat;
   Eigen::Quaterniond rot_quat_ee;
@@ -96,65 +93,33 @@ int main (int argc, char** argv){
 
   Eigen::Matrix3d gain_main;
   Eigen::Matrix3d gain_aux;
-  Eigen::Matrix3d rotation;
-  Eigen::Matrix3d rotation_ee;
-
-  Eigen::Vector3f object_position_init;
-  Eigen::Vector3f end_effector_position_init;
-
-  Eigen::Vector3f object_offset = {0.0, 0.0, 0.06};
 
   Eigen::Vector3f attractor_main;
-  Eigen::Vector3f attractor_aux;
 
   gain_main << -0.9, 0.0, 0.0,
                 0.0, -0.1, 0.0,
                 0.0, 0.0, -0.9;
 
-
-  gain_aux << -0.1, 0.0, 0.0,
-                0.0, -0.1, 0.0,
-                0.0, 0.0, -0.1;
-
-
-  double modulated_sigma = 3.0;
-  bool init_flag = 0;
-  Eigen::Vector3f unit_x = {1.0, 0.0, 0.0};
-
-
-  std::ofstream object_data;
-
-  bool store_data = 0;
   
   while(ros::ok()){
 
     // Initialise all the position in the hitting of objects
 
-    rotation << cos(theta), -sin(theta), 0, 
-                  sin(theta), cos(theta), 0,
-                  0, 0, 1;
-
-
-    object_position_current = object_position_from_source - object_offset; 
+    object_position_current = object_position_from_source; 
     end_effector_position = iiwa_position_from_source; 
 
-    double alpha = calculate_alpha(end_effector_position, end_effector_position_init, object_position_init, attractor_main);
+    vel_quat.position.x = des_vel(0);
+    vel_quat.position.y = des_vel(1);
+    vel_quat.position.z = des_vel(2);
+    vel_quat.orientation.x = des_quat(0);
+    vel_quat.orientation.y = des_quat(1);
+    vel_quat.orientation.z = des_quat(2);
+    vel_quat.orientation.w = des_quat(3);
 
-
-      des_vel = des_vel*des_speed / des_vel.norm();
-
-      vel_quat.position.x = des_vel(0);
-      vel_quat.position.y = des_vel(1);
-      vel_quat.position.z = des_vel(2);
-      vel_quat.orientation.x = des_quat(0);
-      vel_quat.orientation.y = des_quat(1);
-      vel_quat.orientation.z = des_quat(2);
-      vel_quat.orientation.w = des_quat(3);
-
-      pub_vel_quat.publish(vel_quat);
+    pub_vel_quat.publish(vel_quat);
 
       
-    }
+
     ros::Rate rate(100);
 
     ros::spinOnce();

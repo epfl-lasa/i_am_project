@@ -214,10 +214,10 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 
 
 
-add_executable(hitting src/hitting_DS.cpp src/hitting_DS.cpp src/calculate_alpha.cpp src/nominal_DS_aux.cpp src/nominal_DS_main.cpp src/modulated_DS.cpp ) 
-target_link_libraries(hitting ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs")
-add_dependencies(hitting i_am_project_generate_messages_cpp)
+add_executable(momentum_hit src/momentum_hit.cpp src/dynamical_system.cpp ) 
+target_link_libraries(momentum_hit ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs")
+add_dependencies(momentum_hit i_am_project_generate_messages_cpp)
 
-set_property(TARGET hitting PROPERTY CXX_STANDARD 17)
-set_property(TARGET hitting PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property(TARGET momentum_hit PROPERTY CXX_STANDARD 17)
+set_property(TARGET momentum_hit PROPERTY CXX_STANDARD_REQUIRED ON)
 

@@ -22,4 +22,5 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
+#include "dynamical_system.h"
 

@@ -214,7 +214,7 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 
 
 
-add_executable(momentum_hit src/node_hit.cpp src/dynamical_system.cpp ) 
+add_executable(momentum_hit src/node_hit_sim.cpp src/dynamical_system.cpp ) 
 target_link_libraries(momentum_hit ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs")
 add_dependencies(momentum_hit i_am_project_generate_messages_cpp)
 

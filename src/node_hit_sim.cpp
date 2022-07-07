@@ -3,7 +3,7 @@
 //|    email:   harshit.khurana@epfl.ch
 //|    website: lasa.epfl.ch
 
-#include "../include/node_hit.h"
+#include "../include/node_hit_sim.h"
 #include <experimental/filesystem>
 
 class HitMotion{
@@ -17,8 +17,6 @@ class HitMotion{
     Eigen::Vector3f iiwa_position_from_source;
     Eigen::Vector3f iiwa_vel_from_source;
     Eigen::Vector4d iiwa_orientation_from_source;
-
-    bool init_flag = 0;
   
     int getIndex(std::vector<std::string> v, std::string value)
     {
@@ -119,25 +117,13 @@ class HitMotion{
 
     void run(){
       while(ros::ok()){
-
-        
-
-        std::cout << "object now at: " << object_position_from_source << std::endl;
-        
-
-        // if(check_initialisation(init_flag)){
-          
         ref_velocity = _generate_hitting->linear_DS();  
         updateCurrentEEPosition(iiwa_position_from_source);
-  
         publishVelQuat(ref_velocity, ref_quat);
-        // }
-
         ros::spinOnce();
         _rate.sleep();
-
-        
       }
+
       publishVelQuat(ref_velocity, ref_quat);
       ros::spinOnce(); 
       _rate.sleep();
@@ -154,6 +140,7 @@ class HitMotion{
     ros::Subscriber _iiwa_position;
     std::unique_ptr<hitting_DS> _generate_hitting = std::make_unique<hitting_DS>(iiwa_position_from_source, object_position_from_source);
     Eigen::Vector3f ref_velocity = {0.0 , 0., 0.0}; 
+    Eigen::Vector3f hit_direction = {1.0, 0.0, 0.0};
     Eigen::Vector4f ref_quat = Eigen::Vector4f::Zero();
 
 };

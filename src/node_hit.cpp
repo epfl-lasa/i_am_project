@@ -3,7 +3,7 @@
 //|    email:   harshit.khurana@epfl.ch
 //|    website: lasa.epfl.ch
 
-#include "../include/momentum_hit.h"
+#include "../include/node_hit.h"
 #include <experimental/filesystem>
 
 class HitMotion{
@@ -17,6 +17,8 @@ class HitMotion{
     Eigen::Vector3f iiwa_position_from_source;
     Eigen::Vector3f iiwa_vel_from_source;
     Eigen::Vector4d iiwa_orientation_from_source;
+
+    bool init_flag = 0;
   
     int getIndex(std::vector<std::string> v, std::string value)
     {
@@ -55,8 +57,8 @@ class HitMotion{
       _generate_hitting->current_position = new_position;
     }
 
-    void updateGains(Eigen::Vector3f &new_attractor){
-      _generate_hitting->DS_attractor = new_attractor;
+    void updateCurrentObjectPosition(Eigen::Vector3f &new_position){
+      _generate_hitting->DS_attractor = new_position;
     }
 
 
@@ -88,12 +90,21 @@ class HitMotion{
       _pub_vel_quat.publish(ref_vel_publish);
     }
 
-
     bool init(){
-      std::cout << "initialised" << std::endl;
       _object_position = _nh.subscribe("/gazebo/model_states", 1 , &HitMotion::objectPositionCallback_gazebo, this,ros::TransportHints().reliable().tcpNoDelay());
       _iiwa_position = _nh.subscribe("/gazebo/link_states", 1 , &HitMotion::iiwaPositionCallback_gazebo, this,ros::TransportHints().reliable().tcpNoDelay());
       
+      while(object_position_from_source.norm() == 0){
+        updateCurrentObjectPosition(object_position_from_source);
+        std::cout << "object at: " << object_position_from_source << std::endl;
+        ros::spinOnce();
+        _rate.sleep();
+ 
+      }
+
+      _generate_hitting->current_position = iiwa_position_from_source;
+      _generate_hitting->DS_attractor = object_position_from_source;
+
       _nh.getParam("ref_velocity/x", ref_velocity[0]);
       _nh.getParam("ref_velocity/y", ref_velocity[1]);
       _nh.getParam("ref_velocity/z", ref_velocity[2]);
@@ -101,20 +112,31 @@ class HitMotion{
       _nh.getParam("ref_quat/x", ref_quat[1]);
       _nh.getParam("ref_quat/y", ref_quat[2]);
       _nh.getParam("ref_quat/z", ref_quat[3]);
-      
+
       return true;
+      
     }
 
     void run(){
       while(ros::ok()){
+
+        
+
+        std::cout << "object now at: " << object_position_from_source << std::endl;
+        
+
+        // if(check_initialisation(init_flag)){
+          
         ref_velocity = _generate_hitting->linear_DS();  
         updateCurrentEEPosition(iiwa_position_from_source);
-
-        std::cout << ref_velocity << std::endl;     
+  
         publishVelQuat(ref_velocity, ref_quat);
+        // }
 
         ros::spinOnce();
         _rate.sleep();
+
+        
       }
       publishVelQuat(ref_velocity, ref_quat);
       ros::spinOnce(); 
@@ -131,7 +153,7 @@ class HitMotion{
     ros::Subscriber _object_position;
     ros::Subscriber _iiwa_position;
     std::unique_ptr<hitting_DS> _generate_hitting = std::make_unique<hitting_DS>(iiwa_position_from_source, object_position_from_source);
-    Eigen::Vector3f ref_velocity = {0.1 , 0., 0.0}; 
+    Eigen::Vector3f ref_velocity = {0.0 , 0., 0.0}; 
     Eigen::Vector4f ref_quat = Eigen::Vector4f::Zero();
 
 };

@@ -6,7 +6,7 @@ hitting_DS::hitting_DS(Eigen::Vector3f &current_end_effector, Eigen::Vector3f &a
 }
 
 Eigen::Vector3f hitting_DS::linear_DS(){
-    return gain * (current_position - DS_attractor);
+    return -gain * (current_position - DS_attractor);
 }
 
 Eigen::Vector3f hitting_DS::momentum_DS(Eigen::Vector3f &current_end_effector, Eigen::Vector3f &desired_position, Eigen::Vector3f &desired_velocity){

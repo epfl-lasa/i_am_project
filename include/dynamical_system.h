@@ -18,7 +18,7 @@ class hitting_DS{
         Eigen::Matrix3f gain = Eigen::Matrix3f::Identity(3,3);
     
         hitting_DS(Eigen::Vector3f &current_end_effector, Eigen::Vector3f &attractor_main);
-        hitting_DS::hitting_DS(Eigen::Vector3f &current_end_effector, Eigen::Vector3f &desired_position, Eigen::Vector3f &desired_velocity);
+        hitting_DS(Eigen::Vector3f &current_end_effector, Eigen::Vector3f &desired_position, Eigen::Vector3f &desired_velocity);
         Eigen::Vector3f linear_DS();
         Eigen::Vector3f momentum_DS();
     

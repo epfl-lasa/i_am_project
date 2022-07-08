@@ -94,10 +94,8 @@ class HitMotion{
       
       while(object_position_from_source.norm() == 0){
         updateCurrentObjectPosition(object_position_from_source);
-        std::cout << "object at: " << object_position_from_source << std::endl;
         ros::spinOnce();
         _rate.sleep();
- 
       }
 
       _generate_hitting->current_position = iiwa_position_from_source;

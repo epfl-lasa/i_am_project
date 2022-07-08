@@ -11,12 +11,14 @@ class HitMotion{
   public:
     geometry_msgs::Pose box_pose, iiwa_pose;
     geometry_msgs::Twist iiwa_vel;
+    geometry_msgs::Inertia iiwa_inertia;
 
     Eigen::Vector3f object_position_from_source;
     Eigen::Vector4d object_orientation_from_source;
     Eigen::Vector3f iiwa_position_from_source;
     Eigen::Vector3f iiwa_vel_from_source;
-    Eigen::Vector4d iiwa_orientation_from_source;
+    Eigen::Vector4f iiwa_orientation_from_source;
+    Eigen::Matrix3f iiwa_task_inertia_pos;
   
     int getIndex(std::vector<std::string> v, std::string value)
     {
@@ -42,6 +44,18 @@ class HitMotion{
       iiwa_pose = link_states.pose[iiwa_index];
       iiwa_position_from_source << iiwa_pose.position.x, iiwa_pose.position.y, iiwa_pose.position.z;
       iiwa_vel = link_states.twist[iiwa_index];
+    }
+
+    void iiwaInertiaCallback_gazebo(const geometry_msgs::Inertia& inertia_msg){
+      iiwa_task_inertia_pos(0,0) = inertia_msg.ixx;
+      iiwa_task_inertia_pos(1,1) = inertia_msg.iyy;
+      iiwa_task_inertia_pos(2,2) = inertia_msg.izz;
+      iiwa_task_inertia_pos(0,1) = inertia_msg.ixy;
+      iiwa_task_inertia_pos(1,0) = inertia_msg.ixy;
+      iiwa_task_inertia_pos(0,2) = inertia_msg.ixz;
+      iiwa_task_inertia_pos(2,0) = inertia_msg.ixz;
+      iiwa_task_inertia_pos(1,2) = inertia_msg.iyz;
+      iiwa_task_inertia_pos(2,1) = inertia_msg.iyz;
     }
 
     HitMotion(ros::NodeHandle &nh, float frequency):
@@ -91,7 +105,8 @@ class HitMotion{
     bool init(){
       _object_position = _nh.subscribe("/gazebo/model_states", 1 , &HitMotion::objectPositionCallback_gazebo, this,ros::TransportHints().reliable().tcpNoDelay());
       _iiwa_position = _nh.subscribe("/gazebo/link_states", 1 , &HitMotion::iiwaPositionCallback_gazebo, this,ros::TransportHints().reliable().tcpNoDelay());
-      
+      _iiwa_inertia = _nh.subscribe("/iiwa/Inertia/taskPos", 1 , &HitMotion::iiwaInertiaCallback_gazebo, this,ros::TransportHints().reliable().tcpNoDelay());
+
       while(object_position_from_source.norm() == 0){
         updateCurrentObjectPosition(object_position_from_source);
         ros::spinOnce();
@@ -108,6 +123,9 @@ class HitMotion{
       _nh.getParam("ref_quat/x", ref_quat[1]);
       _nh.getParam("ref_quat/y", ref_quat[2]);
       _nh.getParam("ref_quat/z", ref_quat[3]);
+      _nh.getParam("hit_direction/x", hit_direction[1]);
+      _nh.getParam("hit_direction/y", hit_direction[2]);
+      _nh.getParam("hit_direction/z", hit_direction[3]);
 
       return true;
       
@@ -136,9 +154,11 @@ class HitMotion{
     ros::Publisher _pub_pos_quat;
     ros::Subscriber _object_position;
     ros::Subscriber _iiwa_position;
+    ros::Subscriber _iiwa_inertia;
     std::unique_ptr<hitting_DS> _generate_hitting = std::make_unique<hitting_DS>(iiwa_position_from_source, object_position_from_source);
     Eigen::Vector3f ref_velocity = {0.0 , 0., 0.0}; 
     Eigen::Vector3f hit_direction = {1.0, 0.0, 0.0};
+    float hit_momentum;
     Eigen::Vector4f ref_quat = Eigen::Vector4f::Zero();
 
 };

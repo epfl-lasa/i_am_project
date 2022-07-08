@@ -13,4 +13,6 @@ hit_direction:
   x: 1
   y: 0 
   z: 0
+
+hit_momentum: 3
   

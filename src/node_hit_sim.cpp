@@ -123,9 +123,9 @@ class HitMotion{
       _nh.getParam("ref_quat/x", ref_quat[1]);
       _nh.getParam("ref_quat/y", ref_quat[2]);
       _nh.getParam("ref_quat/z", ref_quat[3]);
-      _nh.getParam("hit_direction/x", hit_direction[1]);
-      _nh.getParam("hit_direction/y", hit_direction[2]);
-      _nh.getParam("hit_direction/z", hit_direction[3]);
+      _nh.getParam("hit_direction/x", hit_direction[0]);
+      _nh.getParam("hit_direction/y", hit_direction[1]);
+      _nh.getParam("hit_direction/z", hit_direction[2]);
 
       return true;
       

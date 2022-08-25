@@ -127,6 +127,8 @@ class HitMotion{
       _nh.getParam("hit_direction/y", hit_direction[1]);
       _nh.getParam("hit_direction/z", hit_direction[2]);
 
+      _generate_hitting->des_direction = hit_direction;
+
       return true;
       
     }
@@ -134,6 +136,9 @@ class HitMotion{
     void run(){
       while(ros::ok()){
         ref_velocity = _generate_hitting->linear_DS();  
+        std::cout << "hit direction: " << _generate_hitting->des_direction << std::endl;
+        test_velocity = _generate_hitting->flux_DS(0.5, iiwa_task_inertia_pos);
+        // std::cout << test_velocity << std::endl;
         updateCurrentEEPosition(iiwa_position_from_source);
         publishVelQuat(ref_velocity, ref_quat);
         ros::spinOnce();
@@ -156,8 +161,9 @@ class HitMotion{
     ros::Subscriber _iiwa_position;
     ros::Subscriber _iiwa_inertia;
     std::unique_ptr<hitting_DS> _generate_hitting = std::make_unique<hitting_DS>(iiwa_position_from_source, object_position_from_source);
-    Eigen::Vector3f ref_velocity = {0.0 , 0., 0.0}; 
-    Eigen::Vector3f hit_direction = {1.0, 0.0, 0.0};
+    Eigen::Vector3f ref_velocity = {0.0, 0., 0.0}; 
+    Eigen::Vector3f test_velocity = {0.0 ,0. ,0.0}; 
+    Eigen::Vector3f hit_direction = {0.0, 1.0, 0.0};
     float hit_momentum;
     Eigen::Vector4f ref_quat = Eigen::Vector4f::Zero();
 

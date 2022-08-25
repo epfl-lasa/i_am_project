@@ -10,8 +10,8 @@ ref_orientation:
   z: 0
 
 hit_direction:
-  x: 1
-  y: 0 
+  x: 0
+  y: 1 
   z: 0
 
 hit_momentum: 3

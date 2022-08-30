@@ -51,6 +51,9 @@ target_link_libraries(AH_init ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 add_executable(AH_key_ctrl src/1v1_key_ctrl.cpp) 
 target_link_libraries(AH_key_ctrl ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 
+add_executable(collect_data src/collect_data.cpp ${TOOL_SOURCES}) 
+target_link_libraries(collect_data ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs")
+
 add_executable(AH_master src/1v1_master.cpp ${MODE_SOURCES} ${TOOL_SOURCES}) 
 target_link_libraries(AH_master ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs")
 add_dependencies(AH_master i_am_project_generate_messages_cpp)

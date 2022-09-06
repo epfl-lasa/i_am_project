@@ -20,7 +20,8 @@ The nodes called in this launch file are AH_init, AH_master, estimate_sim and co
 * Set parameter 'object_real' to 'true'
 * Set parameter 'iiwa_real' to 'true'
 (The parameters can be changed in "i_am_project/config/1v1_params.yaml")
-* Run a launch file 
+* Run a launch file  
+
 This set up is not tested with the recording of data yet. The relevent callback functions and prints are implemented in the file collect_data.cpp but there may be mistakes especially with the fact that Optitrack use another origin for its measurements. 
 
 ## How it works?
@@ -50,7 +51,7 @@ Note : the frequency is set to 100 so 100 time steps --> 1 second.
 
 "post_hit_object  " (9 values in order)  : time_pre_hit, object_pose_x, object_pose_y, object_pose_z, object_theta, object_vel_x, object_vel_y, object_vel_z, object_theta_dot
 
-"post_hit_trajectory:\n" Next, we track the pose of the object after the hit. Different conditions can stop the tracking. But until the tracking is stopped we print:
+"post_hit_trajectory:" Next, we track the pose of the object after the hit. Different conditions can stop the tracking. But until the tracking is stopped we print:
 
 (9 values in order)  : current_time, object_pose_x, object_pose_y, object_pose_z, object_theta, object_vel_x, object_vel_y, object_vel_z, object_theta_dot
 

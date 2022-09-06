@@ -8,6 +8,17 @@ hollow: false
 center1: [0.55, -0.4, 0.185]  #z is center of box
 center2: [0.55, 0.4, 0.185]
 
+ 
+#base1_pos: #base position of iiwa1 in gazebo
+#   x: 0.0
+#    y: -0.6
+#    z: 0.0
+    
+#base2_pos: #base position of iiwa2 in gazebo
+#    x: 0.0
+#    y: 0.6
+#    z: 0.0
+    
 ee_offset:
   h: 0.4                # horizontal offset for the end effector behind the object's center before moving to hit
   v: 0.225              # vertical offset
@@ -76,6 +87,6 @@ mini:
 
 
 
-#hit:
-#  speed: 1.0
-#  direction: 0.0
+hit:
+  speed: 0.6
+  direction: 0.0

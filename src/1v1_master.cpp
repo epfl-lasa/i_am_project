@@ -233,22 +233,31 @@ int main (int argc, char** argv){
   Eigen::Vector4d hittable_params = {x_reach, y_reach, x_offset, y_offset};
 
   
-  //Set hitting speed and direction. Once we change attractor to something more related to the game, we no longer need this
-    std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;
-    std::cin >> des_speed;
+//Set hitting speed and direction. Once we change attractor to something more related to the game, we no longer need this
+  // std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;
+  // std::cin >> des_speed;
 
-    while(des_speed < 0 || des_speed > 3){
-      std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
-      std::cin >> des_speed;
-    }
+  // while(des_speed < 0 || des_speed > 3){
+  //   std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
+  //   std::cin >> des_speed;
+  // }
 
-    std::cout << "Enter the desired direction of hitting (between -pi/2 and pi/2)" << std::endl;
-    std::cin >> theta;
+  // std::cout << "Enter the desired direction of hitting (between -pi/2 and pi/2)" << std::endl;
+  // std::cin >> theta;
 
-    while(theta < -M_PI_2 || theta > M_PI_2){
-      std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
-      std::cin >> theta;
-    }
+  // while(theta < -M_PI_2 || theta > M_PI_2){
+  //   std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
+  //   std::cin >> theta;
+
+  // }
+
+  
+
+  //set hitting speed and direction of hitting in param file
+  nh.getParam ("hit/speed", des_speed);
+  nh.getParam ("hit/direction", theta);
+  ros::Duration(3).sleep();
+
 
   int mode1 = 5;
   int mode2 = 5;

@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+
+<!--|
+    Copyright (C) 2019 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
+    Authors:  Harshit Khurana, Daan Stokbroekx
+    email:    harshit.khurana@epfl.ch
+    website:  lasa.epfl.ch
+
+    This file is part of i_am_project EPFL (impact aware manipulation).
+|-->
+
+<launch>
+  <arg name="robot_name_1" default="iiwa1"/>
+  <arg name="robot_name_2" default="iiwa2"/>
+
+  <!--This spawns iiwa7 and iiwa14 and starts both passive tracking in their namespace-->
+  <include
+      file = "$(find iiwa_toolkit)/launch/passive_track_gazebo_dual.launch">    
+      <arg name="robot_name_1" value="$(arg robot_name_1)"/>
+      <arg name="robot_name_2" value="$(arg robot_name_2)"/>
+      <arg name="iiwa_model_1" value="14"/>
+      <arg name="iiwa_model_2" value="14"/>
+      <arg name="position_1" value="-x -0.0 -y -0.6"/>
+      <arg name="position_2" value="-x -0.0 -y 0.6"/>
+      <arg name="grabber_1" value="False"/>
+      <arg name="grabber_2" value="False"/>
+  </include>
+
+  <!--Run AH_master to control position and velocity for game of air hockey-->
+  <rosparam file="$(find i_am_project)/config/1v1_params.yaml" />
+  <node name="initialization" pkg="i_am_project" type="AH_init" output="screen"/>
+  <node name="master" pkg="i_am_project" type="AH_master"   output="screen"/>      
+  <node name="estimator_ukf" pkg="i_am_predict" type="estimate_real" output="screen"/>
+
+</launch>

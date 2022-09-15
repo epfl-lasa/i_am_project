@@ -15,21 +15,21 @@
     <visual>
       <origin xyz="0.0 0 0"/>
       <geometry>
-        <box size="0.23 0.26 0.26" />
+        <box size="0.23 0.26 0.4" />
       </geometry>
     </visual>
     <surface>
         <friction>
           <ode>
-            <mu>0.01</mu>
-            <mu2>0.01</mu2>
+            <mu>0.001</mu>
+            <mu2>0.001</mu2>
           </ode>
         </friction>
     </surface>
     <collision>
       <origin xyz="0.0 0 0"/>
       <geometry>
-        <box size="0.23 0.26 0.26" />
+        <box size="0.23 0.26 0.4" />
       </geometry>
     </collision>
   </link>

@@ -21,7 +21,7 @@ class hitting_DS{
         // for the flux DS
         float sigma = 0.1;
 
-        Eigen::Matrix3f gain = Eigen::Matrix3f::Identity(3,3);
+        Eigen::Matrix3f gain = -Eigen::Matrix3f::Identity(3,3);
     
         hitting_DS(Eigen::Vector3f &current_end_effector, Eigen::Vector3f &attractor_main);
         hitting_DS(Eigen::Vector3f &current_end_effector, Eigen::Vector3f &desired_position, Eigen::Vector3f& hit_direction, float& hit_speed);

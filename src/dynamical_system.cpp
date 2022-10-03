@@ -5,6 +5,10 @@ hitting_DS::hitting_DS(Eigen::Vector3f &current_end_effector, Eigen::Vector3f &a
     DS_attractor = attractor_main;
 }
 
+hitting_DS::hitting_DS(Eigen::Vector3f &current_end_effector){
+    current_position = current_end_effector;
+}
+
 hitting_DS::hitting_DS(Eigen::Vector3f &current_end_effector, Eigen::Vector3f &desired_position, Eigen::Vector3f& hit_direction, float& hit_speed){
     current_position = current_end_effector;
     DS_attractor = desired_position;

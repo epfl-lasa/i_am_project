@@ -11,8 +11,7 @@
 
 <launch>
 
-  <!-- Here is the node that allows me to hit the object in the iiwa simulator -->
-  <node pkg = "i_am_project" type = "momentum_hit"  name = "momentum_hit" output="screen"/>
+  <node pkg = "i_am_project" type = "inertia_QP"  name = "inertia_QP" output="screen"/>
 
 </launch>
 

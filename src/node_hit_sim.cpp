@@ -136,7 +136,7 @@ class HitMotion{
     void run(){
       while(ros::ok()){
         ref_velocity = _generate_hitting->flux_DS(0.5, iiwa_task_inertia_pos);
-        std::cout << "ref vel: " << ref_velocity << std::endl;
+        // std::cout << "ref vel: " << ref_velocity << std::endl;
         updateCurrentEEPosition(iiwa_position_from_source);
         publishVelQuat(ref_velocity, ref_quat);
         ros::spinOnce();
@@ -180,9 +180,12 @@ int main (int argc, char** argv){
   if (!generate_motion->init()){
     return -1;
   }else{
+
     generate_motion->run();
   }
+
   
+
   return 0;
 
 }

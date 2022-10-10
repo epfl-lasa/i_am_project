@@ -17,7 +17,7 @@ hitting_DS::hitting_DS(Eigen::Vector3f &current_end_effector, Eigen::Vector3f &d
 }
 
 Eigen::Vector3f hitting_DS::linear_DS(){
-    return -gain * (current_position - DS_attractor);
+    return gain * (current_position - DS_attractor);
 }
 
 Eigen::Vector3f hitting_DS::flux_DS(float dir_flux, Eigen::Matrix3f& current_inertia){

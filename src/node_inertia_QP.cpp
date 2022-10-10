@@ -53,6 +53,20 @@ class InertiaMotion{
       _pub_ref_position.publish(ref_joint_position);
     }
 
+    void publishVelQuat(Eigen::Vector3f& DS_vel, Eigen::Vector4f& DS_quat){
+      geometry_msgs::Pose ref_vel_publish;
+      ref_vel_publish.position.x = DS_vel(0);
+      ref_vel_publish.position.y = DS_vel(1);
+      ref_vel_publish.position.z = DS_vel(2);
+      ref_vel_publish.orientation.x = DS_quat(0);
+      ref_vel_publish.orientation.y = DS_quat(1);
+      ref_vel_publish.orientation.z = DS_quat(2);
+      ref_vel_publish.orientation.w = DS_quat(3);
+
+      _pub_vel_quat = _nh.advertise<geometry_msgs::Pose>("/passive_control/vel_quat", 1);
+      _pub_vel_quat.publish(ref_vel_publish);
+    }
+
 
     bool init(){
       _iiwa_position = _nh.subscribe("/iiwa/ee_info/Pose", 1 , &InertiaMotion::iiwaPositionCallback, this,ros::TransportHints().reliable().tcpNoDelay());
@@ -64,27 +78,16 @@ class InertiaMotion{
     }
 
     void run(){
-      Eigen::VectorXf ref_joint(7);
       
       while(ros::ok()){
         ref_velocity = _generate_inertia_motion->linear_DS();
-
-        // Get the QP Params
-
-        
-
-
-        //
-        
-        ref_joint << 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5f;
-
         updateCurrentEEPosition(iiwa_position_from_source);
-        publishJointPosition(ref_joint);
+        publishVelQuat(ref_velocity, ref_quat);
         ros::spinOnce();
         _rate.sleep();
       }
 
-      publishJointPosition(ref_joint);
+      publishVelQuat(ref_velocity, ref_quat);
       ros::spinOnce(); 
       _rate.sleep();
       ros::shutdown();
@@ -100,6 +103,7 @@ class InertiaMotion{
     std::unique_ptr<hitting_DS> _generate_inertia_motion = std::make_unique<hitting_DS>(iiwa_position_from_source);
     Eigen::Vector4f ref_quat = Eigen::Vector4f::Zero();
     Eigen::Vector3f ref_velocity = Eigen::Vector3f::Zero();
+    ros::Publisher _pub_vel_quat;
 
 
 

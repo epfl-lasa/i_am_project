@@ -20,6 +20,10 @@ Eigen::Vector3f hitting_DS::linear_DS(){
     return gain * (current_position - DS_attractor);
 }
 
+Eigen::Vector3f hitting_DS::linear_DS(Eigen::Vector3f &attractor){
+    return gain * (current_position - attractor);
+}
+
 Eigen::Vector3f hitting_DS::flux_DS(float dir_flux, Eigen::Matrix3f& current_inertia){
 
     /* ** Finding the virtual end effector position ** */

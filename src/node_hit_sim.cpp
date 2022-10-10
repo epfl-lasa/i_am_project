@@ -19,6 +19,8 @@ class HitMotion{
     Eigen::Vector3f iiwa_vel_from_source;
     Eigen::Vector4f iiwa_orientation_from_source;
     Eigen::Matrix3f iiwa_task_inertia_pos;
+
+    bool is_hit = 0;
   
     int getIndex(std::vector<std::string> v, std::string value)
     {
@@ -134,9 +136,19 @@ class HitMotion{
     }
 
     void run(){
+      Eigen::Vector3f iiwa_return_position = {0.3, 0.0, 0.5};
       while(ros::ok()){
-        ref_velocity = _generate_hitting->flux_DS(0.5, iiwa_task_inertia_pos);
-        // std::cout << "ref vel: " << ref_velocity << std::endl;
+
+        if (!is_hit){
+          ref_velocity = _generate_hitting->flux_DS(0.5, iiwa_task_inertia_pos);
+        }else{
+          ref_velocity = _generate_hitting->linear_DS(iiwa_return_position);
+        }
+        // To add the condition for the return of the iiwa after hitting
+        std::cout << "dot product: " << _generate_hitting->des_direction.dot(_generate_hitting->DS_attractor - _generate_hitting->current_position) << std::endl;
+        if(!is_hit && _generate_hitting->des_direction.dot(_generate_hitting->DS_attractor - _generate_hitting->current_position) < 0){
+          is_hit = 1;
+        }
         updateCurrentEEPosition(iiwa_position_from_source);
         publishVelQuat(ref_velocity, ref_quat);
         ros::spinOnce();
@@ -180,7 +192,6 @@ int main (int argc, char** argv){
   if (!generate_motion->init()){
     return -1;
   }else{
-
     generate_motion->run();
   }
 

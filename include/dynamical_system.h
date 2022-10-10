@@ -27,6 +27,7 @@ class hitting_DS{
         hitting_DS(Eigen::Vector3f &current_end_effector, Eigen::Vector3f &attractor_main);
         hitting_DS(Eigen::Vector3f &current_end_effector, Eigen::Vector3f &desired_position, Eigen::Vector3f& hit_direction, float& hit_speed);
         Eigen::Vector3f linear_DS();
+        Eigen::Vector3f linear_DS(Eigen::Vector3f &attractor);
         Eigen::Vector3f flux_DS(float dir_flux, Eigen::Matrix3f& current_inertia);
     
 };

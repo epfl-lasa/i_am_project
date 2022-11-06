@@ -17,10 +17,12 @@ class HitMotion{
     Eigen::Vector4d object_orientation_from_source;
     Eigen::Vector3f iiwa_position_from_source;
     Eigen::Vector3f iiwa_base_position_from_source;
+    Eigen::Vector3f object_position_world;
     Eigen::Vector3f iiwa_vel_from_source;
     Eigen::Vector4f iiwa_orientation_from_source;
     Eigen::Vector4f iiwa_base_orientation_from_source;
     Eigen::Matrix3f iiwa_task_inertia_pos;
+    Eigen::Matrix3f rotation;
 
     bool is_hit = 0;
   
@@ -39,6 +41,18 @@ class HitMotion{
     void objectPositionCallback(const geometry_msgs::PoseStamped::ConstPtr& msg){
       object_position_from_source << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
       object_orientation_from_source << msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w;
+    }
+
+    void objectPositionWorldFrame(){
+          rotation << 0.0, -1.0, 0.0,
+                      1.0, 0.0, 0.0,
+                      0.0, 0.0, 1.0;
+
+
+          object_position_world = rotation * (object_position_from_source - iiwa_base_position_from_source);
+
+         
+   
     }
 
 
@@ -110,8 +124,10 @@ class HitMotion{
         _rate.sleep();
       }
 
+      objectPositionWorldFrame();
+
       _generate_hitting->current_position = iiwa_position_from_source;
-      _generate_hitting->DS_attractor = object_position_from_source;
+      _generate_hitting->DS_attractor = object_position_world;
 
       _nh.getParam("ref_velocity/x", ref_velocity[0]);
       _nh.getParam("ref_velocity/y", ref_velocity[1]);
@@ -140,10 +156,12 @@ class HitMotion{
           ref_velocity = _generate_hitting->linear_DS(iiwa_return_position);
         }
         // To add the condition for the return of the iiwa after hitting
-        std::cout << "dot product: " << _generate_hitting->des_direction.dot(_generate_hitting->DS_attractor - _generate_hitting->current_position) << std::endl;
+        // std::cout << "dot product: " << _generate_hitting->des_direction.dot(_generate_hitting->DS_attractor - _generate_hitting->current_position) << std::endl;
         if(!is_hit && _generate_hitting->des_direction.dot(_generate_hitting->DS_attractor - _generate_hitting->current_position) < 0){
           is_hit = 1;
         }
+        // std::cout << "hello" << _generate_hitting->DS_attractor << std::endl;
+        // std::cout << object_position_world << std::endl;
         updateCurrentEEPosition(iiwa_position_from_source);
         publishVelQuat(ref_velocity, ref_quat);
         ros::spinOnce();
@@ -191,7 +209,6 @@ int main (int argc, char** argv){
     generate_motion->run();
   }
 
-  
 
   return 0;
 

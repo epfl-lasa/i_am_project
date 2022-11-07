@@ -155,13 +155,9 @@ class HitMotion{
         }else{
           ref_velocity = _generate_hitting->linear_DS(iiwa_return_position);
         }
-        // To add the condition for the return of the iiwa after hitting
-        // std::cout << "dot product: " << _generate_hitting->des_direction.dot(_generate_hitting->DS_attractor - _generate_hitting->current_position) << std::endl;
         if(!is_hit && _generate_hitting->des_direction.dot(_generate_hitting->DS_attractor - _generate_hitting->current_position) < 0){
           is_hit = 1;
         }
-        // std::cout << "hello" << _generate_hitting->DS_attractor << std::endl;
-        // std::cout << object_position_world << std::endl;
         updateCurrentEEPosition(iiwa_position_from_source);
         publishVelQuat(ref_velocity, ref_quat);
         ros::spinOnce();

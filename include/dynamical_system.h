@@ -16,10 +16,10 @@ class hitting_DS{
         Eigen::Vector3f des_direction = Eigen::Vector3f::Zero(3); // to be updated in the main code of hitting
         float des_speed = 0.5;
         
-        float m_obj = 0.5;
+        float m_obj = 0.3;
         
         // for the flux DS
-        float sigma = 0.1;
+        float sigma = 0.15;
 
         Eigen::Matrix3f gain = -1.0 * Eigen::Matrix3f::Identity(3,3);
 

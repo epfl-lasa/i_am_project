@@ -48,11 +48,7 @@ class HitMotion{
                       1.0, 0.0, 0.0,
                       0.0, 0.0, 1.0;
 
-
           object_position_world = rotation * (object_position_from_source - iiwa_base_position_from_source);
-
-         
-   
     }
 
 
@@ -126,8 +122,10 @@ class HitMotion{
 
       objectPositionWorldFrame();
 
+      Eigen::Vector3f object_offset = {0.0, -0.0, -0.05};
+
       _generate_hitting->current_position = iiwa_position_from_source;
-      _generate_hitting->DS_attractor = object_position_world;
+      _generate_hitting->DS_attractor = object_position_world + object_offset;
 
       _nh.getParam("ref_velocity/x", ref_velocity[0]);
       _nh.getParam("ref_velocity/y", ref_velocity[1]);
@@ -147,11 +145,11 @@ class HitMotion{
     }
 
     void run(){
-      Eigen::Vector3f iiwa_return_position = {0.3, 0.0, 0.5};
+      Eigen::Vector3f iiwa_return_position = {0.5, -0.4, 0.3};
       while(ros::ok()){
 
         if (!is_hit){
-          ref_velocity = _generate_hitting->flux_DS(0.5, iiwa_task_inertia_pos);
+          ref_velocity = _generate_hitting->flux_DS(2.0, iiwa_task_inertia_pos);
         }else{
           ref_velocity = _generate_hitting->linear_DS(iiwa_return_position);
         }

@@ -28,15 +28,36 @@ Eigen::Vector3f hitting_DS::flux_DS(float dir_flux, Eigen::Matrix3f& current_ine
 
     /* ** Finding the virtual end effector position ** */
 
+    Eigen::Vector3f reference_velocity = Eigen::Vector3f{0.0, 0.0, 0.0};
     Eigen::Vector3f relative_position = current_position - DS_attractor; 
     Eigen::Vector3f virtual_ee = DS_attractor + des_direction * (relative_position.dot(des_direction) / (des_direction.squaredNorm()));
 
     float dir_inertia = des_direction.transpose() * current_inertia * des_direction;
-    float alpha = exp(-(current_position - virtual_ee).norm()/(sigma * sigma));
+
+    std::cout  << dir_inertia << std::endl;
+    float exp_term = (current_position - virtual_ee).norm();
+    float alpha = exp(-exp_term/(sigma * sigma));
    
-    Eigen::Vector3f reference_velocity = alpha * des_direction + (1 - alpha) * gain * (current_position - virtual_ee);
+    reference_velocity = alpha * des_direction + (1 - alpha) * gain * (current_position - virtual_ee);
+
     reference_velocity = (dir_flux / dir_inertia) * (dir_inertia + m_obj) * reference_velocity / reference_velocity.norm();
+
     
     return reference_velocity;
 }
 
+Eigen::Vector3f hitting_DS::vel_max_DS(){
+    Eigen::Vector3f reference_velocity = Eigen::Vector3f{0.0, 0.0, 0.0};
+    Eigen::Vector3f relative_position = current_position - DS_attractor; 
+    Eigen::Vector3f virtual_ee = DS_attractor + des_direction * (relative_position.dot(des_direction) / (des_direction.squaredNorm()));
+    float exp_term = (current_position - virtual_ee).norm();
+    float alpha = exp(-exp_term/(sigma * sigma));
+
+    reference_velocity = alpha * des_direction + (1 - alpha) * gain * (current_position - virtual_ee);
+    reference_velocity = des_speed * reference_velocity / reference_velocity.norm();
+
+    // std::cout << "ref: " << reference_velocity.transpose() << std::endl;
+
+    return reference_velocity;
+
+}

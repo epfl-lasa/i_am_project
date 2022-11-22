@@ -13,6 +13,7 @@
 
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Float32.h>
 
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseStamped.h>

@@ -3,7 +3,7 @@
 //|    email:   harshit.khurana@epfl.ch
 //|    website: lasa.epfl.ch
 
-#include "../include/node_hit_real.h"
+#include "../include/push_release_real.h"
 #include <experimental/filesystem>
 
 class HitMotion{
@@ -24,7 +24,7 @@ class HitMotion{
     Eigen::Matrix3f iiwa_task_inertia_pos;
     Eigen::Matrix3f rotation;
 
-    bool is_hit = 0;
+    bool is_pushed = 0;
   
     
     void iiwaBasePositionCallback(const geometry_msgs::PoseStamped::ConstPtr& msg){
@@ -156,6 +156,8 @@ class HitMotion{
 
       _generate_hitting->des_direction = hit_direction;
 
+      std::cout << "INITIALISED" << std::endl;
+
       return true;
       
     }
@@ -165,35 +167,25 @@ class HitMotion{
       Eigen::Vector3f final_position = {0.6, 0.1, 0.2};
       while(ros::ok()){
 
-        if (!is_hit){
-          // ref_velocity = _generate_hitting->linear_DS(object_position_world);
+        if (!is_pushed){
           ref_velocity = _generate_hitting->flux_DS(0.5, iiwa_task_inertia_pos);
-          publishFlux(iiwa_task_inertia_pos, iiwa_vel_from_source);
 
-          // ref_velocity = _generate_hitting->vel_max_DS();
-          // objectPositionWorldFrame();
-
-          // std::cout << "object at: " << object_position_world.transpose() << std::endl;
         }else{
           ref_velocity = _generate_hitting->linear_DS(iiwa_return_position);
-          // publishFlux(iiwa_task_inertia_pos, iiwa_vel_from_source);
         }
-        if(!is_hit && _generate_hitting->des_direction.dot(_generate_hitting->DS_attractor - _generate_hitting->current_position) < 0){
-          is_hit = 1;
+        if(!is_pushed && _generate_hitting->des_direction.dot(_generate_hitting->DS_attractor - _generate_hitting->current_position) < 0){
+          is_pushed = 1;
         }
-        // ref_velocity = _generate_hitting->linear_DS(final_position);
-        // objectPositionWorldFrame();
-
-        // std::cout << "object at: " << object_position_world.transpose() << std::endl;
 
         updateCurrentEEPosition(iiwa_position_from_source);
         publishVelQuat(ref_velocity, ref_quat);
+        publishFlux(iiwa_task_inertia_pos, iiwa_vel_from_source);
         ros::spinOnce();
         _rate.sleep();
       }
 
       publishVelQuat(ref_velocity, ref_quat);
-      // publishFlux(iiwa_task_inertia_pos, iiwa_vel_from_source);
+      publishFlux(iiwa_task_inertia_pos, iiwa_vel_from_source);
       ros::spinOnce(); 
       _rate.sleep();
       ros::shutdown();
@@ -224,7 +216,7 @@ class HitMotion{
 int main (int argc, char** argv){
 
 	//ROS Initialization
-  ros::init(argc, argv, "momentum_hit_real");
+  ros::init(argc, argv, "push_release_real");
   float frequency = 200.0f;
   ros::NodeHandle nh;
 
@@ -233,6 +225,7 @@ int main (int argc, char** argv){
   if (!generate_motion->init()){
     return -1;
   }else{
+    sleep(5);
     generate_motion->run();
   }
 

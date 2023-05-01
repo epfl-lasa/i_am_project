@@ -47,6 +47,10 @@ add_executable(momentum_hit_real src/node_hit_real.cpp src/dynamical_system.cpp)
 target_link_libraries(momentum_hit_real ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} osqp::osqp OsqpEigen::OsqpEigen "stdc++fs" "-L/usr/local/lib" "qpOASES")
 add_dependencies(momentum_hit_real i_am_project_generate_messages_cpp)
 
+add_executable(push_release_real src/push_release_real.cpp src/dynamical_system.cpp) # src/optimizer.cpp) 
+target_link_libraries(push_release_real ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} osqp::osqp OsqpEigen::OsqpEigen "stdc++fs" "-L/usr/local/lib" "qpOASES" "Optimization")
+add_dependencies(push_release_real i_am_project_generate_messages_cpp)
+
 add_executable(inertia_QP src/node_inertia_QP.cpp src/dynamical_system.cpp) 
 target_link_libraries(inertia_QP ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} osqp::osqp OsqpEigen::OsqpEigen "stdc++fs" "-L/usr/local/lib" "qpOASES")
 add_dependencies(inertia_QP i_am_project_generate_messages_cpp)

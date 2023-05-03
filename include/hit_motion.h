@@ -30,13 +30,13 @@ class HitMotion {
 private:
   bool is_hit_ = 0;
 
-  std::string pub_vel_quat_topic_;
-  std::string pub_dir_flux_topic;
-  std::string object_position_topic_;
+  std::string iiwa_base_position_topic_;
+  std::string iiwa_inertia_topic_;
   std::string iiwa_position_topic_;
   std::string iiwa_vel_topic_;
-  std::string iiwa_inertia_topic_;
-  std::string iiwa_base_position_topic_;
+  std::string object_position_topic_;
+  std::string pub_dir_flux_topic;
+  std::string pub_vel_quat_topic_;
 
   ros::Rate rate_;
   ros::NodeHandle nh_;
@@ -90,10 +90,10 @@ public:
       Eigen::Vector3f&
           iiwa_vel_from_source);// TODO iiwa_vel_from_source AND iiwa_task_inertia_pos: CLASH WITH (PREVIOUSLY) PUBLIC VAR ; TEST IT
   void publishVelQuat(Eigen::Vector3f& DS_vel, Eigen::Vector4f& DS_quat);
-  void setGains(Eigen::Matrix3f& gain);
   void updateCurrentEEPosition(Eigen::Vector3f& new_position);
   void updateCurrentObjectPosition(Eigen::Vector3f& new_position);
 
   // TODO DELETE NEVER USED
   // void publishPosQuat(const Eigen::Vector3f& DS_pos, const Eigen::Vector4f& DS_quat);
+  // void setGains(Eigen::Matrix3f& gain);
 };

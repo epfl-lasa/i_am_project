@@ -35,10 +35,10 @@ private:
   bool is_hit_ = 0;
   float hit_momentum;
 
-  std::string pub_vel_quat_topic_;
-  std::string object_position_topic_;
-  std::string iiwa_position_topic_;
   std::string iiwa_inertia_topic_;
+  std::string iiwa_position_topic_;
+  std::string object_position_topic_;
+  std::string pub_vel_quat_topic_;
 
   ros::Rate rate_;
   ros::NodeHandle nh_;

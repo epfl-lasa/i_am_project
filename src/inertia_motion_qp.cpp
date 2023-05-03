@@ -77,8 +77,6 @@ void InertiaMotionQP::publishVelQuat(Eigen::Vector3f& DS_vel, Eigen::Vector4f& D
   pub_vel_quat_.publish(ref_vel_publish);
 }
 
-void InertiaMotionQP::setGains(Eigen::Matrix3f& gain) { generate_inertia_motion_->set_gain(gain); }
-
 void InertiaMotionQP::updateCurrentEEPosition(Eigen::Vector3f& new_position) {
   generate_inertia_motion_->set_current_position(new_position);
 }
@@ -109,3 +107,5 @@ int main(int argc, char** argv) {
 
 //   pub_ref_position_.publish(ref_joint_position);
 // }
+
+// void InertiaMotionQP::setGains(Eigen::Matrix3f& gain) { generate_inertia_motion_->set_gain(gain); }

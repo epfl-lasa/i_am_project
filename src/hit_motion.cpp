@@ -160,8 +160,6 @@ void HitMotion::iiwaInertiaCallback(const geometry_msgs::Inertia& inertia_msg) {
   iiwa_task_inertia_pos_(2, 1) = inertia_msg.iyz;
 }
 
-void HitMotion::setGains(Eigen::Matrix3f& gain) { _generate_hitting->set_gain(gain); }
-
 void HitMotion::updateCurrentEEPosition(Eigen::Vector3f& new_position) {
   _generate_hitting->set_current_position(new_position);
 }
@@ -222,3 +220,5 @@ int main(int argc, char** argv) {
 
 //   pub_pos_quat_.publish(ref_pos_publish);
 // }
+
+// void HitMotion::setGains(Eigen::Matrix3f& gain) { _generate_hitting->set_gain(gain); }

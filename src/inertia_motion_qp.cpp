@@ -6,21 +6,29 @@
 #include "inertia_motion_qp.h"
 
 bool InertiaMotionQP::init() {
-  pub_ref_position_ = nh_.advertise<std_msgs::Float64MultiArray>("/iiwa/PositionController/command", 1);
-  pub_vel_quat_ = nh_.advertise<geometry_msgs::Pose>("/passive_control/vel_quat", 1);
+  // Get topics names
+  nh_.getParam("/passive_control/vel_quat", pub_vel_quat_topic_);
+  nh_.getParam("/iiwa/ee_info/Pose", iiwa_position_topic_);
+  nh_.getParam("/iiwa/Inertia/taskPos", iiwa_inertia_topic_);
 
-  iiwa_position_ = nh_.subscribe("/iiwa/ee_info/Pose",
+  pub_vel_quat_ = nh_.advertise<geometry_msgs::Pose>(pub_vel_quat_topic_, 1);
+
+  iiwa_position_ = nh_.subscribe(iiwa_position_topic_,
                                  1,
                                  &InertiaMotionQP::iiwaPositionCallback,
                                  this,
                                  ros::TransportHints().reliable().tcpNoDelay());
-  iiwa_inertia_ = nh_.subscribe("/iiwa/Inertia/taskPos",
+  iiwa_inertia_ = nh_.subscribe(iiwa_inertia_topic_,
                                 1,
                                 &InertiaMotionQP::iiwaInertiaCallback,
                                 this,
                                 ros::TransportHints().reliable().tcpNoDelay());
   generate_inertia_motion_->set_current_position(iiwa_position_from_source_);
   return true;
+
+  // TODO NEVER USED DELETE
+  // nh_.getParam("/iiwa/PositionController/command", pub_ref_position_topic_);
+  // pub_ref_position_ = nh_.advertise<std_msgs::Float64MultiArray>(pub_ref_position_topic_, 1);
 }
 
 void InertiaMotionQP::run() {
@@ -54,14 +62,6 @@ void InertiaMotionQP::iiwaInertiaCallback(const geometry_msgs::Inertia& inertia_
 void InertiaMotionQP::iiwaPositionCallback(const geometry_msgs::Pose::ConstPtr& msg) {
   iiwa_position_from_source_ << msg->position.x, msg->position.y, msg->position.z;
   iiwa_orientation_from_source_ << msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w;
-}
-
-void InertiaMotionQP::publishJointPosition(const Eigen::VectorXf& joint_pos) {
-  std_msgs::Float64MultiArray ref_joint_position;
-
-  for (int i = 0; i < joint_pos.size(); ++i) { ref_joint_position.data.push_back(joint_pos[i]); }
-
-  pub_ref_position_.publish(ref_joint_position);
 }
 
 void InertiaMotionQP::publishVelQuat(Eigen::Vector3f& DS_vel, Eigen::Vector4f& DS_quat) {
@@ -100,3 +100,12 @@ int main(int argc, char** argv) {
 
   return 0;
 }
+
+// TODO NEVER USED DELETE
+// void InertiaMotionQP::publishJointPosition(const Eigen::VectorXf& joint_pos) {
+//   std_msgs::Float64MultiArray ref_joint_position;
+
+//   for (int i = 0; i < joint_pos.size(); ++i) { ref_joint_position.data.push_back(joint_pos[i]); }
+
+//   pub_ref_position_.publish(ref_joint_position);
+// }

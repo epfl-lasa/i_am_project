@@ -30,10 +30,17 @@ class PushRelease {
 private:
   bool is_pushed_ = 0;
 
+  std::string pub_vel_quat_topic_;
+  std::string pub_dir_flux_topic_;
+  std::string object_position_topic_;
+  std::string iiwa_position_topic_;
+  std::string iiwa_vel_topic_;
+  std::string iiwa_inertia_topic_;
+  std::string iiwa_base_position_topic_;
+
   ros::Rate rate_;
   ros::NodeHandle nh_;
   ros::Publisher pub_dir_flux_;
-  ros::Publisher pub_pos_quat_;
   ros::Publisher pub_vel_quat_;
   ros::Subscriber iiwa_base_position_;
   ros::Subscriber iiwa_inertia_;
@@ -64,6 +71,7 @@ private:
   //   geometry_msgs::Pose box_pose, iiwa_pose;
   //   geometry_msgs::Twist iiwa_vel;
   //   geometry_msgs::Inertia iiwa_inertia;
+  // ros::Publisher pub_pos_quat_;
 
 public:
   PushRelease(ros::NodeHandle& nh, float frequency) : nh_(nh), rate_(frequency){};
@@ -81,9 +89,11 @@ public:
       Eigen::Matrix3f& iiwa_task_inertia_pos,
       Eigen::Vector3f&
           iiwa_vel_from_source);// TODO iiwa_vel_from_source AND iiwa_task_inertia_pos: CLASH WITH (PREVIOUSLY) PUBLIC VAR ; TEST IT
-  void publishPosQuat(const Eigen::Vector3f& DS_pos, const Eigen::Vector4f& DS_quat);
   void publishVelQuat(Eigen::Vector3f& DS_vel, Eigen::Vector4f& DS_quat);
-  void setGains(Eigen::Matrix3f& gain);
   void updateCurrentEEPosition(Eigen::Vector3f& new_position);
   void updateCurrentObjectPosition(Eigen::Vector3f& new_position);
+
+  // TODO DELETE NEVER USED
+  // void setGains(Eigen::Matrix3f& gain);
+  // void publishPosQuat(const Eigen::Vector3f& DS_pos, const Eigen::Vector4f& DS_quat);
 };

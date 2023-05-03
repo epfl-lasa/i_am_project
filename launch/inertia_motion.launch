@@ -11,6 +11,9 @@
 
 <launch>
 
+  <!-- All ROS topics names -->
+  <rosparam file="$(find i_am_project)/config/ros_topics.yaml" />
+
   <node pkg = "i_am_project" type = "inertia_QP"  name = "inertia_QP" output="screen"/>
 
 </launch>

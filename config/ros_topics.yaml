@@ -1,18 +1,36 @@
 
 passive_control: {
-  vel_quat: "/passive_control/vel_quat" # Control velocity - type geometry_msgs::Pose
-}
-
-gazebo: {
-  model_states: "/gazebo/model_states", # Object position and orientation - type gazebo_msgs::ModelStates
-  link_states: "/gazebo/link_states" # Object position and orientation of iiwa links - type gazebo_msgs::LinkStates
-
+  vel_quat: "/passive_control/vel_quat" # Publisher - Control velocity - type geometry_msgs::Pose (SIM + REAL)
 }
 
 iiwa: {
-  dir_flux: "/iiwa/dir_flux",
+  dir_flux: "/iiwa/dir_flux", # Publisher - type std_msgs::Float32 (REAL)
+
+  ee_info : {
+    pose: "/iiwa/ee_info/Pose", # Subscriber - iiwa ee pose + orientation - type geometry_msgs::Pose (REAL)
+    vel: "/iiwa/ee_info/Vel" # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
+  },
 
   Inertia: {
-    taskPos: "/iiwa/Inertia/taskPos"
+    taskPos: "/iiwa/Inertia/taskPos" # Subscriber - Iiwa inertia - type geometry_msgs::Inertia (SIM + REAL)
   }
+}
+
+# OPTITRACK
+vrpn_client: {
+  object_1: {
+    pose: "/vrpn_client_node/object_1/pose", # Subscriber - Object position and orientation - type geometry_msgs::PoseStamped (REAL)
+  },
+  iiwa_7_base: {
+    pose: "/vrpn_client_node/iiwa_7_base/pose" # Subscriber - iiwa base position + orientation - geometry_msgs::PoseStamped (REAL)
+  }
+}
+
+
+
+# SIMULATION TOPICS
+gazebo: {
+  model_states: "/gazebo/model_states", # Subscriber - Object position and orientation - type gazebo_msgs::ModelStates (SIM)
+  link_states: "/gazebo/link_states" # Subscriber - Object position and orientation of iiwa links - type gazebo_msgs::LinkStates (SIM)
+
 }

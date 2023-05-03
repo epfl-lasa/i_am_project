@@ -28,6 +28,10 @@
 class InertiaMotionQP {
 
 private:
+  std::string pub_vel_quat_topic_;
+  std::string iiwa_position_topic_;
+  std::string iiwa_inertia_topic_;
+
   ros::Rate rate_;
   ros::NodeHandle nh_;
   ros::Publisher pub_ref_position_;
@@ -45,6 +49,7 @@ private:
 
   // TODO DELETE NOT NEEDED
   // Eigen::Vector3f iiwa_vel_from_source_;
+  // std::string pub_ref_position_topic_;
 
 public:
   InertiaMotionQP(ros::NodeHandle& nh, float frequency) : nh_(nh), rate_(frequency){};

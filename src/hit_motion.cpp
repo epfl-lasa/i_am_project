@@ -9,31 +9,36 @@ bool HitMotion::init() {
   // Get topics names
   nh_.getParam("/passive_control/vel_quat", pub_vel_quat_topic_);
   nh_.getParam("/iiwa/dir_flux", pub_dir_flux_topic);
+  nh_.getParam("/vrpn_client_node/object_1/pose", object_position_topic_);
+  nh_.getParam("/iiwa/ee_info/Pose", iiwa_position_topic_);
+  nh_.getParam("/iiwa/ee_info/Vel", iiwa_vel_topic_);
+  nh_.getParam("/iiwa/Inertia/taskPos", iiwa_inertia_topic_);
+  nh_.getParam("/vrpn_client_node/iiwa_7_base/pose", iiwa_base_position_topic_);
 
   pub_vel_quat_ = nh_.advertise<geometry_msgs::Pose>(pub_vel_quat_topic_, 1);
   pub_dir_flux_ = nh_.advertise<std_msgs::Float32>(pub_dir_flux_topic, 1);
 
-  object_position_ = nh_.subscribe("/vrpn_client_node/object_1/pose",
+  object_position_ = nh_.subscribe(object_position_topic_,
                                    1,
                                    &HitMotion::objectPositionCallback,
                                    this,
                                    ros::TransportHints().reliable().tcpNoDelay());
-  iiwa_position_ = nh_.subscribe("/iiwa/ee_info/Pose",
+  iiwa_position_ = nh_.subscribe(iiwa_position_topic_,
                                  1,
                                  &HitMotion::iiwaPositionCallback,
                                  this,
                                  ros::TransportHints().reliable().tcpNoDelay());
-  iiwa_vel_ = nh_.subscribe("/iiwa/ee_info/Vel",
+  iiwa_vel_ = nh_.subscribe(iiwa_vel_topic_,
                             1,
                             &HitMotion::iiwaVelCallback,
                             this,
                             ros::TransportHints().reliable().tcpNoDelay());
-  iiwa_inertia_ = nh_.subscribe("/iiwa/Inertia/taskPos",
+  iiwa_inertia_ = nh_.subscribe(iiwa_inertia_topic_,
                                 1,
                                 &HitMotion::iiwaInertiaCallback,
                                 this,
                                 ros::TransportHints().reliable().tcpNoDelay());
-  iiwa_base_position_ = nh_.subscribe("/vrpn_client_node/iiwa_7_base/pose",
+  iiwa_base_position_ = nh_.subscribe(iiwa_base_position_topic_,
                                       1,
                                       &HitMotion::iiwaBasePositionCallback,
                                       this,

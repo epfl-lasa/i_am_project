@@ -32,6 +32,11 @@ private:
 
   std::string pub_vel_quat_topic_;
   std::string pub_dir_flux_topic;
+  std::string object_position_topic_;
+  std::string iiwa_position_topic_;
+  std::string iiwa_vel_topic_;
+  std::string iiwa_inertia_topic_;
+  std::string iiwa_base_position_topic_;
 
   ros::Rate rate_;
   ros::NodeHandle nh_;

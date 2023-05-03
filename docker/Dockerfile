@@ -28,8 +28,9 @@ RUN git clone https://github.com/coin-or/qpOASES.git --branch releases/3.2.1
 RUN cd qpOASES && mkdir build && cd build && cmake ../ && make && sudo make install
 
 # iiwa_toolkit
+ARG IIWA_TOOLKIT_BRANCH=feature_inertial_control
 WORKDIR /home/${USER}/ros_ws/src
-RUN git clone https://github.com/fkhadivar/iiwa_toolkit.git --branch feature_inertial_control
+RUN git clone https://github.com/fkhadivar/iiwa_toolkit.git --branch $IIWA_TOOLKIT_BRANCH
 # feature_inertial_control feature_full_inertia
 
 

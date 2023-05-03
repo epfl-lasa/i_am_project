@@ -168,7 +168,7 @@ class HitMotion{
       while(ros::ok()){
 
         if (!is_pushed){
-          ref_velocity = _generate_hitting->flux_DS(0.5, iiwa_task_inertia_pos);
+          ref_velocity = _generate_hitting->flux_DS(1.0, iiwa_task_inertia_pos);
 
         }else{
           ref_velocity = _generate_hitting->linear_DS(iiwa_return_position);

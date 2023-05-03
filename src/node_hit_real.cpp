@@ -166,28 +166,20 @@ class HitMotion{
       while(ros::ok()){
 
         if (!is_hit){
-          // ref_velocity = _generate_hitting->linear_DS(object_position_world);
-          ref_velocity = _generate_hitting->flux_DS(0.5, iiwa_task_inertia_pos);
+          ref_velocity = _generate_hitting->flux_DS(1.0, iiwa_task_inertia_pos);
           publishFlux(iiwa_task_inertia_pos, iiwa_vel_from_source);
 
-          // ref_velocity = _generate_hitting->vel_max_DS();
-          // objectPositionWorldFrame();
-
-          // std::cout << "object at: " << object_position_world.transpose() << std::endl;
         }else{
           ref_velocity = _generate_hitting->linear_DS(iiwa_return_position);
-          // publishFlux(iiwa_task_inertia_pos, iiwa_vel_from_source);
         }
         if(!is_hit && _generate_hitting->des_direction.dot(_generate_hitting->DS_attractor - _generate_hitting->current_position) < 0){
           is_hit = 1;
         }
-        // ref_velocity = _generate_hitting->linear_DS(final_position);
-        // objectPositionWorldFrame();
-
-        // std::cout << "object at: " << object_position_world.transpose() << std::endl;
 
         updateCurrentEEPosition(iiwa_position_from_source);
         publishVelQuat(ref_velocity, ref_quat);
+        // publishFlux(iiwa_task_inertia_pos, iiwa_vel_from_source);
+        
         ros::spinOnce();
         _rate.sleep();
       }

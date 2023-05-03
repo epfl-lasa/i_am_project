@@ -12,8 +12,8 @@
 
 #include "dynamical_system.h"
 
-// TODO
-// #include <experimental/filesystem> WHAT IS THIS??
+// TODO NEEDED ?
+// #include <experimental/filesystem>// WHAT IS THIS??
 // #include "math.h"
 // #include <cstdio>
 // #include <fstream>
@@ -25,48 +25,51 @@
 // #include <std_msgs/Float64MultiArray.h>
 // #include <Eigen/Geometry>
 
-class PushRelease {
+class HitMotion {
 
 private:
-  bool is_pushed_ = 0;
+  bool is_hit_ = 0;
+
+  std::string pub_vel_quat_topic_;
+  std::string pub_dir_flux_topic;
 
   ros::Rate rate_;
   ros::NodeHandle nh_;
   ros::Publisher pub_dir_flux_;
-  ros::Publisher pub_pos_quat_;
   ros::Publisher pub_vel_quat_;
+  ros::Subscriber object_position_;
   ros::Subscriber iiwa_base_position_;
   ros::Subscriber iiwa_inertia_;
   ros::Subscriber iiwa_position_;
   ros::Subscriber iiwa_vel_;
-  ros::Subscriber object_position_;
 
-  Eigen::Vector3f hit_direction_ = {0.0, 1.0, 0.0};
   Eigen::Vector3f ref_velocity_ = {0.0, 0.0, 0.0};
+  Eigen::Vector3f hit_direction_ = {0.0, 1.0, 0.0};
   Eigen::Vector4f ref_quat_ = Eigen::Vector4f::Zero();
   Eigen::Vector3f iiwa_base_position_from_source_;
   Eigen::Vector3f iiwa_position_from_source_;
+  Eigen::Vector3f iiwa_vel_from_source_;
   Eigen::Vector3f object_position_from_source_;
   Eigen::Vector3f object_position_world_;
   Eigen::Vector4f iiwa_base_orientation_from_source_;
   Eigen::Vector4f iiwa_orientation_from_source_;
-  Eigen::Vector3f iiwa_vel_from_source_;
   Eigen::Vector4d object_orientation_from_source_;
   Eigen::Matrix3f iiwa_task_inertia_pos_;
   Eigen::Matrix3f rotation_;
 
-  std::unique_ptr<hitting_DS> generate_hitting_ =
+  std::unique_ptr<hitting_DS> _generate_hitting =
       std::make_unique<hitting_DS>(iiwa_position_from_source_, object_position_world_);
 
-  // TOOD NOT NEEDED DELETE
+  // TODO NOT NEEDED --> DELETE
+  // geometry_msgs::Pose box_pose_, iiwa_pose_;
+  // geometry_msgs::Twist iiwa_vel_msg_;
+  // geometry_msgs::Inertia iiwa_inertia_msg_;
   // float hit_momentum_;
-  //   Eigen::Vector3f test_velocity_ = {0.0, 0.0, 0.0};
-  //   geometry_msgs::Pose box_pose, iiwa_pose;
-  //   geometry_msgs::Twist iiwa_vel;
-  //   geometry_msgs::Inertia iiwa_inertia;
+  // Eigen::Vector3f test_velocity_ = {0.0, 0.0, 0.0};
+  // ros::Publisher pub_pos_quat_;
 
 public:
-  PushRelease(ros::NodeHandle& nh, float frequency) : nh_(nh), rate_(frequency){};
+  HitMotion(ros::NodeHandle& nh, float frequency) : nh_(nh), rate_(frequency){};
 
   bool init();
   void run();
@@ -81,9 +84,11 @@ public:
       Eigen::Matrix3f& iiwa_task_inertia_pos,
       Eigen::Vector3f&
           iiwa_vel_from_source);// TODO iiwa_vel_from_source AND iiwa_task_inertia_pos: CLASH WITH (PREVIOUSLY) PUBLIC VAR ; TEST IT
-  void publishPosQuat(const Eigen::Vector3f& DS_pos, const Eigen::Vector4f& DS_quat);
   void publishVelQuat(Eigen::Vector3f& DS_vel, Eigen::Vector4f& DS_quat);
   void setGains(Eigen::Matrix3f& gain);
   void updateCurrentEEPosition(Eigen::Vector3f& new_position);
   void updateCurrentObjectPosition(Eigen::Vector3f& new_position);
+
+  // TODO DELETE NEVER USED
+  // void publishPosQuat(const Eigen::Vector3f& DS_pos, const Eigen::Vector4f& DS_quat);
 };

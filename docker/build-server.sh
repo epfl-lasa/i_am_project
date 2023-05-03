@@ -33,7 +33,7 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-docker pull ghcr.io/aica-technology/ros-ws:${BASE_IMAGE_TAG}
+# docker pull magnificentmonkey/iiwa-ros
 
 BUILD_FLAGS+=(--build-arg BASE_IMAGE_TAG="${BASE_IMAGE_TAG}")
 BUILD_FLAGS+=(-t "${IMAGE_NAME}:${BASE_IMAGE_TAG}")

@@ -11,6 +11,9 @@
 
 <launch>
 
+  <!-- All ROS topics names -->
+  <rosparam file="$(find i_am_project)/config/ros_topics.yaml" />
+
   <!-- Here is the node that allows me to hit the object in the iiwa simulator -->
   <node pkg = "i_am_project" type = "momentum_hit_real"  name = "momentum_hit_real" output="screen"/>
 

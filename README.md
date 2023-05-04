@@ -5,8 +5,8 @@ i_am_project requires several packages to be installed in order to work properly
 
 Note that it is possible to have everything on docker (cf. docker section)
 
-* iiwa_ros - branch `feature/inertia` (and all its dependancies): https://github.com/epfl-lasa/iiwa_ros/tree/feature/inertia
-* iiwa_toolkit - branch `feature_inertial_control` or `feature_full_inertia` (and all its dependancies):  https://github.com/fkhadivar/iiwa_toolkit
+* iiwa_ros - branch `feature/inertia` (and all its dependencies): https://github.com/epfl-lasa/iiwa_ros/tree/feature/inertia
+* iiwa_toolkit - branch `feature_inertial_control` or `feature_full_inertia` (and all its dependencies):  https://github.com/fkhadivar/iiwa_toolkit
 * osqp - https://github.com/osqp/osqp
 * osqp-eigen - https://github.com/robotology/osqp-eigen.git
 * qpoases v3.2.1 - https://github.com/coin-or/qpOASES.git
@@ -18,7 +18,7 @@ if iiwa_toolkit branch `feature_full_inertia` is used:
 
 ## Run the simulation
 
-In on terminal, launch the gazebo simulation:
+In one terminal, launch the gazebo simulation:
 ``` bash
 roslaunch iiwa_toolkit passive_track_gazebo.launch
 ```
@@ -35,7 +35,6 @@ roslaunch i_am_project hit_with_momentum.launch
 ## Docker
 
 A docker containing iiwa-ros library is needed to build the i_am_project docker.
-To install docker
 
 ### Prerequisite
 
@@ -44,45 +43,45 @@ cf. https://github.com/epfl-lasa/iiwa_ros/tree/feature/dockerise/docker#prerequi
 
 ### Docker iiwa-ros
 
-1. Pull the repo
-```bash
-git clone -b feature/dockerise git@github.com:epfl-lasa/iiwa_ros.git
-```
-The branch of iiwa_ros needed here is `feature/inertia` . However, it needs to pull the changes on main to work properly.
+1. Pull the repo 
+    ```bash
+    git clone -b feature/dockerise git@github.com:epfl-lasa/iiwa_ros.git
+    ```
+    The branch of iiwa_ros needed here is `feature/inertia` . However, it needs to pull the changes on main to work properly.
 
-**When the pull will be done:**
+    **When the pull will be done:**
 
-In Dockerfile located in ./docker replace (line 114)
-```bash
-RUN git clone https://github.com/epfl-lasa/iiwa_ros.git
-```
-with 
-``` bash
-RUN git clone -b feature/inertia https://github.com/epfl-lasa/iiwa_ros.git
-```
+    In Dockerfile located in ./docker replace (line 114)
+    ```bash
+    RUN git clone https://github.com/epfl-lasa/iiwa_ros.git
+    ```
+    with 
+    ``` bash
+    RUN git clone -b feature/inertia https://github.com/epfl-lasa/iiwa_ros.git
+    ```
 
-**Quick fix when waiting for the pull:**
+    **Quick fix when waiting for the pull:**
 
-* To have the changes from branch `feature/inertia` simply run
-``` bash
-git pull origin feature/inertia
-```
-and resolve the merge conflict ** BUT DO NOT PUSH THE CHANGES **
+    * To have the changes from branch `feature/inertia` simply run
+    ``` bash
+    git pull origin feature/inertia
+    ```
+    and resolve the merge conflict **BUT DO NOT PUSH THE CHANGES**
 
-* In Dockerfile located in ./docker replace (line 114)
-```bash
-RUN git clone https://github.com/epfl-lasa/iiwa_ros.git
-```
-with 
-``` bash
-COPY --chown=${USER} ./ ./src/iiwa_ros
-```
+    * In Dockerfile located in ./docker replace (line 114)
+    ```bash
+    RUN git clone https://github.com/epfl-lasa/iiwa_ros.git
+    ```
+    with 
+    ``` bash
+    COPY --chown=${USER} ./ ./src/iiwa_ros
+    ```
 
 2. Build the docker
-``` bash
-cd docker
-bash install_docker.sh
-```
+    ``` bash
+    cd docker
+    bash install_docker.sh
+    ```
 
 ### Docker i_am_project
 

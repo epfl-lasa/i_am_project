@@ -27,6 +27,17 @@ WORKDIR /source
 RUN git clone https://github.com/coin-or/qpOASES.git --branch releases/3.2.1
 RUN cd qpOASES && mkdir build && cd build && cmake ../ && make && sudo make install
 
+# Install waf-tool (require to install optimization-lib)
+WORKDIR /home/${USER}/test
+RUN git clone https://github.com/nash169/waf-tools.git
+RUN cd waf-tools && sudo pip3 install .
+
+# Install optimization-lib
+RUN sudo apt-get install libnlopt-dev -y
+WORKDIR /home/${USER}/test
+RUN git clone https://github.com/nash169/optimization-lib.git
+RUN cd optimization-lib && sudo waf distclean configure build install
+
 # iiwa_toolkit
 ARG IIWA_TOOLKIT_BRANCH=feature_inertial_control
 WORKDIR /home/${USER}/ros_ws/src

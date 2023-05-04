@@ -7,9 +7,10 @@ i_am_project -
 Change iiwa_toolkit branch in Dockerfile line 32
 
 Build docker:
+The branch of iiwa-toolkit lib can be chosen. The default branch is feature_inertial_control
 
 ```bash
- ./docker/build-server.sh 
+ ./docker/build-server.sh -b <iiwa-toolkit-branch-name>
 ```
 
 Run docker:

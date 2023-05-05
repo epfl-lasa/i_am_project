@@ -1,7 +1,7 @@
 //|    Copyright (C) 2020 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
 //|    website: lasa.epfl.ch
 
-#include "1v1_master.h"
+#include "air_hockey.h"
 
 bool AirHockey::init() {
   // Get environment settings
@@ -104,19 +104,19 @@ void AirHockey::run() {
     std::tie(hitta1_, farra1_) = hittable(object_pos_, center1_, center2_, hittable_params_);
     std::tie(hitta2_, farra2_) = hittable(object_pos_, center2_, center1_, hittable_params_);
 
-    if (object_real == false && object_vel.norm() < 0.01 && (!hitta1 && !hitta2)) { reset_object_position() }
+    if (object_real_ == false && object_vel_.norm() < 0.01 && (!hitta1_ && !hitta2_)) { reset_object_position(); }
     // Some infos
     std::stringstream ss1;
     std::stringstream ss2;
 
-    ss1 << "mode1: " << mode1;
-    ss2 << "mode2: " << mode2;
+    ss1 << "mode1: " << mode1_;
+    ss2 << "mode2: " << mode2_;
 
     ROS_INFO("%s", ss1.str().c_str());
     ROS_INFO("%s", ss2.str().c_str());
 
     ros::spinOnce();
-    rate.sleep();
+    rate_.sleep();
   }
   ros::spinOnce();
   rate_.sleep();

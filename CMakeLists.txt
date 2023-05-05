@@ -45,8 +45,8 @@ set(TOOL_SOURCES
                   src/tools/modulated_DS.cpp
                   include/thirdparty/Utils.cpp)
 
-add_executable(AH_init src/1v1_init.cpp) 
-target_link_libraries(AH_init ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
+add_executable(world_sim src/init_world_sim.cpp) 
+target_link_libraries(world_sim ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 
 add_executable(AH_key_ctrl src/1v1_key_ctrl.cpp) 
 target_link_libraries(AH_key_ctrl ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
@@ -57,3 +57,7 @@ target_link_libraries(collect_data ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc
 add_executable(AH_master src/1v1_master.cpp ${MODE_SOURCES} ${TOOL_SOURCES}) 
 target_link_libraries(AH_master ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs")
 add_dependencies(AH_master i_am_project_generate_messages_cpp)
+
+add_executable(air_hockey src/air_hockey.cpp ${MODE_SOURCES} ${TOOL_SOURCES}) 
+target_link_libraries(air_hockey ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs")
+add_dependencies(air_hockey i_am_project_generate_messages_cpp)

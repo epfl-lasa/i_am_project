@@ -19,15 +19,13 @@ bool AirHockey::init() {
   if (!nh_.getParam("hittable/reach/y", y_reach_)) { ROS_ERROR("Param hittable/reach/y not found"); }
   if (!nh_.getParam("hittable/offset/x", x_offset_)) { ROS_ERROR("Param hittable/offset/x not found"); }
   if (!nh_.getParam("hittable/offset/y", y_offset_)) { ROS_ERROR("Param hittable/offset/y not found"); }
+  nh_.getParam("hit/speed", des_speed_);
+  //   ros::Duration(3).sleep(); // TODO WHY?? (LINE 240)
+
   center1_ << center1vec_[0], center1vec_[1], center1vec_[2];
   center2_ << center2vec_[0], center2vec_[1], center2vec_[2];
   ee_offset_ = {ee_offset_h_, ee_offset_v_};
   hittable_params_ = {x_reach_, y_reach_, x_offset_, y_offset_};
-
-  //Get hitting speed and direction of hitting in param file
-  nh_.getParam("hit/speed", des_speed_);
-  nh_.getParam("hit/direction", theta_);
-  //   ros::Duration(3).sleep(); // TODO WHY?? (LINE 240)
 
   //Init publishers
   pub_mode1_ = nh_.advertise<std_msgs::Int16>("/mode/iiwa1", 1);
@@ -48,6 +46,7 @@ bool AirHockey::init() {
     ros::service::waitForService("gazebo/set_model_state");
     set_state_client_ = nh_.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
   }
+
   if (iiwa_real_) {
     iiwa1_base_subs_ = nh_.subscribe("/simo_track/robot_left/pose", 10, &AirHockey::iiwa1BaseCallback, this);
     iiwa2_base_subs_ = nh_.subscribe("/simo_track/robot_right/pose", 10, &AirHockey::iiwa2BaseCallback, this);
@@ -56,24 +55,23 @@ bool AirHockey::init() {
   } else {
     iiwa_subs_ = nh_.subscribe("/gazebo/link_states", 10, &AirHockey::iiwaSimCallback, this);
   }
+
   // TODO IS THIS NEEDED??
-  //Set hitting speed and direction. Once we change attractor to something more related to the game, we no longer need this
-  // std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;
-  // std::cin >> des_speed;
-
-  // while(des_speed < 0 || des_speed > 3){
-  //   std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
+  //   Set hitting speed and direction. Once we change attractor to something more related to the game, we no longer need this
+  //   std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;
   //   std::cin >> des_speed;
-  // }
-
-  // std::cout << "Enter the desired direction of hitting (between -pi/2 and pi/2)" << std::endl;
-  // std::cin >> theta;
-
-  // while(theta < -M_PI_2 || theta > M_PI_2){
-  //   std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
+  //     double theta;
+  //     nh_.getParam("hit/direction", theta);
+  //   while(des_speed < 0 || des_speed > 3){
+  //     std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
+  //     std::cin >> des_speed;
+  //   }
+  //   std::cout << "Enter the desired direction of hitting (between -pi/2 and pi/2)" << std::endl;
   //   std::cin >> theta;
-
-  // }
+  //   while(theta < -M_PI_2 || theta > M_PI_2){
+  //     std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
+  //     std::cin >> theta;
+  //   }
 
   return true;
 }
@@ -85,8 +83,9 @@ void AirHockey::run() {
   prev_mode1_ = mode1_;
   prev_mode2_ = mode2_;
 
-  R_Opti << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
-  R_EE << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
+  R_EE_ << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
+  R_Opti_ << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
+
   while (ros::ok()) {
     switch_both_mode();
 
@@ -125,8 +124,8 @@ void AirHockey::run() {
 
 void AirHockey::reset_object_position() {
   gazebo_msgs::SetModelState setmodelstate;
-  //Set new pose of box
   geometry_msgs::Pose new_box_pose;
+
   nh_.getParam("box/initial_pos/x", new_box_pose.position.x);
   nh_.getParam("box/initial_pos/y", new_box_pose.position.y);
   nh_.getParam("box/initial_pos/z", new_box_pose.position.z);
@@ -271,20 +270,20 @@ int AirHockey::getIndex(std::vector<std::string> v, std::string value) {
   return -1;
 }
 
+//Gazebo
 void AirHockey::objectSimCallback(const gazebo_msgs::ModelStates model_states) {
   int box_index = getIndex(model_states.name, "my_box");
 
-  object_pose_ = model_states.pose[box_index];
-  object_twist_ = model_states.twist[box_index];
-  object_pos_ << object_pose_.position.x, object_pose_.position.y, object_pose_.position.z;
+  geometry_msgs::Pose object_pose_msg = model_states.pose[box_index];
+  geometry_msgs::Twist object_twist = model_states.twist[box_index];
+  Eigen::Vector3d object_rpy = quatToRPY({object_pose_msg.orientation.w,
+                                          object_pose_msg.orientation.x,
+                                          object_pose_msg.orientation.y,
+                                          object_pose_msg.orientation.z});
 
-  object_rpy_ = quatToRPY({object_pose_.orientation.w,
-                           object_pose_.orientation.x,
-                           object_pose_.orientation.y,
-                           object_pose_.orientation.z});//get orientation in rpy
-  object_th_ = object_rpy_[2];                          //only the z-axis
+  object_pos_ << object_pose_msg.position.x, object_pose_msg.position.y, object_pose_msg.position.z;
   object_th_mod_ =
-      std::fmod(object_th_ + M_PI + M_PI / 4, M_PI / 2) - M_PI / 4;//get relative angle of box face facing the arm
+      std::fmod(object_rpy[2] + M_PI + M_PI / 4, M_PI / 2) - M_PI / 4;//get relative angle of box face facing the arm
 }
 
 void AirHockey::iiwaSimCallback(const gazebo_msgs::LinkStates link_states) {
@@ -293,77 +292,84 @@ void AirHockey::iiwaSimCallback(const gazebo_msgs::LinkStates link_states) {
   int iiwa1_base_index = getIndex(link_states.name, "iiwa1::iiwa1_link_0");
   int iiwa2_base_index = getIndex(link_states.name, "iiwa2::iiwa2_link_0");
 
-  ee1_pose_ = link_states.pose[iiwa1_ee_index];
-  ee2_pose_ = link_states.pose[iiwa2_ee_index];
-  ee1_pos_ << ee1_pose_.position.x, ee1_pose_.position.y, ee1_pose_.position.z;
-  ee2_pos_ << ee2_pose_.position.x, ee2_pose_.position.y, ee2_pose_.position.z;
+  geometry_msgs::Pose ee1_pose, ee2_pose, iiwa1_base_pose, iiwa2_base_pose;
+  ee1_pose = link_states.pose[iiwa1_ee_index];
+  ee2_pose = link_states.pose[iiwa2_ee_index];
+  ee1_pos_ << ee1_pose.position.x, ee1_pose.position.y, ee1_pose.position.z;
+  ee2_pos_ << ee2_pose.position.x, ee2_pose.position.y, ee2_pose.position.z;
 
-  iiwa1_base_pose_ = link_states.pose[iiwa1_base_index];
-  iiwa2_base_pose_ = link_states.pose[iiwa2_base_index];
-  iiwa1_base_pos_ << iiwa1_base_pose_.position.x, iiwa1_base_pose_.position.y, iiwa1_base_pose_.position.z;
-  iiwa2_base_pos_ << iiwa2_base_pose_.position.x, iiwa2_base_pose_.position.y, iiwa2_base_pose_.position.z;
+  iiwa1_base_pose = link_states.pose[iiwa1_base_index];
+  iiwa2_base_pose = link_states.pose[iiwa2_base_index];
+  iiwa1_base_pos_ << iiwa1_base_pose.position.x, iiwa1_base_pose.position.y, iiwa1_base_pose.position.z;
+  iiwa2_base_pos_ << iiwa2_base_pose.position.x, iiwa2_base_pose.position.y, iiwa2_base_pose.position.z;
 
-  min_y_ = iiwa2_base_pos_[1] - 0.5;
-  max_y_ = iiwa2_base_pos_[1] - 0.1;
+  // TODO NEEDED OR DELETE?
+  // min_y_ = iiwa2_base_pos_[1] - 0.5;
+  // max_y_ = iiwa2_base_pos_[1] - 0.1;
 }
 
 //Optitrack
 void AirHockey::objectCallback(const geometry_msgs::Pose object_pose) {
   object_pos_ << object_pose.position.x, object_pose.position.y, object_pose.position.z;
-  object_pos_ = R_Opti * object_pos_;
+  object_pos_ = R_Opti_ * object_pos_;
+  Eigen::Vector3d object_rpy = quatToRPY(
+      {object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z});
 
-  object_rpy_ = quatToRPY({object_pose.orientation.w,
-                           object_pose.orientation.x,
-                           object_pose.orientation.y,
-                           object_pose.orientation.z});//get orientation in rpy
-  object_th_ = object_rpy_[2];                         //only the z-axis
   object_th_mod_ =
-      std::fmod(object_th_ + M_PI + M_PI / 4, M_PI / 2) - M_PI / 4;//get relative angle of box face facing the arm
+      std::fmod(object_rpy[2] + M_PI + M_PI / 4, M_PI / 2) - M_PI / 4;//get relative angle of box face facing the arm
 }
 
 void AirHockey::iiwa1BaseCallback(const geometry_msgs::Pose base_pose) {
   iiwa1_base_pos_ << base_pose.position.x, base_pose.position.y, base_pose.position.z;
-  iiwa1_base_pos_ = R_Opti * iiwa1_base_pos_;
+  iiwa1_base_pos_ = R_Opti_ * iiwa1_base_pos_;
 }
 
 void AirHockey::iiwa2BaseCallback(const geometry_msgs::Pose base_pose) {
   iiwa2_base_pos_ << base_pose.position.x, base_pose.position.y, base_pose.position.z;
-  iiwa2_base_pos_ = R_Opti * iiwa2_base_pos_;
-  min_y_ = iiwa2_base_pos_[1] - 0.5;
-  max_y_ = iiwa2_base_pos_[1] - 0.1;
+  iiwa2_base_pos_ = R_Opti_ * iiwa2_base_pos_;
+
+  // TODO NEEDED OR DELETE?
+  // min_y_ = iiwa2_base_pos_[1] - 0.5;
+  // max_y_ = iiwa2_base_pos_[1] - 0.1;
 }
 
 void AirHockey::iiwa1EEPoseCallback(const geometry_msgs::Pose ee_pose) {
-  ee1_pose_.position.x = ee_pose.position.x;
-  ee1_pose_.position.y = ee_pose.position.y;
-  ee1_pose_.position.z = ee_pose.position.z;
-  ee1_pose_.orientation.w = ee_pose.orientation.w;
-  ee1_pose_.orientation.x = ee_pose.orientation.x;
-  ee1_pose_.orientation.y = ee_pose.orientation.y;
-  ee1_pose_.orientation.z = ee_pose.orientation.z;
+  // TODO NEEDED OR DELETE?
+  // geometry_msgs::Pose ee1_pose;
+  // ee1_pose.position.x = ee_pose.position.x;
+  // ee1_pose.position.y = ee_pose.position.y;
+  // ee1_pose.position.z = ee_pose.position.z;
+  // ee1_pose.orientation.w = ee_pose.orientation.w;
+  // ee1_pose.orientation.x = ee_pose.orientation.x;
+  // ee1_pose.orientation.y = ee_pose.orientation.y;
+  // ee1_pose.orientation.z = ee_pose.orientation.z;
   ee1_pos_ << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
-  ee1_pos_ = R_EE * ee1_pos_;
+  ee1_pos_ = R_EE_ * ee1_pos_;
 }
 
 void AirHockey::iiwa2EEPoseCallback(const geometry_msgs::Pose ee_pose) {
-  ee2_pose_.position.x = ee_pose.position.x;
-  ee2_pose_.position.y = ee_pose.position.y;
-  ee2_pose_.position.z = ee_pose.position.z;
-  ee2_pose_.orientation.w = ee_pose.orientation.w;
-  ee2_pose_.orientation.x = ee_pose.orientation.x;
-  ee2_pose_.orientation.y = ee_pose.orientation.y;
-  ee2_pose_.orientation.z = ee_pose.orientation.z;
+  // TODO NEEDED OR DELETE?
+  // geometry_msgs::Pose ee2_pose;
+  //   ee2_pose.position.x = ee_pose.position.x;
+  //   ee2_pose.position.y = ee_pose.position.y;
+  //   ee2_pose.position.z = ee_pose.position.z;
+  //   ee2_pose.orientation.w = ee_pose.orientation.w;
+  //   ee2_pose.orientation.x = ee_pose.orientation.x;
+  //   ee2_pose.orientation.y = ee_pose.orientation.y;
+  //   ee2_pose.orientation.z = ee_pose.orientation.z;
   ee2_pos_ << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
-  ee2_pos_ = R_EE * ee2_pos_;
+  ee2_pos_ = R_EE_ * ee2_pos_;
 }
 
 //i_am_predict or estimate_sim
 void AirHockey::estimateObjectCallback(std_msgs::Float64MultiArray estimation) {
-  stdev_ = estimation.data[0];
+  // TODO NEVER USED DELETE
+  // double stdev;
+  // stdev = estimation.data[0];
+  //predict_th = estimation.data[8];
   ETA_ = estimation.data[1];
   predict_pos_ << estimation.data[2], estimation.data[3], estimation.data[4];
   object_vel_ << estimation.data[5], estimation.data[6], estimation.data[7];
-  //predict_th = estimation.data[8];
 }
 
 //manual control

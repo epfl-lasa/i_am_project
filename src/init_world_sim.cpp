@@ -121,9 +121,9 @@ get_param(modelProperties model, std::string key, ros::NodeHandle nh, modelPrope
   model.iyy = 1.0 / 12 * model.mass * (pow(model.size_x, 2) + pow(model.size_z, 2));
   model.izz = 1.0 / 12 * model.mass * (pow(model.size_x, 2) + pow(model.size_y, 2));
 
-  nh.getParam(key + "initial_pos/x", model.pose.position.x);
-  nh.getParam(key + "initial_pos/y", model.pose.position.y);
-  nh.getParam(key + "initial_pos/z", model.pose.position.z);
+  nh.getParam(key + "/initial_pos/x", model.pose.position.x);
+  nh.getParam(key + "/initial_pos/y", model.pose.position.y);
+  nh.getParam(key + "/initial_pos/z", model.pose.position.z);
 
   if (key == "mini") {
     model.pose.position.x += box.pose.position.x;
@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
   //Table:
   model_spawn.request.model_name = table.name;
   model_spawn.request.model_xml = sdfGenerator(table).str();
-  model_spawn.request.robot_namespace = "1v1_Gazebo";
+  model_spawn.request.robot_namespace = "air_hockey_gazebo";
   model_spawn.request.initial_pose = table.pose;
   model_spawner.call(model_spawn);
 
@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
   if (hollow == false) {
     model_spawn.request.model_name = box.name;
     model_spawn.request.model_xml = sdfGenerator(box).str();
-    model_spawn.request.robot_namespace = "1v1_Gazebo";
+    model_spawn.request.robot_namespace = "air_hockey_gazebo";
     model_spawn.request.initial_pose = box.pose;
   } else {//Hollow box is the only model that still uses fixed external sdf file
     std::stringstream hollow_path;
@@ -189,7 +189,7 @@ int main(int argc, char** argv) {
 
     model_spawn.request.model_name = box.name;
     model_spawn.request.model_xml = hollow_box_sdf.str();
-    model_spawn.request.robot_namespace = "1v1_Gazebo";
+    model_spawn.request.robot_namespace = "air_hockey_gazebo";
     model_spawn.request.initial_pose = box.pose;
     model_spawner.call(model_spawn);
 
@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
 
     model_spawn.request.model_name = mini.name;
     model_spawn.request.model_xml = sdfGenerator(mini).str();
-    model_spawn.request.robot_namespace = "1v1_Gazebo";
+    model_spawn.request.robot_namespace = "air_hockey_gazebo";
     model_spawn.request.initial_pose = mini.pose;
   }
   model_spawner.call(model_spawn);

@@ -28,7 +28,7 @@
 
     <!-- Set up gazebo world -->
     <rosparam file="$(find i_am_project)/config/world_sim_params.yaml" />
-    <node name="init_world" pkg="i_am_project" type="world_sim" output="screen"/>
+    <node name="world_sim" pkg="i_am_project" type="world_sim" output="screen"/>
 
     <!--Run air_hockey to control position and velocity for game of air hockey-->
     <node name="air_hockey" pkg="i_am_project" type="air_hockey" output="screen"/>                     

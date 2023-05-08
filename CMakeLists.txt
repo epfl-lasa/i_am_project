@@ -28,9 +28,6 @@ catkin_package(
 include_directories(include ${catkin_INCLUDE_DIRS})
 include_directories(${EIGEN3_INCLUDE_DIR})
 
-
-# set(MODE_SOURCES
-#                   src/move_robot.cpp)
 set(TOOL_SOURCES
                   src/tools/hittable.cpp 
                   src/tools/quattools.cpp

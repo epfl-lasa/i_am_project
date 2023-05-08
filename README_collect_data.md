@@ -5,13 +5,13 @@
 ### Entirely in simulation
 * Set parameter 'object_real' to 'false'
 * Set parameter 'iiwa_real' to 'false'
-(The parameters can be changed in "i_am_project/config/1v1_params.yaml")
-* Run `roslaunch i_am_project 1v1_Gazebo_record.launch`
+(The parameters can be changed in "i_am_project/config/world_sim_params.yaml")
+* Run `roslaunch i_am_project air_hockey_gazebo_record.launch`
 
-The nodes called in this launch file are AH_init, AH_master, estimate_sim and collect_data:
-- The node AH_init initializes the 1v1 Gazebo simulation
-- The node AH_master controls the different operation modes (1:track, 2:stop, 3:hit, 4:post-hit, 5:rest)
-- The node estimate_sim publish the predicted stop pose of the object calculated using the real velocity of the object from Gazebo. To publish the predicted stop pose of the object calculated using the estimated velocity of the kalman filter, replace the node estimate_sim by estimate_real in the launch file '1v1_Gazebo_record.launch'. Both nodes estimate_sim and estimate_real publish the predicted pose on the same topic 'estimate/object'.
+The nodes called in this launch file are world_sim, air_hockey, estimate_sim and collect_data:
+- The node world_sim initializes the air_hockey_gazebo simulation
+- The node air_hockey controls the different operation modes (1:track, 2:stop, 3:hit, 4:post-hit, 5:rest)
+- The node estimate_sim publish the predicted stop pose of the object calculated using the real velocity of the object from Gazebo. To publish the predicted stop pose of the object calculated using the estimated velocity of the kalman filter, replace the node estimate_sim by estimate_real in the launch file 'air_hockey_gazebo_record.launch'. Both nodes estimate_sim and estimate_real publish the predicted pose on the same topic 'estimate/object'.
 - The node collect_data collects and print data in "i_am_project/data/collect/object_data.csv"
 
 
@@ -19,7 +19,7 @@ The nodes called in this launch file are AH_init, AH_master, estimate_sim and co
 (the pose of the box is tracked with Optitrack and used in the control program.)
 * Set parameter 'object_real' to 'true'
 * Set parameter 'iiwa_real' to 'true'
-(The parameters can be changed in "i_am_project/config/1v1_params.yaml")
+(The parameters can be changed in "i_am_project/config/world_sim_params.yaml")
 * Run a launch file  
 
 This set up is not tested with the recording of data yet. The relevent callback functions and prints are implemented in the file collect_data.cpp but there may be mistakes especially with the fact that Optitrack use another origin for its measurements. 

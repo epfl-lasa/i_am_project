@@ -28,7 +28,7 @@
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/Int16.h>
 
-#include "../include/hittable.h"
+#include "tools/hittable.h"
 #include "tools/quattools.h"
 
 #include <experimental/filesystem>

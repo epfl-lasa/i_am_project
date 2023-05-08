@@ -26,14 +26,14 @@
 
   <!--Optitrack and other hardwares-->
   <rosparam file="$(find real_pose)/config/topics.yaml" command="load" subst_value="true"/>           
-  <include file="$(find real_pose)/launch/hardwares.launch">                                          
-  </include>
-  <node name="real_pose" pkg="real_pose" type="real_pose" output="screen"/>                           <!--Run real_pose to convert optitrack and iiwa_joint data to object, base and ee pose-->
+  <include file="$(find real_pose)/launch/hardwares.launch"></include>
+  <node name="real_pose" pkg="real_pose" type="real_pose" output="screen"/>
+  <!--Run real_pose to convert optitrack and iiwa_joint data to object, base and ee pose-->
   
-  <!--Run AH_master to control position and velocity for game of air hockey-->
-  <rosparam file="$(find i_am_project)/config/1v1_params.yaml" />
-  <node name="master" pkg="i_am_project" type="AH_master"   output="screen"/>                         
-  <node name="estimator" pkg="i_am_predict" type="estimate_real" output="screen"/>
+    <rosparam file="$(find i_am_project)/config/world_sim_params.yaml" />
+    <!--Run air_hockey-->
+    <node name="air_hockey" pkg="i_am_project" type="air_hockey" output="screen"/>                     
+    <node name="estimator" pkg="i_am_predict" type="estimate_sim" output="screen"/>
 
 </launch>
 

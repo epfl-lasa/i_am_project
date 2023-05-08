@@ -39,8 +39,8 @@ set(TOOL_SOURCES
 add_executable(world_sim src/init_world_sim.cpp) 
 target_link_libraries(world_sim ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 
-add_executable(AH_key_ctrl src/1v1_key_ctrl.cpp) 
-target_link_libraries(AH_key_ctrl ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
+add_executable(key_ctrl src/key_ctrl.cpp) 
+target_link_libraries(key_ctrl ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 
 add_executable(collect_data src/collect_data.cpp ${TOOL_SOURCES}) 
 target_link_libraries(collect_data ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs")

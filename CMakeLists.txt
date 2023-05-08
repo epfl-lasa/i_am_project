@@ -54,10 +54,6 @@ target_link_libraries(AH_key_ctrl ${catkin_LIBRARIES} ${Eigen3_LIBRARIES})
 add_executable(collect_data src/collect_data.cpp ${TOOL_SOURCES}) 
 target_link_libraries(collect_data ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs")
 
-add_executable(AH_master src/1v1_master.cpp ${MODE_SOURCES} ${TOOL_SOURCES}) 
-target_link_libraries(AH_master ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs")
-add_dependencies(AH_master i_am_project_generate_messages_cpp)
-
 add_executable(air_hockey src/air_hockey.cpp ${MODE_SOURCES} ${TOOL_SOURCES}) 
 target_link_libraries(air_hockey ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} "stdc++fs")
 add_dependencies(air_hockey i_am_project_generate_messages_cpp)

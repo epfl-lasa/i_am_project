@@ -29,15 +29,11 @@
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/Int16.h>
 
-#include "../include/block.h"
-#include "../include/hit_DS.h"
-#include "../include/post_hit.h"
-#include "../include/rest.h"
-#include "../include/track.h"
+#include "move_robot.h"
 
 #include "../include/hittable.h"
 #include "../include/modeselektor.h"
-#include "../include/quattools.h"
+#include "tools/quattools.h"
 
 #include <experimental/filesystem>
 #define _USE_MATH_DEFINES

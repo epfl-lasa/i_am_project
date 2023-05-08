@@ -178,6 +178,7 @@ void AirHockey::move_robot(int mode, int mode_id) {
       break;
     case 2://stop
       if (mode_id == 1) {
+        ROS_INFO_STREAM("______ STOP MODE CASE 2");
         pub_pos_quat1_.publish(block(object_pos_, predict_pos_, center1_, center2_, object_th_mod_, iiwa1_base_pos_));
       } else if (mode_id == 2) {
         pub_pos_quat2_.publish(block(object_pos_, predict_pos_, center2_, center1_, object_th_mod_, iiwa2_base_pos_));

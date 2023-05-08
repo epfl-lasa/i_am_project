@@ -57,9 +57,11 @@ private:
 
   std_msgs::Int16 msg_mode1_, msg_mode2_;
 
+  Eigen::Vector2d ee_offset_;
   Eigen::Vector3d object_pos_, iiwa1_base_pos_, iiwa2_base_pos_, ee1_pos_, ee2_pos_, object_pos_init1_,
-      object_pos_init2_, ee1_pos_init_, ee2_pos_init_, object_vel_, predict_pos_, center1_, center2_, ee_offset_,
-      hittable_params_, R_Opti_, R_EE_;
+      object_pos_init2_, ee1_pos_init_, ee2_pos_init_, object_vel_, predict_pos_, center1_, center2_;
+  Eigen::Vector4d hittable_params_;
+  Eigen::Matrix3d R_Opti_, R_EE_;
 
   std::vector<double> center1vec_, center2vec_;
 

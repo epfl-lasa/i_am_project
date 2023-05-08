@@ -30,8 +30,8 @@
     <rosparam file="$(find i_am_project)/config/world_sim_params.yaml" />
     <node name="init_world" pkg="i_am_project" type="world_sim" output="screen"/>
 
-    <!--Run AH_master to control position and velocity for game of air hockey-->
-    <node name="master" pkg="i_am_project" type="AH_master"   output="screen"/>                     
+    <!--Run air_hockey to control position and velocity for game of air hockey-->
+    <node name="air_hockey" pkg="i_am_project" type="air_hockey" output="screen"/>                     
     <node name="estimator" pkg="i_am_predict" type="estimate_sim" output="screen"/>
 
 

@@ -33,7 +33,7 @@ The pre-hit is only a few time steps before an event that we can recognize which
 Hence, we store the actual data for 3 time steps. This turns out to be the right time. In other words, post-hit mode is initiated 3 time steps after the step right before impact, which is the step we want data from.
 The predicted stop pose is stored 1 second (100 time steps) before the pre-hit data are stored, you can compare the predicted stop pose of the object with the actual stop pose which is the pre-hit object pose. To store an earlier prediction, just change the number of time steps in lines 345 and 346 in the file `collect_data.cpp`. 
 
-Note : the frequency is set to 100 so 100 time steps --> 1 second.
+Note : the frequency is set to 100 so 100 time steps &rarr; 1 second.
 
 
 ## What is printed?

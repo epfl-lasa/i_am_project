@@ -32,7 +32,7 @@
 #include "move_robot.h"
 
 #include "../include/hittable.h"
-#include "../include/modeselektor.h"
+// #include "../include/modeselektor.h"
 #include "tools/quattools.h"
 
 #include <experimental/filesystem>
@@ -95,4 +95,28 @@ public:
   //manual control
   void modeCallback(std_msgs::Int16 msg);
   int getIndex(std::vector<std::string> v, std::string value);
+
+  //Select mode
+  int modeSelektor(Eigen::Vector3d object_pos,
+                   Eigen::Vector3d object_pos_init,
+                   Eigen::Vector3d object_vel,
+                   Eigen::Vector3d predict_pos,
+                   double ETA,
+                   Eigen::Vector3d ee_pos,
+                   Eigen::Vector3d center1,
+                   Eigen::Vector3d center2,
+                   Eigen::Vector2d ee_offset,
+                   Eigen::Vector4d hittable_params,
+                   const int prev_mode);
+  int maniModeSelektor(Eigen::Vector3d object_pos,
+                       Eigen::Vector3d object_pos_init,
+                       Eigen::Vector3d object_vel,
+                       Eigen::Vector3d ee_pos,
+                       Eigen::Vector3d center1,
+                       Eigen::Vector3d center2,
+                       Eigen::Vector2d ee_offset,
+                       Eigen::Vector4d hittable_params,
+                       const int prev_mode,
+                       const int key_ctrl,
+                       const int iiwa_no);
 };

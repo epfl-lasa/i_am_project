@@ -32,7 +32,6 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 # set(MODE_SOURCES
 #                   src/move_robot.cpp)
 set(TOOL_SOURCES
-                  src/tools/modeselektor.cpp
                   src/tools/hittable.cpp 
                   src/tools/quattools.cpp
                   include/thirdparty/Utils.cpp)

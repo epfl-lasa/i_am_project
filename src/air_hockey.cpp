@@ -111,6 +111,7 @@ void AirHockey::run() {
     ss1 << "mode1: " << mode1_;
     ss2 << "mode2: " << mode2_;
 
+    // TODO NEED PRINTING OR NOT?
     ROS_INFO("%s", ss1.str().c_str());
     ROS_INFO("%s", ss2.str().c_str());
 

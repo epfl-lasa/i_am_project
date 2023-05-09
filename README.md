@@ -45,3 +45,72 @@ There are three different settings in which the branches with air hockey policy 
 
 Keep in mind for the single setup, the IIWA base is at (x,y)=(0,0) while for the dual setup, the point between the two IIWA bases is at (x,y)=(0,0).
 Finally, it is important to set the center points in the parameter file to reasonable positions w.r.t. the IIWA_base. A good first option is 0.2 m in the direction of the other IIWA and 0.55 m perpendicular to that direction.
+
+
+
+## Docker
+The Dockerfile has the "Dual arm with air hockey policy" dependencies.
+
+A docker containing iiwa-ros library is needed to build the i_am_project docker.
+
+### Prerequisite
+
+cf. https://github.com/epfl-lasa/iiwa_ros/tree/feature/dockerise/docker#prerequisite
+
+### Docker iiwa-ros
+1. Pull the repo 
+    ```bash
+    git clone -b feature/dockerise git@github.com:epfl-lasa/iiwa_ros.git
+    ```
+    The branch of iiwa_ros needed here is `featuresim` . However, it needs to pull the changes on main to work properly.
+
+    **When the pull will be done:**
+
+    In Dockerfile located in ./docker replace (line 114)
+    ```bash
+    RUN git clone https://github.com/epfl-lasa/iiwa_ros.git
+    ```
+    with 
+    ``` bash
+    RUN git clone -b feature/inertia https://github.com/epfl-lasa/iiwa_ros.git
+    ```
+
+    **Quick fix when waiting for the pull:**
+
+    * To have the changes from branch `featuresim` simply run
+    ``` bash
+    git pull origin featuresim
+    ```
+    and resolve the merge conflicts **BUT DO NOT PUSH THE CHANGES** 
+
+    * In Dockerfile located in ./docker replace (line 114)
+    ```bash
+    RUN git clone https://github.com/epfl-lasa/iiwa_ros.git
+    ```
+    with 
+    ``` bash
+    COPY --chown=${USER} ./ ./src/iiwa_ros
+    ```
+
+2. Build the docker
+    ``` bash
+    cd docker
+    bash install_docker.sh
+    ```
+
+### Docker i_am_project
+The files from your folder i_am_project will be copy inside the docker. Make sure you are on the correct branch.
+
+Build docker:
+
+```bash
+cd <path_to_i_am_project>
+
+ ./docker/build-server.sh 
+```
+
+Run docker:
+
+``` bash 
+aica-docker interactive iam_project_harshit:noetic -u ros --net host --no-hostname -v /path_to_project/i_am_project:/home/ros/ros_ws/src/i_am_project
+```

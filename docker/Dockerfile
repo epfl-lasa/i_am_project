@@ -18,7 +18,8 @@ RUN --mount=type=ssh git clone git@github.com:epfl-lasa/iiwa_toolkit_ns.git
 
 # i_am_predict (kalman filter) (need to be root to clone private repo)
 WORKDIR /home/${USER}/ros_ws/src
-RUN --mount=type=ssh git clone -b master git@github.com:epfl-lasa/i_am_predict.git
+RUN --mount=type=ssh git clone git@github.com:epfl-lasa/i_am_predict.git
+RUN cd i_am_predict && git checkout clean/master
 
 USER ${USER}
 

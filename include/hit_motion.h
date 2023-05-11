@@ -62,7 +62,7 @@ private:
   Eigen::Matrix3f iiwa_task_inertia_pos_;
   Eigen::Matrix3f rotation_;
 
-  std::unique_ptr<hitting_DS> _generate_hitting =
+  std::unique_ptr<hitting_DS> generate_hitting_ =
       std::make_unique<hitting_DS>(iiwa_position_from_source_, object_position_world_);
 
   // TODO NOT NEEDED --> DELETE

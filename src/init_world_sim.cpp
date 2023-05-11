@@ -143,8 +143,12 @@ int main(int argc, char** argv) {
   ros::NodeHandle nh;
 
   //Spawn service
-  ros::service::waitForService("gazebo/spawn_sdf_model");
-  ros::ServiceClient model_spawner = nh.serviceClient<gazebo_msgs::SpawnModel>("/gazebo/spawn_sdf_model");
+  std::string gazebo_spawn_sdf_model;
+  if (!nh.getParam("gazebo/spawn_sdf_model", gazebo_spawn_sdf_model)) {
+    ROS_ERROR("Param gazebo/spawn_sdf_model not found");
+  }
+  ros::service::waitForService(gazebo_spawn_sdf_model);
+  ros::ServiceClient model_spawner = nh.serviceClient<gazebo_msgs::SpawnModel>(gazebo_spawn_sdf_model);
   gazebo_msgs::SpawnModel model_spawn;
 
   bool hollow;

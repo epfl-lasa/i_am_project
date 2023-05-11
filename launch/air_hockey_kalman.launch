@@ -28,6 +28,7 @@
 
   <!-- Set up gazebo world -->
   <rosparam file="$(find i_am_project)/config/world_sim_params.yaml" />
+  <rosparam file="$(find i_am_project)/config/ros_topics.yaml" />
   <node name="world_sim" pkg="i_am_project" type="world_sim" output="screen"/>
 
   <!--Run air_hockey-->

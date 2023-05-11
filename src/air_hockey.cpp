@@ -19,6 +19,52 @@ bool AirHockey::init() {
   if (!nh_.getParam("hittable/reach/y", y_reach_)) { ROS_ERROR("Param hittable/reach/y not found"); }
   if (!nh_.getParam("hittable/offset/x", x_offset_)) { ROS_ERROR("Param hittable/offset/x not found"); }
   if (!nh_.getParam("hittable/offset/y", y_offset_)) { ROS_ERROR("Param hittable/offset/y not found"); }
+
+  // Get ros topics name
+  std::string mode_iiwa1, mode_iiwa2, passive_ctrl_iiwa1_vel_quat, passive_ctrl_iiwa2_vel_quat,
+      passive_ctrl_iiwa1_pos_quat, passive_ctrl_iiwa2_pos_quat, estimate_object, track_object, track_left_pose,
+      track_left_eepose, track_right_pose, track_right_eepose, gazebo_model_states, gazebo_set_model_states,
+      gazebo_link_states;
+  if (!nh_.getParam("/mode/iiwa1", mode_iiwa1)) { ROS_ERROR("Param ros topic mode/iiwa1 not found"); }
+  if (!nh_.getParam("/mode/iiwa2", mode_iiwa2)) { ROS_ERROR("Param ros topic mode/iiwa2 not found"); }
+  if (!nh_.getParam("/passive_control/vel_quat/iiwa1", passive_ctrl_iiwa1_vel_quat)) {
+    ROS_ERROR("Param ros topic /passive_control/vel_quat/iiwa1 not found");
+  }
+  if (!nh_.getParam("/passive_control/vel_quat/iiwa2", passive_ctrl_iiwa2_vel_quat)) {
+    ROS_ERROR("Param ros topic /passive_control/vel_quat/iiwa2 not found");
+  }
+  if (!nh_.getParam("/passive_control/pos_quat/iiwa1", passive_ctrl_iiwa1_pos_quat)) {
+    ROS_ERROR("Param ros topic /passive_control/pos_quat/iiwa1 not found");
+  }
+  if (!nh_.getParam("/passive_control/pos_quat/iiwa2", passive_ctrl_iiwa2_pos_quat)) {
+    ROS_ERROR("Param ros topic /passive_control/pos_quat/iiwa2 not found");
+  }
+  if (!nh_.getParam("estimate/object", estimate_object)) { ROS_ERROR("Param ros topic estimate/object not found"); }
+  if (!nh_.getParam("/simo_track/object_pose", track_object)) {
+    ROS_ERROR("Param ros topic /simo_track/object_pose not found");
+  }
+  if (!nh_.getParam("/simo_track/robot_left/pose", track_left_pose)) {
+    ROS_ERROR("Param ros topic /simo_track/robot_left/pose not found");
+  }
+  if (!nh_.getParam("/simo_track/robot_left/ee_pose", track_left_eepose)) {
+    ROS_ERROR("Param ros topic /simo_track/robot_left/ee_pose not found");
+  }
+  if (!nh_.getParam("/simo_track/robot_right/pose", track_right_pose)) {
+    ROS_ERROR("Param ros topic /simo_track/robot_right/pose not found");
+  }
+  if (!nh_.getParam("/simo_track/robot_right/ee_pose", track_right_eepose)) {
+    ROS_ERROR("Param ros topic /simo_track/robot_right/ee_pose not found");
+  }
+  if (!nh_.getParam("/gazebo/model_states", gazebo_model_states)) {
+    ROS_ERROR("Param ros topic /gazebo/model_states not found");
+  }
+  if (!nh_.getParam("/gazebo/set_model_state", gazebo_set_model_states)) {
+    ROS_ERROR("Param ros topic /gazebo/set_model_state not found");
+  }
+  if (!nh_.getParam("/gazebo/link_states", gazebo_link_states)) {
+    ROS_ERROR("Param ros topic /gazebo/link_states not found");
+  }
+
   nh_.getParam("hit/speed", des_speed_);
   //   ros::Duration(3).sleep(); // TODO WHY?? (LINE 240)
 
@@ -28,32 +74,32 @@ bool AirHockey::init() {
   hittable_params_ = {x_reach_, y_reach_, x_offset_, y_offset_};
 
   //Init publishers
-  pub_mode1_ = nh_.advertise<std_msgs::Int16>("/mode/iiwa1", 1);
-  pub_mode2_ = nh_.advertise<std_msgs::Int16>("/mode/iiwa2", 1);
-  pub_vel_quat1_ = nh_.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/vel_quat", 1);
-  pub_pos_quat1_ = nh_.advertise<geometry_msgs::Pose>("/passive_control/iiwa1/pos_quat", 1);
-  pub_vel_quat2_ = nh_.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/vel_quat", 1);
-  pub_pos_quat2_ = nh_.advertise<geometry_msgs::Pose>("/passive_control/iiwa2/pos_quat", 1);
+  pub_mode1_ = nh_.advertise<std_msgs::Int16>(mode_iiwa1, 1);
+  pub_mode2_ = nh_.advertise<std_msgs::Int16>(mode_iiwa2, 1);
+  pub_vel_quat1_ = nh_.advertise<geometry_msgs::Pose>(passive_ctrl_iiwa1_vel_quat, 1);
+  pub_pos_quat1_ = nh_.advertise<geometry_msgs::Pose>(passive_ctrl_iiwa1_pos_quat, 1);
+  pub_vel_quat2_ = nh_.advertise<geometry_msgs::Pose>(passive_ctrl_iiwa2_vel_quat, 1);
+  pub_pos_quat2_ = nh_.advertise<geometry_msgs::Pose>(passive_ctrl_iiwa2_pos_quat, 1);
 
   //Init subscribers
-  estimate_object_subs_ = nh_.subscribe("estimate/object", 10, &AirHockey::estimateObjectCallback, this);
-  mode_sub_ = nh_.subscribe("mode", 10, &AirHockey::modeCallback, this);//Subscriber to key control
+  estimate_object_subs_ = nh_.subscribe(estimate_object, 10, &AirHockey::estimateObjectCallback, this);
+  mode_sub_ = nh_.subscribe("/key_ctrl_mode", 10, &AirHockey::modeCallback, this);//Subscriber to key control
   if (object_real_) {
-    object_subs_ = nh_.subscribe("/simo_track/object_pose", 10, &AirHockey::objectCallback, this);
+    object_subs_ = nh_.subscribe(track_object, 10, &AirHockey::objectCallback, this);
   } else {
-    object_subs_ = nh_.subscribe("/gazebo/model_states", 10, &AirHockey::objectSimCallback, this);
+    object_subs_ = nh_.subscribe(gazebo_model_states, 10, &AirHockey::objectSimCallback, this);
     //Client to reset object pose
-    ros::service::waitForService("gazebo/set_model_state");
-    set_state_client_ = nh_.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
+    ros::service::waitForService(gazebo_set_model_states);
+    set_state_client_ = nh_.serviceClient<gazebo_msgs::SetModelState>(gazebo_set_model_states);
   }
 
   if (iiwa_real_) {
-    iiwa1_base_subs_ = nh_.subscribe("/simo_track/robot_left/pose", 10, &AirHockey::iiwa1BaseCallback, this);
-    iiwa2_base_subs_ = nh_.subscribe("/simo_track/robot_right/pose", 10, &AirHockey::iiwa2BaseCallback, this);
-    iiwa1_ee_subs_ = nh_.subscribe("/simo_track/robot_left/ee_pose", 10, &AirHockey::iiwa1EEPoseCallback, this);
-    iiwa2_ee_subs_ = nh_.subscribe("/simo_track/robot_right/ee_pose", 10, &AirHockey::iiwa2EEPoseCallback, this);
+    iiwa1_base_subs_ = nh_.subscribe(track_left_pose, 10, &AirHockey::iiwa1BaseCallback, this);
+    iiwa2_base_subs_ = nh_.subscribe(track_right_pose, 10, &AirHockey::iiwa2BaseCallback, this);
+    iiwa1_ee_subs_ = nh_.subscribe(track_left_eepose, 10, &AirHockey::iiwa1EEPoseCallback, this);
+    iiwa2_ee_subs_ = nh_.subscribe(track_right_eepose, 10, &AirHockey::iiwa2EEPoseCallback, this);
   } else {
-    iiwa_subs_ = nh_.subscribe("/gazebo/link_states", 10, &AirHockey::iiwaSimCallback, this);
+    iiwa_subs_ = nh_.subscribe(gazebo_link_states, 10, &AirHockey::iiwaSimCallback, this);
   }
 
   // TODO IS THIS NEEDED??

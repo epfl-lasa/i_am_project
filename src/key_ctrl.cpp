@@ -36,7 +36,7 @@ int getch(void) {
 int main(int argc, char** argv) {
   ros::init(argc, argv, "key_control_node");
   ros::NodeHandle nh;
-  ros::Publisher mode_pub = nh.advertise<std_msgs::Int16>("mode", 10);
+  ros::Publisher mode_pub = nh.advertise<std_msgs::Int16>("/key_ctrl_mode", 10);
   ros::Rate rate(5.0);
 
   char key = (' ');

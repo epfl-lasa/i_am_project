@@ -1,0 +1,49 @@
+
+mode: {
+  iiwa1: "/mode/iiwa1",
+  iiwa2: "/mode/iiwa2"
+}
+
+passive_control: {
+  vel_quat: {
+    iiwa1: "/passive_control/iiwa1/vel_quat",
+    iiwa2: "/passive_control/iiwa2/vel_quat"
+  },
+  pos_quat : {
+    iiwa1: "/passive_control/iiwa1/pos_quat",
+    iiwa2: "/passive_control/iiwa2/pos_quat"
+  }
+}
+
+estimate: {
+  object : "estimate/object"
+}
+
+simo_track: {
+  object_pose: "/simo_track/object_pose",
+  robot_left: {
+    pose: "/simo_track/robot_left/pose" ,
+    ee_pose: "/simo_track/robot_left/ee_pose"
+  },
+  robot_right: {
+    pose: "/simo_track/robot_right/pose",
+    ee_pose: "/simo_track/robot_right/ee_pose"
+  }
+}
+
+gazebo: {
+  model_states: "/gazebo/model_states",
+  set_model_state: "/gazebo/set_model_state",
+  link_states: "/gazebo/link_states",
+  spawn_sdf_model: "gazebo/spawn_sdf_model"
+}
+
+joint_states: {
+  iiwa1: "/iiwa1/joint_states",
+  iiwa2: "/iiwa2/joint_states"
+}
+
+ee_twist: {
+  iiwa1: "/iiwa1/ee_twist",
+  iiwa2: "/iiwa2/ee_twist"
+}

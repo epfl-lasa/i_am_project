@@ -140,35 +140,69 @@ void CollectData::init() {
   if (!nh_.getParam("manual_mode", manual_mode_)) { ROS_ERROR("Param manual_mode not found"); }
   if (!nh_.getParam("hollow", hollow_)) { ROS_ERROR("Param hollow not found"); }
 
+  // Get ros topics name
+  std::string track_object, track_left_eepose, track_right_eepose, gazebo_model_states, gazebo_set_model_states,
+      gazebo_link_states, joint_states_iiwa1, joint_states_iiwa2, ee_twist_iiwa1, ee_twist_iiwa2, estimate_object,
+      mode_iiwa1, mode_iiwa2;
+  if (!nh_.getParam("/simo_track/object_pose", track_object)) {
+    ROS_ERROR("Param ros topic /simo_track/object_pose not found");
+  }
+  if (!nh_.getParam("/simo_track/robot_left/ee_pose", track_left_eepose)) {
+    ROS_ERROR("Param ros topic /simo_track/robot_left/ee_pose not found");
+  }
+  if (!nh_.getParam("/simo_track/robot_right/ee_pose", track_right_eepose)) {
+    ROS_ERROR("Param ros topic /simo_track/robot_right/ee_pose not found");
+  }
+  if (!nh_.getParam("/gazebo/model_states", gazebo_model_states)) {
+    ROS_ERROR("Param ros topic /gazebo/model_states not found");
+  }
+  if (!nh_.getParam("/gazebo/set_model_state", gazebo_set_model_states)) {
+    ROS_ERROR("Param ros topic /gazebo/set_model_state not found");
+  }
+  if (!nh_.getParam("/gazebo/link_states", gazebo_link_states)) {
+    ROS_ERROR("Param ros topic /gazebo/link_states not found");
+  }
+  if (!nh_.getParam("/joint_states/iiwa1", joint_states_iiwa1)) {
+    ROS_ERROR("Param ros topic /joint_states/iiwa1 not found");
+  }
+  if (!nh_.getParam("/joint_states/iiwa2", joint_states_iiwa2)) {
+    ROS_ERROR("Param ros topic /joint_states/iiwa2 not found");
+  }
+  if (!nh_.getParam("/ee_twist/iiwa1", ee_twist_iiwa1)) { ROS_ERROR("Param ros topic /ee_twist/iiwa1 not found"); }
+  if (!nh_.getParam("/ee_twist/iiwa2", ee_twist_iiwa2)) { ROS_ERROR("Param ros topic /ee_twist/iiwa2 not found"); }
+  if (!nh_.getParam("estimate/object", estimate_object)) { ROS_ERROR("Param ros topic estimate/object not found"); }
+  if (!nh_.getParam("/mode/iiwa1", mode_iiwa1)) { ROS_ERROR("Param ros topic mode/iiwa1 not found"); }
+  if (!nh_.getParam("/mode/iiwa2", mode_iiwa2)) { ROS_ERROR("Param ros topic mode/iiwa2 not found"); }
+
   //Subscribers to object and IIWA states
   if (object_real_) {
-    object_subs_ = nh_.subscribe("/simo_track/object_pose", 10, &CollectData::objectCallback, this);
+    object_subs_ = nh_.subscribe(track_object, 10, &CollectData::objectCallback, this);
   } else {
-    object_subs_ = nh_.subscribe("/gazebo/model_states", 10, &CollectData::objectSimCallback, this);
+    object_subs_ = nh_.subscribe(gazebo_model_states, 10, &CollectData::objectSimCallback, this);
     //Client to reset object pose
-    ros::service::waitForService("gazebo/set_model_state");
-    set_state_client_ = nh_.serviceClient<gazebo_msgs::SetModelState>("/gazebo/set_model_state");
+    ros::service::waitForService(gazebo_set_model_states);
+    set_state_client_ = nh_.serviceClient<gazebo_msgs::SetModelState>(gazebo_set_model_states);
   }
 
   if (iiwa_real_) {
-    iiwa1_ee_subs_ = nh_.subscribe("/simo_track/robot_left/ee_pose", 10, &CollectData::iiwa1EEPoseCallback, this);
-    iiwa2_ee_subs_ = nh_.subscribe("/simo_track/robot_right/ee_pose", 10, &CollectData::iiwa2EEPoseCallback, this);
+    iiwa1_ee_subs_ = nh_.subscribe(track_left_eepose, 10, &CollectData::iiwa1EEPoseCallback, this);
+    iiwa2_ee_subs_ = nh_.subscribe(track_right_eepose, 10, &CollectData::iiwa2EEPoseCallback, this);
   } else {
-    iiwa_subs_ = nh_.subscribe("/gazebo/link_states", 10, &CollectData::iiwaSimCallback, this);
+    iiwa_subs_ = nh_.subscribe(gazebo_link_states, 10, &CollectData::iiwaSimCallback, this);
   }
 
-  iiwa1_ee_twist_subs_ =
-      nh_.subscribe("iiwa1/ee_twist", 100, &CollectData::iiwa1EETwistCallback, this);//from passive_control and iiwa_ros
-  iiwa2_ee_twist_subs_ = nh_.subscribe("iiwa2/ee_twist", 100, &CollectData::iiwa2EETwistCallback, this);
-  iiwa1_joint_subs_ = nh_.subscribe("/iiwa1/joint_states", 100, &CollectData::iiwa1JointCallback, this);
-  iiwa2_joint_subs_ = nh_.subscribe("/iiwa2/joint_states", 100, &CollectData::iiwa2JointCallback, this);
+  // from passive_control and iiwa_ros
+  iiwa1_ee_twist_subs_ = nh_.subscribe(ee_twist_iiwa1, 100, &CollectData::iiwa1EETwistCallback, this);
+  iiwa2_ee_twist_subs_ = nh_.subscribe(ee_twist_iiwa2, 100, &CollectData::iiwa2EETwistCallback, this);
+  iiwa1_joint_subs_ = nh_.subscribe(joint_states_iiwa1, 100, &CollectData::iiwa1JointCallback, this);
+  iiwa2_joint_subs_ = nh_.subscribe(joint_states_iiwa2, 100, &CollectData::iiwa2JointCallback, this);
 
   //Subcriber to position estimator
-  estimate_object_subs_ = nh_.subscribe("estimate/object", 10, &CollectData::estimateObjectCallback, this);
+  estimate_object_subs_ = nh_.subscribe(estimate_object, 10, &CollectData::estimateObjectCallback, this);
 
   //Subscriber to Robot modes from master node
-  mode1_sub_ = nh_.subscribe("/mode/iiwa1", 10, &CollectData::modeIwaa1Callback, this);
-  mode2_sub_ = nh_.subscribe("/mode/iiwa2", 10, &CollectData::modeIwaa2Callback, this);
+  mode1_sub_ = nh_.subscribe(mode_iiwa1, 10, &CollectData::modeIwaa1Callback, this);
+  mode2_sub_ = nh_.subscribe(mode_iiwa2, 10, &CollectData::modeIwaa2Callback, this);
 
   //Center points of desired workspaces (used to aim for and tell what orientation)
   std::vector<double> center1vec;

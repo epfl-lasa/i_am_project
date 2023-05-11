@@ -27,12 +27,15 @@
   </include>
 
   <!-- Set up gazebo world -->
-    <rosparam file="$(find i_am_project)/config/world_sim_params.yaml" />
-    <node name="world_sim" pkg="i_am_project" type="world_sim" output="screen"/>
+  <rosparam file="$(find i_am_project)/config/world_sim_params.yaml" />
+  <node name="world_sim" pkg="i_am_project" type="world_sim" output="screen"/>
 
-    <!--Run air_hockey-->
-    <node name="air_hockey" pkg="i_am_project" type="air_hockey" output="screen"/>                     
-    <node name="estimator" pkg="i_am_predict" type="estimate_sim" output="screen"/>
+  <!-- All ROS topics names -->
+  <rosparam file="$(find i_am_project)/config/ros_topics.yaml" />
+
+  <!--Run air_hockey-->
+  <node name="air_hockey" pkg="i_am_project" type="air_hockey" output="screen"/>                     
+  <node name="estimator" pkg="i_am_predict" type="estimate_sim" output="screen"/>
 
  <!-- Use estimate real if you want to use the prediction of the kalman filter.        
   <node name="estimator" pkg="i_am_predict" type="estimate_real" output="screen"/>

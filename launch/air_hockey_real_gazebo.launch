@@ -10,27 +10,28 @@
 |-->
 
 <launch>
-  <arg name="robot_name_1" default="iiwa1"/>
-  <arg name="robot_name_2" default="iiwa2"/>
+    <arg name="robot_name_1" default="iiwa1"/>
+    <arg name="robot_name_2" default="iiwa2"/>
 
-  <!--This spawns iiwa7 and iiwa14 and starts both passive tracking in their namespace-->
-  <include
-      file = "$(find iiwa_toolkit)/launch/passive_track_gazebo_dual.launch">    
-      <arg name="robot_name_1" value="$(arg robot_name_1)"/>
-      <arg name="robot_name_2" value="$(arg robot_name_2)"/>
-      <arg name="iiwa_model_1" value="7"/>
-      <arg name="iiwa_model_2" value="14"/>
-      <arg name="position_1" value="-x 0.0 -y -0.82"/>
-      <arg name="position_2" value="-x 0.0 -y 0.82"/>
-  </include>
+    <!--This spawns iiwa7 and iiwa14 and starts both passive tracking in their namespace-->
+    <include
+        file = "$(find iiwa_toolkit)/launch/passive_track_gazebo_dual.launch">    
+        <arg name="robot_name_1" value="$(arg robot_name_1)"/>
+        <arg name="robot_name_2" value="$(arg robot_name_2)"/>
+        <arg name="iiwa_model_1" value="7"/>
+        <arg name="iiwa_model_2" value="14"/>
+        <arg name="position_1" value="-x 0.0 -y -0.82"/>
+        <arg name="position_2" value="-x 0.0 -y 0.82"/>
+    </include>
 
-  <!--Optitrack and other hardwares-->
-  <rosparam file="$(find real_pose)/config/topics.yaml" command="load" subst_value="true"/>           
-  <include file="$(find real_pose)/launch/hardwares.launch"></include>
-  <node name="real_pose" pkg="real_pose" type="real_pose" output="screen"/>
-  <!--Run real_pose to convert optitrack and iiwa_joint data to object, base and ee pose-->
+    <!--Optitrack and other hardwares-->
+    <rosparam file="$(find real_pose)/config/topics.yaml" command="load" subst_value="true"/>           
+    <include file="$(find real_pose)/launch/hardwares.launch"></include>
+    <node name="real_pose" pkg="real_pose" type="real_pose" output="screen"/>
+    <!--Run real_pose to convert optitrack and iiwa_joint data to object, base and ee pose-->
   
     <rosparam file="$(find i_am_project)/config/world_sim_params.yaml" />
+    <rosparam file="$(find i_am_project)/config/ros_topics.yaml" /> 
     <!--Run air_hockey-->
     <node name="air_hockey" pkg="i_am_project" type="air_hockey" output="screen"/>                     
     <node name="estimator" pkg="i_am_predict" type="estimate_sim" output="screen"/>

@@ -31,6 +31,7 @@
     <node name="world_sim" pkg="i_am_project" type="world_sim" output="screen"/>
 
     <!--Run air_hockey sim-->
+    <rosparam file="$(find i_am_project)/config/ros_topics.yaml" />
     <node name="air_hockey" pkg="i_am_project" type="air_hockey" output="screen"/>                     
     <node name="estimator" pkg="i_am_predict" type="estimate_sim" output="screen"/>
 

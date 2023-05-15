@@ -1,5 +1,5 @@
 ARG BASE_IMAGE_TAG=noetic
-FROM epfl-lasa/iiwa_ros
+FROM lizjdp/iiwa-ros-inertia
 
 # Modify files inside docker
 ARG HOST_GID=1001
@@ -10,6 +10,12 @@ RUN if [ "${HOST_GID}" != "1000" ];\
     usermod ${USER} -g ${HOST_GID} && \ 
     usermod ${USER} -a -G ${USER_GROUP}; fi
 USER ${USER}
+
+# Add vrpn tools
+RUN sudo apt-get update && sudo apt-get install -y \
+    netbase \
+    ros-noetic-vrpn-client-ros \
+    && sudo apt-get upgrade -y && sudo apt-get clean
 
 # CPP lib
 # osqp
@@ -53,6 +59,6 @@ ENV PYTHONPATH "${PYTHONPATH}:/opt/openrobots/lib/python3.8/site-packages/"
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash; catkin_make"
 
 # ./docker/build-server.sh 
-# aica-docker interactive iam_project_harshit:noetic -u ros --net host --no-hostname -v /home/elise/Documents/IAM/code/i_am_project:/home/ros/ros_ws/src/i_am_project
+# aica-docker interactive iam_project_harshit:noetic -u ros --net host --no-hostname -v /home/elise/Documents/IAM/code/i_am_project:/home/ros/ros_ws/src/i_am_project --privileged
 
 

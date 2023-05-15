@@ -12,19 +12,6 @@
 
 #include "dynamical_system.h"
 
-// TODO NEEDED ?
-// #include <experimental/filesystem>// WHAT IS THIS??
-// #include "math.h"
-// #include <cstdio>
-// #include <fstream>
-// #include <iostream>
-// #include <numeric>
-// #include <string>
-// #include <vector>
-// #include <std_msgs/Float64.h>
-// #include <std_msgs/Float64MultiArray.h>
-// #include <Eigen/Geometry>
-
 class HitMotion {
 
 private:
@@ -35,7 +22,7 @@ private:
   std::string iiwa_position_topic_;
   std::string iiwa_vel_topic_;
   std::string object_position_topic_;
-  std::string pub_dir_flux_topic;
+  std::string pub_dir_flux_topic_;
   std::string pub_vel_quat_topic_;
 
   ros::Rate rate_;
@@ -65,14 +52,6 @@ private:
   std::unique_ptr<hitting_DS> _generate_hitting =
       std::make_unique<hitting_DS>(iiwa_position_from_source_, object_position_world_);
 
-  // TODO NOT NEEDED --> DELETE
-  // geometry_msgs::Pose box_pose_, iiwa_pose_;
-  // geometry_msgs::Twist iiwa_vel_msg_;
-  // geometry_msgs::Inertia iiwa_inertia_msg_;
-  // float hit_momentum_;
-  // Eigen::Vector3f test_velocity_ = {0.0, 0.0, 0.0};
-  // ros::Publisher pub_pos_quat_;
-
 public:
   HitMotion(ros::NodeHandle& nh, float frequency) : nh_(nh), rate_(frequency){};
 
@@ -88,12 +67,9 @@ public:
   void publishFlux(
       Eigen::Matrix3f& iiwa_task_inertia_pos,
       Eigen::Vector3f&
-          iiwa_vel_from_source);// TODO iiwa_vel_from_source AND iiwa_task_inertia_pos: CLASH WITH (PREVIOUSLY) PUBLIC VAR ; TEST IT
+          iiwa_vel_from_source);
   void publishVelQuat(Eigen::Vector3f& DS_vel, Eigen::Vector4f& DS_quat);
   void updateCurrentEEPosition(Eigen::Vector3f& new_position);
   void updateCurrentObjectPosition(Eigen::Vector3f& new_position);
 
-  // TODO DELETE NEVER USED
-  // void publishPosQuat(const Eigen::Vector3f& DS_pos, const Eigen::Vector4f& DS_quat);
-  // void setGains(Eigen::Matrix3f& gain);
 };

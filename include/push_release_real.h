@@ -12,19 +12,6 @@
 
 #include "dynamical_system.h"
 
-// TODO
-// #include <experimental/filesystem> WHAT IS THIS??
-// #include "math.h"
-// #include <cstdio>
-// #include <fstream>
-// #include <iostream>
-// #include <numeric>
-// #include <string>
-// #include <vector>
-// #include <std_msgs/Float64.h>
-// #include <std_msgs/Float64MultiArray.h>
-// #include <Eigen/Geometry>
-
 class PushRelease {
 
 private:
@@ -88,12 +75,8 @@ public:
   void publishFlux(
       Eigen::Matrix3f& iiwa_task_inertia_pos,
       Eigen::Vector3f&
-          iiwa_vel_from_source);// TODO iiwa_vel_from_source AND iiwa_task_inertia_pos: CLASH WITH (PREVIOUSLY) PUBLIC VAR ; TEST IT
+          iiwa_vel_from_source);
   void publishVelQuat(Eigen::Vector3f& DS_vel, Eigen::Vector4f& DS_quat);
   void updateCurrentEEPosition(Eigen::Vector3f& new_position);
   void updateCurrentObjectPosition(Eigen::Vector3f& new_position);
-
-  // TODO DELETE NEVER USED
-  // void setGains(Eigen::Matrix3f& gain);
-  // void publishPosQuat(const Eigen::Vector3f& DS_pos, const Eigen::Vector4f& DS_quat);
 };

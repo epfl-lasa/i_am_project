@@ -14,22 +14,6 @@
 
 #include "dynamical_system.h"
 
-// TODO
-// #include <experimental/filesystem> WHAT IS THIS??
-
-// #include <cstdio>
-// #include <numeric>
-// #include "math.h"
-// #include <vector>
-// #include <string>
-// #include <fstream>
-
-// #include <sensor_msgs/JointState.h>
-// #include <std_msgs/Float64MultiArray.h>
-// #include <std_msgs/Float64.h>
-// #include <geometry_msgs/PoseStamped.h>
-// #include <Eigen/Geometry>
-
 class HitMotionSim {
 private:
   bool is_hit_ = 0;
@@ -61,9 +45,6 @@ private:
   geometry_msgs::Pose box_pose_, iiwa_pose_;
   geometry_msgs::Twist iiwa_vel_;
 
-  // TODO DELETE NEVER USED
-  // ros::Publisher pub_pos_quat_;
-
 public:
   explicit HitMotionSim(ros::NodeHandle& nh, float frequency) : nh_(nh), rate_(frequency){};
 
@@ -77,8 +58,4 @@ public:
   void publishVelQuat(Eigen::Vector3f& DS_vel, Eigen::Vector4f& DS_quat);
   void updateCurrentEEPosition(Eigen::Vector3f& new_position);
   void updateCurrentObjectPosition(Eigen::Vector3f& new_position);
-
-  // TODO DELETE NOT USED
-  // void setGains(Eigen::Matrix3f& gain);
-  // void publishPosQuat(const Eigen::Vector3f& DS_pos, const Eigen::Vector4f& DS_quat);
 };

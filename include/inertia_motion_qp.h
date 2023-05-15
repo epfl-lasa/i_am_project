@@ -9,22 +9,6 @@
 
 #include "dynamical_system.h"
 
-// TODO
-// #include <experimental/filesystem> WHAT IS THIS??
-// #include "math.h"
-// #include <cstdio>
-// #include <fstream>
-// #include <iostream>
-// #include <numeric>
-// #include <string>
-// #include <vector>
-
-// #include <Eigen/Geometry>
-// #include <geometry_msgs/Twist.h>
-// #include <geometry_msgs/PoseStamped.h>
-// #include <sensor_msgs/JointState.h>
-// #include <std_msgs/Float64.h>
-
 class InertiaMotionQP {
 
 private:
@@ -46,10 +30,6 @@ private:
   Eigen::Matrix3f iiwa_task_inertia_pos_;
 
   std::unique_ptr<hitting_DS> generate_inertia_motion_ = std::make_unique<hitting_DS>(iiwa_position_from_source_);
-
-  // TODO DELETE NOT NEEDED
-  // Eigen::Vector3f iiwa_vel_from_source_;
-  // std::string pub_ref_position_topic_;
 
 public:
   InertiaMotionQP(ros::NodeHandle& nh, float frequency) : nh_(nh), rate_(frequency){};

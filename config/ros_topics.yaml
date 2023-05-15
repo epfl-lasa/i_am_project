@@ -1,6 +1,6 @@
 
 passive_control: {
-  vel_quat: "/passive_control/vel_quat" # Publisher - Control velocity - type geometry_msgs::Pose (SIM + REAL)
+  vel_quat: "/passive_control/vel_quat", # Publisher - Control velocity - type geometry_msgs::Pose (SIM + REAL)
 }
 
 iiwa: {
@@ -8,16 +8,16 @@ iiwa: {
 
   ee_info : {
     pose: "/iiwa/ee_info/Pose", # Subscriber - iiwa ee pose + orientation - type geometry_msgs::Pose (REAL)
-    vel: "/iiwa/ee_info/Vel" # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
+    vel: "/iiwa/ee_info/Vel", # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
   },
 
-  Inertia: {
-    taskPos: "/iiwa/Inertia/taskPos" # Subscriber - Iiwa inertia - type geometry_msgs::Inertia (SIM + REAL)
+  inertia: {
+    taskPos: "/iiwa/Inertia/taskPos", # Subscriber - Iiwa inertia - type geometry_msgs::Inertia (SIM + REAL)
   }
 }
 
 # OPTITRACK
-vrpn_client: {
+vrpn_client_node: {
   object_1: {
     pose: "/vrpn_client_node/object_1/pose", # Subscriber - Object position and orientation - type geometry_msgs::PoseStamped (REAL)
   },

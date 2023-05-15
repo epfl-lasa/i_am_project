@@ -7,16 +7,16 @@
 
 bool HitMotion::init() {
   // Get topics names
-  nh_.getParam("/passive_control/vel_quat", pub_vel_quat_topic_);
-  nh_.getParam("/iiwa/dir_flux", pub_dir_flux_topic);
-  nh_.getParam("/vrpn_client_node/object_1/pose", object_position_topic_);
-  nh_.getParam("/iiwa/ee_info/Pose", iiwa_position_topic_);
-  nh_.getParam("/iiwa/ee_info/Vel", iiwa_vel_topic_);
-  nh_.getParam("/iiwa/Inertia/taskPos", iiwa_inertia_topic_);
-  nh_.getParam("/vrpn_client_node/iiwa_7_base/pose", iiwa_base_position_topic_);
+  if (!nh_.getParam("/passive_control/vel_quat", pub_vel_quat_topic_)) {ROS_ERROR("Topic /passive_control/vel_quat not found");}
+  if (!nh_.getParam("/iiwa/dir_flux", pub_dir_flux_topic_)) {ROS_ERROR("Topic /iiwa/dir_flux not found");}
+  if (!nh_.getParam("/vrpn_client_node/object_1/pose", object_position_topic_)) {ROS_ERROR("Topic /vrpn_client_node/object_1/pose not found");}
+  if (!nh_.getParam("/iiwa/ee_info/pose", iiwa_position_topic_)) {ROS_ERROR("Topic /iiwa/ee_info/pose not found");}
+  if (!nh_.getParam("/iiwa/ee_info/vel", iiwa_vel_topic_)) {ROS_ERROR("Topic /iiwa/ee_info/vel not found");}
+  if (!nh_.getParam("/iiwa/inertia/taskPos", iiwa_inertia_topic_)) {ROS_ERROR("Topic /iiwa/inertia/taskPos not found");}
+  if (!nh_.getParam("/vrpn_client_node/iiwa_7_base/pose", iiwa_base_position_topic_)) {ROS_ERROR("Topic /vrpn_client_node/iiwa_7_base/pose not found");}
 
   pub_vel_quat_ = nh_.advertise<geometry_msgs::Pose>(pub_vel_quat_topic_, 1);
-  pub_dir_flux_ = nh_.advertise<std_msgs::Float32>(pub_dir_flux_topic, 1);
+  pub_dir_flux_ = nh_.advertise<std_msgs::Float32>(pub_dir_flux_topic_, 1);
 
   object_position_ = nh_.subscribe(object_position_topic_,
                                    1,
@@ -59,23 +59,20 @@ bool HitMotion::init() {
   _generate_hitting->set_current_position(iiwa_position_from_source_);
   _generate_hitting->set_DS_attractor(object_position_world_ + object_offset);
 
-  nh_.getParam("ref_velocity/x", ref_velocity_[0]);
-  nh_.getParam("ref_velocity/y", ref_velocity_[1]);
-  nh_.getParam("ref_velocity/z", ref_velocity_[2]);
-  nh_.getParam("ref_quat/w", ref_quat_[0]);
-  nh_.getParam("ref_quat/x", ref_quat_[1]);
-  nh_.getParam("ref_quat/y", ref_quat_[2]);
-  nh_.getParam("ref_quat/z", ref_quat_[3]);
-  nh_.getParam("hit_direction/x", hit_direction_[0]);
-  nh_.getParam("hit_direction/y", hit_direction_[1]);
-  nh_.getParam("hit_direction/z", hit_direction_[2]);
+  if (!nh_.getParam("ref_velocity/x", ref_velocity_[0])) {ROS_ERROR("Topic ref_velocity/x not found");}
+  if (!nh_.getParam("ref_velocity/y", ref_velocity_[1])) {ROS_ERROR("Topic ref_velocity/y not found");}
+  if (!nh_.getParam("ref_velocity/z", ref_velocity_[2])) {ROS_ERROR("Topic ref_velocity/z not found");}
+  if (!nh_.getParam("ref_quat/w", ref_quat_[0])) {ROS_ERROR("Topic ref_quat/w not found");}
+  if (!nh_.getParam("ref_quat/x", ref_quat_[1])) {ROS_ERROR("Topic ref_quat/x not found");}
+  if (!nh_.getParam("ref_quat/y", ref_quat_[2])) {ROS_ERROR("Topic ref_quat/y not found");}
+  if (!nh_.getParam("ref_quat/z", ref_quat_[3])) {ROS_ERROR("Topic ref_quat/z not found");}
+  if (!nh_.getParam("hit_direction/x", hit_direction_[0])) {ROS_ERROR("Topic hit_direction/x not found");}
+  if (!nh_.getParam("hit_direction/y", hit_direction_[1])) {ROS_ERROR("Topic hit_direction/y not found");}
+  if (!nh_.getParam("hit_direction/z", hit_direction_[2])) {ROS_ERROR("Topic hit_direction/z not found");}
 
   _generate_hitting->set_des_direction(hit_direction_);
 
   return true;
-
-  // TODO DELETE NEVER USED
-  // pub_pos_quat_ = nh_.advertise<geometry_msgs::Pose>("/passive_control/pos_quat", 1);
 }
 
 void HitMotion::run() {
@@ -206,19 +203,3 @@ int main(int argc, char** argv) {
 
   return 0;
 }
-
-// TODO DELETE NEVER USED
-// void HitMotion::publishPosQuat(const Eigen::Vector3f& DS_pos, const Eigen::Vector4f& DS_quat) {
-//   geometry_msgs::Pose ref_pos_publish;
-//   ref_pos_publish.position.x = DS_pos(0);
-//   ref_pos_publish.position.y = DS_pos(1);
-//   ref_pos_publish.position.z = DS_pos(2);
-//   ref_pos_publish.orientation.x = DS_quat(0);
-//   ref_pos_publish.orientation.y = DS_quat(1);
-//   ref_pos_publish.orientation.z = DS_quat(2);
-//   ref_pos_publish.orientation.w = DS_quat(3);
-
-//   pub_pos_quat_.publish(ref_pos_publish);
-// }
-
-// void HitMotion::setGains(Eigen::Matrix3f& gain) { _generate_hitting->set_gain(gain); }

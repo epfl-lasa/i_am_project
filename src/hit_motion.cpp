@@ -56,8 +56,8 @@ bool HitMotion::init() {
   Eigen::Vector3f object_offset = {0.0, -0.2, -0.00};//normal
   // Eigen::Vector3f object_offset = {0.05, -0.15, -0.05}; //small object
 
-  _generate_hitting->set_current_position(iiwa_position_from_source_);
-  _generate_hitting->set_DS_attractor(object_position_world_ + object_offset);
+  generate_hitting_->set_current_position(iiwa_position_from_source_);
+  generate_hitting_->set_DS_attractor(object_position_world_ + object_offset);
 
   if (!nh_.getParam("ref_velocity/x", ref_velocity_[0])) {ROS_ERROR("Topic ref_velocity/x not found");}
   if (!nh_.getParam("ref_velocity/y", ref_velocity_[1])) {ROS_ERROR("Topic ref_velocity/y not found");}
@@ -70,7 +70,7 @@ bool HitMotion::init() {
   if (!nh_.getParam("hit_direction/y", hit_direction_[1])) {ROS_ERROR("Topic hit_direction/y not found");}
   if (!nh_.getParam("hit_direction/z", hit_direction_[2])) {ROS_ERROR("Topic hit_direction/z not found");}
 
-  _generate_hitting->set_des_direction(hit_direction_);
+  generate_hitting_->set_des_direction(hit_direction_);
 
   return true;
 }
@@ -81,25 +81,25 @@ void HitMotion::run() {
   while (ros::ok()) {
 
     if (!is_hit_) {
-      ref_velocity_ = _generate_hitting->flux_DS(0.5, iiwa_task_inertia_pos_);
+      ref_velocity_ = generate_hitting_->flux_DS(0.5, iiwa_task_inertia_pos_);
       publishFlux(iiwa_task_inertia_pos_, iiwa_vel_from_source_);
 
-      // ref_velocity_ = _generate_hitting->vel_max_DS();
+      // ref_velocity_ = generate_hitting_->vel_max_DS();
       // objectPositionWorldFrame();
 
       // ROS_INFO_STREAM("object at: " << object_position_world_.transpose());
 
     } else {
-      ref_velocity_ = _generate_hitting->linear_DS(iiwa_return_position);
+      ref_velocity_ = generate_hitting_->linear_DS(iiwa_return_position);
     }
 
     if (!is_hit_
-        && _generate_hitting->get_des_direction().dot(_generate_hitting->get_DS_attractor()
-                                                      - _generate_hitting->get_current_position())
+        && generate_hitting_->get_des_direction().dot(generate_hitting_->get_DS_attractor()
+                                                      - generate_hitting_->get_current_position())
             < 0) {
       is_hit_ = 1;
     }
-    // ref_velocity_ = _generate_hitting->linear_DS(final_position);
+    // ref_velocity_ = generate_hitting_->linear_DS(final_position);
     // objectPositionWorldFrame();
 
     // ROS_INFO_STREAM("object at: " << object_position_world_.transpose());
@@ -158,11 +158,11 @@ void HitMotion::iiwaInertiaCallback(const geometry_msgs::Inertia& inertia_msg) {
 }
 
 void HitMotion::updateCurrentEEPosition(Eigen::Vector3f& new_position) {
-  _generate_hitting->set_current_position(new_position);
+  generate_hitting_->set_current_position(new_position);
 }
 
 void HitMotion::updateCurrentObjectPosition(Eigen::Vector3f& new_position) {
-  _generate_hitting->set_DS_attractor(new_position);
+  generate_hitting_->set_DS_attractor(new_position);
 }
 
 void HitMotion::publishVelQuat(Eigen::Vector3f& DS_vel, Eigen::Vector4f& DS_quat) {

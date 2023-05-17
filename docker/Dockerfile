@@ -14,7 +14,7 @@ USER ${USER}
 # iiwa_toolkit (need to be root to clone private repo)
 USER root
 WORKDIR /home/${USER}/ros_ws/src
-RUN --mount=type=ssh git clone git@github.com:epfl-lasa/iiwa_toolkit_ns.git
+RUN --mount=type=ssh git clone -b feature_AH git@github.com:epfl-lasa/iiwa_toolkit_ns.git
 
 # i_am_predict (kalman filter) (need to be root to clone private repo)
 WORKDIR /home/${USER}/ros_ws/src

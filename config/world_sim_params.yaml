@@ -1,5 +1,5 @@
-object_real: false
-iiwa_real: false
+object_real: true
+iiwa_real: true
 manual_mode: false
 hollow: false
 

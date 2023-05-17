@@ -11,6 +11,12 @@ RUN if [ "${HOST_GID}" != "1000" ];\
     usermod ${USER} -a -G ${USER_GROUP}; fi
 USER ${USER}
 
+# Add vrpn tools
+RUN sudo apt-get update && sudo apt-get install -y \
+    netbase \
+    ros-noetic-vrpn-client-ros \
+    && sudo apt-get upgrade -y && sudo apt-get clean
+
 # iiwa_toolkit (need to be root to clone private repo)
 USER root
 WORKDIR /home/${USER}/ros_ws/src
@@ -20,6 +26,14 @@ RUN --mount=type=ssh git clone -b feature_AH git@github.com:epfl-lasa/iiwa_toolk
 WORKDIR /home/${USER}/ros_ws/src
 RUN --mount=type=ssh git clone git@github.com:epfl-lasa/i_am_predict.git
 RUN cd i_am_predict && git checkout clean/master
+
+# # real_pose requirements
+# WORKDIR /home/${USER}/ros_ws/src
+# RUN --mount=type=ssh git clone git@github.com:epfl-lasa/net-ft-ros.git
+
+# # real_pose 
+# WORKDIR /home/${USER}/ros_ws/src
+# RUN --mount=type=ssh git clone git@github.com:epfl-lasa/real_pose.git
 
 USER ${USER}
 

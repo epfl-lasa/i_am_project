@@ -14,19 +14,19 @@
   <arg name="robot_name_1" default="iiwa1"/>
   <arg name="robot_name_2" default="iiwa2"/>
 
-  <!--Launch iiwa14_brinup.launch on the second computers connected to this rosmaster-->
+  <!--Launch iiwa7_brinup.launch on the second computers connected to this rosmaster-->
 
-  <!--This brings up only iiwa7 but starts both passive tracking in their namespace-->
-  <!--include
+  <!--This brings up only iiwa14 but starts both passive tracking in their namespace-->
+  <include
       file = "$(find iiwa_toolkit)/launch/passive_track_real.launch">    
-      <arg name="robot_name_1" value="$(arg robot_name_1)"/>
-      <arg name="iiwa_model_1" value="7"/>
-  </include-->
+      <arg name="robot_name" value="$(arg robot_name_1)"/>
+      <arg name="model" value="14"/>
+  </include>
 
   <!--Optitrack and other hardwares-->
-  <rosparam file="$(find real_pose)/config/topics.yaml" command="load" subst_value="true"/>           
+  <!-- <rosparam file="$(find real_pose)/config/topics.yaml" command="load" subst_value="true"/>           
   <include file="$(find real_pose)/launch/hardwares.launch"></include>
-  <node name="real_pose" pkg="real_pose" type="real_pose" output="screen"/>
+  <node name="real_pose" pkg="real_pose" type="real_pose" output="screen"/> -->
   <!--Run real_pose to convert optitrack and iiwa_joint data to object, base and ee pose-->
   
   <rosparam file="$(find i_am_project)/config/ros_topics.yaml" />

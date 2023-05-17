@@ -20,14 +20,14 @@ estimate: {
 }
 
 simo_track: {
-  object_pose: "/simo_track/object_pose",
+  object_pose: "/vrpn_client_node/object_1/pose",
   robot_left: {
-    pose: "/simo_track/robot_left/pose" ,
-    ee_pose: "/simo_track/robot_left/ee_pose"
+    pose: "/vrpn_client_node/iiwa_1_base/pose" ,
+    ee_pose: "/iiwa1/ee_pose"
   },
   robot_right: {
-    pose: "/simo_track/robot_right/pose",
-    ee_pose: "/simo_track/robot_right/ee_pose"
+    pose: "/vrpn_client_node/iiwa_2_base/pose",
+    ee_pose: "/iiwa2/ee_pose"
   }
 }
 

@@ -39,7 +39,7 @@ bool AirHockey::init() {
   if (!nh_.getParam("/passive_control/pos_quat/iiwa2", passive_ctrl_iiwa2_pos_quat)) {
     ROS_ERROR("Param ros topic /passive_control/pos_quat/iiwa2 not found");
   }
-  if (!nh_.getParam("estimate/object", estimate_object)) { ROS_ERROR("Param ros topic estimate/object not found"); }
+  if (!nh_.getParam("/estimate/object", estimate_object)) { ROS_ERROR("Param ros topic estimate/object not found"); }
   if (!nh_.getParam("/simo_track/object_pose", track_object)) {
     ROS_ERROR("Param ros topic /simo_track/object_pose not found");
   }
@@ -130,7 +130,7 @@ void AirHockey::run() {
   prev_mode2_ = mode2_;
 
   R_EE_ << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
-  R_Opti_ << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
+  R_Opti_ << 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0; //1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
 
   while (ros::ok()) {
     switch_both_mode();
@@ -167,6 +167,12 @@ void AirHockey::run() {
   ros::spinOnce();
   rate_.sleep();
   ros::shutdown();
+}
+
+void AirHockey::objectPositionWorldFrame() {
+  // rotation_ << 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0;
+
+  // object_position_world_ = rotation_ * (object_position_from_source_ - iiwa_base_position_from_source_);
 }
 
 void AirHockey::reset_object_position() {
@@ -356,23 +362,23 @@ void AirHockey::iiwaSimCallback(const gazebo_msgs::LinkStates link_states) {
 }
 
 //Optitrack
-void AirHockey::objectCallback(const geometry_msgs::Pose object_pose) {
-  object_pos_ << object_pose.position.x, object_pose.position.y, object_pose.position.z;
+void AirHockey::objectCallback(const geometry_msgs::PoseStamped object_pose) {
+  object_pos_ << object_pose.pose.position.x, object_pose.pose.position.y, object_pose.pose.position.z;
   object_pos_ = R_Opti_ * object_pos_;
   Eigen::Vector3d object_rpy = quatToRPY(
-      {object_pose.orientation.w, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z});
+      {object_pose.pose.orientation.w, object_pose.pose.orientation.x, object_pose.pose.orientation.y, object_pose.pose.orientation.z});
 
   object_th_mod_ =
       std::fmod(object_rpy[2] + M_PI + M_PI / 4, M_PI / 2) - M_PI / 4;//get relative angle of box face facing the arm
 }
 
-void AirHockey::iiwa1BaseCallback(const geometry_msgs::Pose base_pose) {
-  iiwa1_base_pos_ << base_pose.position.x, base_pose.position.y, base_pose.position.z;
+void AirHockey::iiwa1BaseCallback(const geometry_msgs::PoseStamped base_pose) {
+  iiwa1_base_pos_ << base_pose.pose.position.x, base_pose.pose.position.y, base_pose.pose.position.z;
   iiwa1_base_pos_ = R_Opti_ * iiwa1_base_pos_;
 }
 
-void AirHockey::iiwa2BaseCallback(const geometry_msgs::Pose base_pose) {
-  iiwa2_base_pos_ << base_pose.position.x, base_pose.position.y, base_pose.position.z;
+void AirHockey::iiwa2BaseCallback(const geometry_msgs::PoseStamped base_pose) {
+  iiwa2_base_pos_ << base_pose.pose.position.x, base_pose.pose.position.y, base_pose.pose.position.z;
   iiwa2_base_pos_ = R_Opti_ * iiwa2_base_pos_;
 
   // TODO NEEDED OR DELETE?

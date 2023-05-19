@@ -73,15 +73,16 @@ public:
   void switch_both_mode();
   void move_robot(int mode, int mode_id);
   void reset_object_position();
+  void objectPositionWorldFrame();
 
   //Gazebo
   void objectSimCallback(const gazebo_msgs::ModelStates model_states);
   void iiwaSimCallback(const gazebo_msgs::LinkStates link_states);
 
   //Optitrack
-  void objectCallback(const geometry_msgs::Pose object_pose);
-  void iiwa1BaseCallback(const geometry_msgs::Pose base_pose);
-  void iiwa2BaseCallback(const geometry_msgs::Pose base_pose);
+  void objectCallback(const geometry_msgs::PoseStamped object_pose);
+  void iiwa1BaseCallback(const geometry_msgs::PoseStamped base_pose);
+  void iiwa2BaseCallback(const geometry_msgs::PoseStamped base_pose);
   void iiwa1EEPoseCallback(const geometry_msgs::Pose ee_pose);
   void iiwa2EEPoseCallback(const geometry_msgs::Pose ee_pose);
 

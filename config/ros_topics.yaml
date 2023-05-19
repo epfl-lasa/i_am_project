@@ -22,11 +22,11 @@ estimate: {
 simo_track: {
   object_pose: "/vrpn_client_node/object_1/pose",
   robot_left: {
-    pose: "/vrpn_client_node/iiwa_1_base/pose" ,
+    pose: "/vrpn_client_node/iiwa_7_base/pose" ,
     ee_pose: "/iiwa1/ee_pose"
   },
   robot_right: {
-    pose: "/vrpn_client_node/iiwa_2_base/pose",
+    pose: "/vrpn_client_node/iiwa_14_base/pose",
     ee_pose: "/iiwa2/ee_pose"
   }
 }

@@ -9,6 +9,7 @@ track(Eigen::Vector3d predict_pos, Eigen::Vector3d center2, Eigen::Vector2d ee_o
   Eigen::Vector3d pos_world = predict_pos - ee_offset[0] * d_points / d_points.norm() + v_offset;
   Eigen::Vector4d quat_world = pointsToQuat(predict_pos, center2);//wrt world frame
 
+
   //Transform pos and quat from world to iiwa frame
   Eigen::Vector3d pos_iiwa = pos_world - iiwa_base_pos;
   Eigen::Vector4d quat_iiwa = quat_world;

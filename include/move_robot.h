@@ -1,5 +1,9 @@
 #pragma once
 
+
+#include <ros/console.h>
+#include "ros/ros.h"
+
 #include "tools/quattools.h"
 
 #include <Eigen/Dense>

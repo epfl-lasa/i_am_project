@@ -130,7 +130,7 @@ void AirHockey::run() {
   prev_mode2_ = mode2_;
 
   R_EE_ << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
-  R_Opti_ << 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0; //1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
+  R_Opti_ << 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0; //0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0; //
 
   while (ros::ok()) {
     switch_both_mode();
@@ -423,6 +423,8 @@ void AirHockey::estimateObjectCallback(std_msgs::Float64MultiArray estimation) {
   ETA_ = estimation.data[1];
   predict_pos_ << estimation.data[2], estimation.data[3], estimation.data[4];
   object_vel_ << estimation.data[5], estimation.data[6], estimation.data[7];
+  predict_pos_ = R_Opti_ * predict_pos_;
+  object_vel_ = R_Opti_ * object_vel_;
 }
 
 //manual control

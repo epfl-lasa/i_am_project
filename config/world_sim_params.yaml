@@ -1,12 +1,14 @@
-object_real: true
-iiwa_real: true
+object_real: false
+iiwa_real: false
 manual_mode: false
 hollow: false
 
 
 #average of desired workspace of iiwa1 wrt world frame. In real, world frame is exactly between iiwa_base so centers should have x =/= 0
-center1: [0.55, -0.4, 0.185]  #z is center of box
-center2: [0.55, 0.4, 0.185]
+# center1: [0.55, -0.4, 0.185]  #z is center of box
+# center2: [0.55, 0.4, 0.185]
+center1: [-0.05, 0.95, 0.185]  #z is center of box
+center2: [0.74, 0.95, 0.185]
 
  
 #base1_pos: #base position of iiwa1 in gazebo
@@ -34,8 +36,8 @@ hittable:      # to create a hittable area in the form of an ellipsoid with its 
 table:
   properties:           # keep in mind that the iiwa base has a max radius of 0.3
     size:
-      x: 0.8
-      y: 2.4
+      x: 2.4
+      y: 0.8
       z: 0.05
     COM:
       x: 0.0
@@ -46,7 +48,7 @@ table:
     mu2: 0.5
   initial_pos:
     x: 0.55
-    y: 0.0
+    y: 0.89
     z: 0.025
 
 box:
@@ -63,8 +65,8 @@ box:
     mu: 0.075
     mu2: 0.075
   initial_pos:
-    x: 0.55
-    y: -0.4
+    x: 0.65
+    y: 0.95
     z: 0.175
   
 mini:

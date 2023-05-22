@@ -6,6 +6,10 @@
 #include "thirdparty/Utils.h"
 #include "tools/hittable.h"
 #include "tools/quattools.h"
+
+#include "dynamic_reconfigure/server.h"
+#include "i_am_project/workspace_paramsConfig.h"
+
 #include <ros/console.h>
 
 #include <Eigen/Dense>
@@ -64,11 +68,17 @@ private:
       mode_sub_, object_subs_;
   ros::ServiceClient set_state_client_;
 
+
+  dynamic_reconfigure::Server<i_am_project::workspace_paramsConfig> dynRecServer_;
+  dynamic_reconfigure::Server<i_am_project::workspace_paramsConfig>::CallbackType dynRecCallback_;
+
 public:
   explicit AirHockey(ros::NodeHandle& nh, float frequency) : nh_(nh), rate_(frequency){};
 
   bool init();
   void run();
+
+  void param_cfg_callback(i_am_project::workspace_paramsConfig& config, uint32_t level);
 
   void switch_both_mode();
   void move_robot(int mode, int mode_id);

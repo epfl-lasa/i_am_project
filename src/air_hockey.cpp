@@ -102,6 +102,10 @@ bool AirHockey::init() {
     iiwa_subs_ = nh_.subscribe(gazebo_link_states, 10, &AirHockey::iiwaSimCallback, this);
   }
 
+  // dynamic configure:
+  dynRecCallback_ = boost::bind(&AirHockey::param_cfg_callback,this,_1,_2);
+  dynRecServer_.setCallback(dynRecCallback_);
+
   // TODO IS THIS NEEDED??
   //   Set hitting speed and direction. Once we change attractor to something more related to the game, we no longer need this
   //   std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;
@@ -168,6 +172,30 @@ void AirHockey::run() {
   rate_.sleep();
   ros::shutdown();
 }
+
+void AirHockey::param_cfg_callback(i_am_project::workspace_paramsConfig& config, uint32_t level){
+  ROS_INFO("Reconfigure request.. Updating the parameters ... ");
+  double center1vec_X = config.center1_x;
+  double center1vec_Y = config.center1_y;
+  double center1vec_Z = config.center1_z;
+  double center2vec_X = config.center2_x;
+  double center2vec_Y = config.center2_y;
+  double center2vec_Z = config.center2_z;
+
+  double ee_offset_H = config.ee_offset_h;
+  double ee_offset_V = config.ee_offset_v;
+  ROS_INFO_STREAM("center1vec_X  " << center1vec_X);
+  ROS_INFO_STREAM("center1vec_Y  " << center1vec_Y);
+  ROS_INFO_STREAM("center1vec_Z  " << center1vec_Z);
+  ROS_INFO_STREAM("center2vec_X  " << center2vec_X);
+  ROS_INFO_STREAM("center2vec_Y  " << center2vec_Y);
+  ROS_INFO_STREAM("center2vec_Z  " << center2vec_Z);
+
+  center1_ << center1vec_X, center1vec_Y, center1vec_Z;
+  center2_ << center2vec_X, center2vec_Y, center2vec_Z;
+  ee_offset_ = {ee_offset_H, ee_offset_V};
+}
+
 
 void AirHockey::objectPositionWorldFrame() {
   // rotation_ << 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0;

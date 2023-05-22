@@ -35,5 +35,7 @@
     <node name="air_hockey" pkg="i_am_project" type="air_hockey" output="screen"/>                     
     <node name="estimator" pkg="i_am_predict" type="estimate_sim" output="screen"/>
 
+    <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="passive_control_gui" />
+
 </launch>
 

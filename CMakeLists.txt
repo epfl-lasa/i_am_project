@@ -7,9 +7,15 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   roslib
+  dynamic_reconfigure
 )
 
 find_package(Eigen3 REQUIRED eigen3) 
+
+#add dynamic reconfigure api
+generate_dynamic_reconfigure_options(
+  cfg/workspace_params.cfg
+)
 
 
 generate_messages(
@@ -21,7 +27,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS roscpp std_msgs roslib
+  CATKIN_DEPENDS roscpp std_msgs roslib dynamic_reconfigure
 )
 
 

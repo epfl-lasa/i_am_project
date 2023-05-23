@@ -162,8 +162,26 @@ void AirHockey::run() {
     ss2 << "mode2: " << mode2_;
 
     // TODO NEED PRINTING OR NOT?
-    ROS_INFO("%s", ss1.str().c_str());
-    ROS_INFO("%s", ss2.str().c_str());
+
+    if (mode1_ == 3) {
+      ROS_INFO("1 HIT");
+    }
+    if (mode1_ == 4) {
+      ROS_INFO("1 AFTERHIT");
+    }
+    // if (mode1_ == 1) {
+    //   ROS_INFO("1 TRACKING");
+    // }
+
+    // if (mode2_ == 3) {
+    //   ROS_INFO("2 HIT");
+    // }
+    // if (mode2_ == 4) {
+    //   ROS_INFO("2 AFTERHIT");
+    // }
+    // if (mode2_ == 1) {
+    //   ROS_INFO("2 TRACKING");
+    // }
 
     ros::spinOnce();
     rate_.sleep();
@@ -194,13 +212,6 @@ void AirHockey::param_cfg_callback(i_am_project::workspace_paramsConfig& config,
   center1_ << center1vec_X, center1vec_Y, center1vec_Z;
   center2_ << center2vec_X, center2vec_Y, center2vec_Z;
   ee_offset_ = {ee_offset_H, ee_offset_V};
-}
-
-
-void AirHockey::objectPositionWorldFrame() {
-  // rotation_ << 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0;
-
-  // object_position_world_ = rotation_ * (object_position_from_source_ - iiwa_base_position_from_source_);
 }
 
 void AirHockey::reset_object_position() {
@@ -415,31 +426,16 @@ void AirHockey::iiwa2BaseCallback(const geometry_msgs::PoseStamped base_pose) {
 }
 
 void AirHockey::iiwa1EEPoseCallback(const geometry_msgs::Pose ee_pose) {
-  // TODO NEEDED OR DELETE?
-  // geometry_msgs::Pose ee1_pose;
-  // ee1_pose.position.x = ee_pose.position.x;
-  // ee1_pose.position.y = ee_pose.position.y;
-  // ee1_pose.position.z = ee_pose.position.z;
-  // ee1_pose.orientation.w = ee_pose.orientation.w;
-  // ee1_pose.orientation.x = ee_pose.orientation.x;
-  // ee1_pose.orientation.y = ee_pose.orientation.y;
-  // ee1_pose.orientation.z = ee_pose.orientation.z;
   ee1_pos_ << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
   ee1_pos_ = R_EE_ * ee1_pos_;
+  ee1_pos_ = ee1_pos_ + iiwa1_base_pos_;
 }
 
 void AirHockey::iiwa2EEPoseCallback(const geometry_msgs::Pose ee_pose) {
-  // TODO NEEDED OR DELETE?
-  // geometry_msgs::Pose ee2_pose;
-  //   ee2_pose.position.x = ee_pose.position.x;
-  //   ee2_pose.position.y = ee_pose.position.y;
-  //   ee2_pose.position.z = ee_pose.position.z;
-  //   ee2_pose.orientation.w = ee_pose.orientation.w;
-  //   ee2_pose.orientation.x = ee_pose.orientation.x;
-  //   ee2_pose.orientation.y = ee_pose.orientation.y;
-  //   ee2_pose.orientation.z = ee_pose.orientation.z;
+  // Get ee pose in iiwa ref (origin at iiwa) - need to transform it
   ee2_pos_ << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
   ee2_pos_ = R_EE_ * ee2_pos_;
+  ee2_pos_ = ee2_pos_ + iiwa2_base_pos_;
 }
 
 //i_am_predict or estimate_sim
@@ -517,6 +513,11 @@ int AirHockey::modeSelektor(Eigen::Vector3d object_pos,
     ee_ready = false;
   }
 
+  // std::stringstream sseeready;
+
+  // sseeready << "ee_pos " << ee_pos << " predict_pos " << predict_pos << " v_offset " << v_offset << "  ee_ready  " << predict_pos - ee_offset[0] * d_points / d_points.norm();
+  // ROS_INFO("%s", sseeready.str().c_str());
+
   bool ee_hit;
   if (ee_pos.dot(d_center) > object_pos_init.dot(d_center) - 0.13) {
     ee_hit = true;
@@ -529,6 +530,12 @@ int AirHockey::modeSelektor(Eigen::Vector3d object_pos,
   //std::cout << "too_close:    " << too_close << "\n";
   //std::cout << "towards:      " << towards << "\n";
   //std::cout << "ee_ready:     " << ee_ready << "\n";
+
+  std::stringstream ssstream;
+
+  ssstream << "prev_mode " << prev_mode << " too_far " << too_far << " ETA  " << ETA << " pred_hittable " << pred_hittable << "  ee_ready  " << ee_ready;
+
+  // ROS_INFO("%s", ssstream.str().c_str());
 
   switch (prev_mode) {
     case 1:                                //track

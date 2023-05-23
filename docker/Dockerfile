@@ -11,10 +11,11 @@ RUN if [ "${HOST_GID}" != "1000" ];\
     usermod ${USER} -a -G ${USER_GROUP}; fi
 USER ${USER}
 
-# Add vrpn tools
+# Add vrpn tools and rqt
 RUN sudo apt-get update && sudo apt-get install -y \
     netbase \
     ros-noetic-vrpn-client-ros \
+    ros-noetic-rqt-reconfigure \
     && sudo apt-get upgrade -y && sudo apt-get clean
 
 # iiwa_toolkit (need to be root to clone private repo)

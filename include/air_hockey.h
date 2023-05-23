@@ -83,7 +83,6 @@ public:
   void switch_both_mode();
   void move_robot(int mode, int mode_id);
   void reset_object_position();
-  void objectPositionWorldFrame();
 
   //Gazebo
   void objectSimCallback(const gazebo_msgs::ModelStates model_states);

@@ -15,6 +15,8 @@ USER ${USER}
 RUN sudo apt-get update && sudo apt-get install -y \
     netbase \
     ros-noetic-vrpn-client-ros \
+    ros-noetic-rqt-reconfigure \
+    ros-noetic-rosbridge-server \
     && sudo apt-get upgrade -y && sudo apt-get clean
 
 # CPP lib

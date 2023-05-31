@@ -1,5 +1,7 @@
 #include "move_robot.h"
 
+double MINIMUM_EE_POSE = 0.20;
+
 geometry_msgs::Pose
 track(Eigen::Vector3d predict_pos, Eigen::Vector3d center2, Eigen::Vector2d ee_offset, Eigen::Vector3d iiwa_base_pos) {
 
@@ -13,6 +15,9 @@ track(Eigen::Vector3d predict_pos, Eigen::Vector3d center2, Eigen::Vector2d ee_o
   //Transform pos and quat from world to iiwa frame
   Eigen::Vector3d pos_iiwa = pos_world - iiwa_base_pos;
   Eigen::Vector4d quat_iiwa = quat_world;
+
+
+  // ROS_INFO_STREAM("predict_pos- iiwa_base_pos" << predict_pos-iiwa_base_pos << "pos_iiwa" << pos_iiwa << "d_points / d_points.norm()" << d_points / d_points.norm() );
 
   geometry_msgs::Pose pose;
   pose.position.x = pos_iiwa[0];
@@ -39,6 +44,10 @@ rest(Eigen::Vector3d center1, Eigen::Vector3d center2, Eigen::Vector2d ee_offset
   Eigen::Vector3d pos_iiwa = pos_world - iiwa_base_pos;
   Eigen::Vector4d quat_iiwa = quat_world;
 
+  if (pos_iiwa[2] < MINIMUM_EE_POSE) {
+    pos_iiwa[2] = MINIMUM_EE_POSE;
+  }
+
   geometry_msgs::Pose pose;
   pose.position.x = pos_iiwa[0];
   pose.position.y = pos_iiwa[1];
@@ -51,8 +60,8 @@ rest(Eigen::Vector3d center1, Eigen::Vector3d center2, Eigen::Vector2d ee_offset
   return pose;
 }
 
-geometry_msgs::Pose postHit(Eigen::Vector3d object_pos_init, Eigen::Vector3d center2, Eigen::Vector3d iiwa_base_pos) {
-  Eigen::Vector3d offset = {0.0, 0.0, 0.025};
+geometry_msgs::Pose postHit(Eigen::Vector3d object_pos_init, Eigen::Vector3d center2, Eigen::Vector3d iiwa_base_pos, Eigen::Vector2d ee_offset) {
+  Eigen::Vector3d offset = {0.0, 0.0, ee_offset[1]};
   object_pos_init += offset;
   center2 += offset;
 
@@ -63,6 +72,13 @@ geometry_msgs::Pose postHit(Eigen::Vector3d object_pos_init, Eigen::Vector3d cen
   //Transform pos and quat from world to iiwa frame
   Eigen::Vector3d pos_iiwa = pos_world - iiwa_base_pos;
   Eigen::Vector4d quat_iiwa = quat_world;
+
+  // ROS_INFO_STREAM("predict_pos" << predict_pos << " pos_world" << pos_world <<" iiwa_base_pos" << iiwa_base_pos << "pos_iiwa" << pos_iiwa );
+
+
+  if (pos_iiwa[2] < MINIMUM_EE_POSE) {
+    pos_iiwa[2] = MINIMUM_EE_POSE;
+  }
 
   geometry_msgs::Pose pose;
   pose.position.x = pos_iiwa[0];
@@ -80,7 +96,7 @@ geometry_msgs::Pose hitDS(double des_speed,
                           Eigen::Vector3d object_pos,
                           Eigen::Vector3d center2,
                           Eigen::Vector3d ee_pos,
-                          Eigen::Vector3d ee_pos_init) {
+                          Eigen::Vector3d ee_pos_init, Eigen::Vector2d ee_offset) {
 
   // TODO EXPLAINATION NEEDED?
   //instead of flipping direction of attractor and such, make use of the fact that iiwa2 is exactly the same as iiwa1 but rotated around the worlds z-axis with pi
@@ -90,7 +106,7 @@ geometry_msgs::Pose hitDS(double des_speed,
   double modulated_sigma = 3.0;
   double theta = -std::atan2(center2[0] - object_pos[0], center2[1] - object_pos[1]);//angle between object and target
 
-  Eigen::Vector3d object_offset = {0.0, 0.0, 0.025};
+  Eigen::Vector3d object_offset = {0.0, 0.0, ee_offset[1]}; //{0.0, 0.0, 0.025};
   Eigen::Vector3d unit_x = {0.0, 1.0, 0.0};
   Eigen::Vector3d vel_world = {0.0, 0.0, 0.0};
   Eigen::Matrix3d gain_main, gain_aux, rot_mat;
@@ -151,6 +167,11 @@ geometry_msgs::Pose block(Eigen::Vector3d object_pos,
   //Transform pos and quat from world to iiwa frame
   Eigen::Vector3d pos_iiwa = pos_world - iiwa_base_pos;
   Eigen::Vector4d quat_iiwa = quat_world;
+
+
+  if (pos_iiwa[2] < MINIMUM_EE_POSE) {
+    pos_iiwa[2] = MINIMUM_EE_POSE;
+  }
 
   geometry_msgs::Pose pose;
   pose.position.x = pos_iiwa[0];

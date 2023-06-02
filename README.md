@@ -9,10 +9,6 @@
 | i_am_project	| master | feature_real-sim_single |feature_real|
 | i_am_predict	| - | - |master|
 
-**Note for single arm with air hockey policy**
-Works with trial initializer node `1v1_trial_init.cpp` which publishes initial object position for each trial
-TODO THIS NODE DOESNT EXISTS?!
-
 ## launch: 
 There are three different settings in which the branches with air hockey policy can be launched:
 (The parameters can be changed in `i_am_project/config/world_sim_params.yaml`)
@@ -29,9 +25,31 @@ There are three different settings in which the branches with air hockey policy 
 **Remark**: the pose of the box is tracked with Optitrack and used in the control program.
 
 ### Entirely physical setup
-* `roslaunch i_am_project air_hockey_real.launch`
-* Set parameter `object_real` to `true`
-* Set parameter `iiwa_real` to `true`
+You'll need 2 computer (you can use SSH connection)
+
+#### Setup ROS communication between 2 computers
+This must be run inside docker if you're using it.
+
+Add those line in `~/.bashrc` (To modify it `sudo nano ~/.bashrc`)
+* Remote computer : 
+``` bash 
+export ROS_MASTER_URI=http://<ip-address-of-current-computer>:11311
+export ROS_IP=<ip-address-of-remote-computer>  
+```
+* Current computer : 
+
+``` bash 
+export ROS_MASTER_URI=http://<ip-address-of-current-computer>:11311
+export ROS_IP=<ip-address-of-current-computer>
+```
+Source the file when it's done (`. ~/.bashrc`)
+
+#### Launch air hockey game
+1. `roslaunch i_am_project optitrack.launch` (Current computer)
+2. `roslaunch iiwa_toolkit passive_track_real.launch robot_name:=iiwa2 model:=14` (computer connect to iiwa 14)
+3. `roslaunch iiwa_toolkit passive_track_real.launch robot_name:=iiwa1 model:=7` (computer connect to iiwa 7)
+4. Set parameter `object_real` to `true` and `iiwa_real` to `true` (file in `i_am_project/config/world_sim_params.yaml`) (Current computer)
+5. `roslaunch i_am_project air_hockey_real.launch` (Current computer)
 
 
 ## Other settings:
@@ -112,5 +130,5 @@ cd <path_to_i_am_project>
 Run docker:
 
 ``` bash 
-aica-docker interactive iam_project_harshit:noetic -u ros --net host --no-hostname -v /path_to_project/i_am_project:/home/ros/ros_ws/src/i_am_project
+aica-docker interactive iam_project_harshit:noetic -u ros --net host --no-hostname -v /path_to_project/i_am_project:/home/ros/ros_ws/src/i_am_project --privileged
 ```

@@ -16,13 +16,13 @@ track(Eigen::Vector3d predict_pos, Eigen::Vector3d center2, Eigen::Vector2d ee_o
 geometry_msgs::Pose
 rest(Eigen::Vector3d center1, Eigen::Vector3d center2, Eigen::Vector2d ee_offset, Eigen::Vector3d iiwa_base_pos);
 
-geometry_msgs::Pose postHit(Eigen::Vector3d object_pos_init, Eigen::Vector3d center2, Eigen::Vector3d iiwa_base_pos);
+geometry_msgs::Pose postHit(Eigen::Vector3d object_pos_init, Eigen::Vector3d center2, Eigen::Vector3d iiwa_base_pos, Eigen::Vector2d ee_offset);
 
 geometry_msgs::Pose hitDS(double des_speed,
                           Eigen::Vector3d object_pos,
                           Eigen::Vector3d center2,
                           Eigen::Vector3d ee_pos,
-                          Eigen::Vector3d ee_pos_init);
+                          Eigen::Vector3d ee_pos_init, Eigen::Vector2d ee_offset);
 
 // IIWA stops the object if goes too far
 geometry_msgs::Pose block(Eigen::Vector3d object_pos,

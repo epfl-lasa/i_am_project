@@ -163,24 +163,36 @@ void AirHockey::run() {
 
     // TODO NEED PRINTING OR NOT?
 
-    if (mode1_ == 3) {
-      ROS_INFO("1 HIT");
-    }
-    if (mode1_ == 4) {
-      ROS_INFO("1 AFTERHIT");
-    }
     // if (mode1_ == 1) {
     //   ROS_INFO("1 TRACKING");
     // }
+    // if (mode1_ == 2) {
+    //   ROS_INFO("1 STOP");
+    // }
+    if (mode1_ == 3) {
+      ROS_INFO_STREAM("1 HIT" << ee1_pos_init_);
+    }
+    if (mode1_ == 4) {
+      ROS_INFO_STREAM("1 AFTERHIT" << object_pos_init1_);
+    }
+    // if (mode1_ == 5) {
+    //   ROS_INFO("1 REST");
+    // }
 
-    // if (mode2_ == 3) {
-    //   ROS_INFO("2 HIT");
-    // }
-    // if (mode2_ == 4) {
-    //   ROS_INFO("2 AFTERHIT");
-    // }
     // if (mode2_ == 1) {
     //   ROS_INFO("2 TRACKING");
+    // }
+    // if (mode2_ == 2) {
+    //   ROS_INFO("2 STOP");
+    // }
+    if (mode2_ == 3) {
+      ROS_INFO_STREAM("2 HIT  " << ee2_pos_init_);
+    }
+    if (mode2_ == 4) {
+      ROS_INFO("2 AFTERHIT");
+    }
+    // if (mode2_ == 5) {
+    //   ROS_INFO("2 REST");
     // }
 
     ros::spinOnce();
@@ -277,18 +289,18 @@ void AirHockey::move_robot(int mode, int mode_id) {
       break;
     case 3://hit
       if (mode_id == 1) {
-        pub_vel_quat1_.publish(hitDS(des_speed_, object_pos_, center2_, ee1_pos_, ee1_pos_init_));
+        pub_vel_quat1_.publish(hitDS(des_speed_, object_pos_, center2_, ee1_pos_, ee1_pos_init_, ee_offset_));
         object_pos_init1_ = object_pos_;//need this for post-hit to guide the arm right after hit
       } else if (mode_id == 2) {
-        pub_vel_quat2_.publish(hitDS(des_speed_, object_pos_, center1_, ee2_pos_, ee2_pos_init_));
+        pub_vel_quat2_.publish(hitDS(des_speed_, object_pos_, center1_, ee2_pos_, ee2_pos_init_, ee_offset_));
         object_pos_init2_ = object_pos_;
       }
       break;
     case 4://post hit
       if (mode_id == 1) {
-        pub_pos_quat1_.publish(postHit(object_pos_init1_, center2_, iiwa1_base_pos_));
+        pub_pos_quat1_.publish(postHit(object_pos_init1_, center2_, iiwa1_base_pos_, ee_offset_));
       } else if (mode_id == 2) {
-        pub_pos_quat2_.publish(postHit(object_pos_init2_, center1_, iiwa2_base_pos_));
+        pub_pos_quat2_.publish(postHit(object_pos_init2_, center1_, iiwa2_base_pos_, ee_offset_));
       }
       break;
     case 5://rest
@@ -507,16 +519,11 @@ int AirHockey::modeSelektor(Eigen::Vector3d object_pos,
   }
 
   bool ee_ready;
-  if ((ee_pos - (predict_pos - ee_offset[0] * d_points / d_points.norm() + v_offset)).norm() < 0.05) {
+  if ((ee_pos - (predict_pos - ee_offset[0] * d_points / d_points.norm() + v_offset)).norm() < 0.18) {
     ee_ready = true;
   } else {
     ee_ready = false;
   }
-
-  // std::stringstream sseeready;
-
-  // sseeready << "ee_pos " << ee_pos << " predict_pos " << predict_pos << " v_offset " << v_offset << "  ee_ready  " << predict_pos - ee_offset[0] * d_points / d_points.norm();
-  // ROS_INFO("%s", sseeready.str().c_str());
 
   bool ee_hit;
   if (ee_pos.dot(d_center) > object_pos_init.dot(d_center) - 0.13) {
@@ -525,20 +532,9 @@ int AirHockey::modeSelektor(Eigen::Vector3d object_pos,
     ee_hit = false;
   }
 
-  //std::cout << "cur_hittable: " << cur_hittable << "\n";
-  //std::cout << "too_far:      " << too_far << "\n";
-  //std::cout << "too_close:    " << too_close << "\n";
-  //std::cout << "towards:      " << towards << "\n";
-  //std::cout << "ee_ready:     " << ee_ready << "\n";
-
-  std::stringstream ssstream;
-
-  ssstream << "prev_mode " << prev_mode << " too_far " << too_far << " ETA  " << ETA << " pred_hittable " << pred_hittable << "  ee_ready  " << ee_ready;
-
-  // ROS_INFO("%s", ssstream.str().c_str());
-
   switch (prev_mode) {
     case 1:                                //track
+
       if (too_far && ETA < 3) { mode = 2; }//if object will go too far, try to stop it
       if (pred_hittable && ETA < 0.3 && ee_ready) {
         mode = 3;
@@ -668,6 +664,7 @@ int main(int argc, char** argv) {
   if (!play_air_hockey->init()) {
     return -1;
   } else {
+    ros::Duration(3).sleep(); 
     play_air_hockey->run();
   }
 }

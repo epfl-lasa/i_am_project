@@ -58,6 +58,9 @@ Source the file when it's done (`. ~/.bashrc`)
 5. `roslaunch i_am_project air_hockey_real.launch` (Current computer)
 
 
+**Remark**: Tracking gains in iiwa_toolkit_ns/config/passuve_track_params.yaml might need tuning 
+
+
 ## Other settings:
 
 * To add manual control, change parameter `manual` to `true` in the parameter file and run in a separate terminal: `rosrun i_am_project key_ctrl`. 

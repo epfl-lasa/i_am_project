@@ -40,16 +40,15 @@
 
 class AirHockey {
 private:
-  bool hollow_, iiwa_real_, manual_mode_, object_real_, hitta1_, hitta2_, farra1_, farra2_;
+  bool hollow_, iiwa_real_, manual_mode_, object_real_, hitta1_, hitta2_, farra1_, farra2_, debug_;
 
   int key_ctrl_ = 0;
   int mode1_ = 5;
   int mode2_ = 5;
   int prev_mode1_, prev_mode2_;
 
-  double ETA_;
-  double ee_offset_h_, ee_offset_v_, des_speed_, x_reach_, y_reach_, x_offset_, y_offset_, min_y_, max_y_, object_th_,
-      object_th_mod_;
+  double ETA_, ee_offset_h_, ee_offset_v_, des_speed_, x_reach_, y_reach_, x_offset_, y_offset_, min_y_, max_y_,
+      object_th_, object_th_mod_, threshold_ee_ready_;
 
   std_msgs::Int16 msg_mode1_, msg_mode2_;
 
@@ -68,7 +67,6 @@ private:
       mode_sub_, object_subs_;
   ros::ServiceClient set_state_client_;
 
-
   dynamic_reconfigure::Server<i_am_project::workspace_paramsConfig> dynRecServer_;
   dynamic_reconfigure::Server<i_am_project::workspace_paramsConfig>::CallbackType dynRecCallback_;
 
@@ -78,6 +76,7 @@ public:
   bool init();
   void run();
 
+  void get_private_param();
   void param_cfg_callback(i_am_project::workspace_paramsConfig& config, uint32_t level);
 
   void switch_both_mode();

@@ -33,7 +33,6 @@ Eigen::Vector3d quatToRPY(Eigen::Vector4d q) {
 }
 
 Eigen::Vector4d rpyToQuat(double r, double p, double y) {
-  // TODO KEEP OR DELETE
   //Eigen::Vector4d q_base = {std::cos(-M_PI/4), std::sin(-M_PI/4), 0.0, 0.0}; //rotate from base quaternion (ee pointing up) to 'ready to play' rotation
 
   Eigen::Vector4d q_r = {std::cos(r / 2), std::sin(r / 2), 0.0, 0.0};

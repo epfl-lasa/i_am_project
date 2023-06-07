@@ -1,11 +1,10 @@
 #pragma once
 
-
-#include "ros/ros.h"
 #include "ros/package.h"
+#include "ros/ros.h"
 
-#include "geometry_msgs/Pose.h"
 #include "gazebo_msgs/SpawnModel.h"
+#include "geometry_msgs/Pose.h"
 
 #include <cmath>
 #include <fstream>

@@ -25,10 +25,6 @@ void CollectData::objectSimCallback(const gazebo_msgs::ModelStates model_states)
                            object_pose_.orientation.z});//get orientation in rpy
   object_th_ = object_rpy_[2];
   object_th_dot_ = object_twist_.angular.z;//only the z-axis
-
-  // TODO DELTET THIS VARIABLE? NEVER USED ONLY SET
-  // object_th_mod_ =
-  //     std::fmod(object_th_ + M_PI + M_PI / 4, M_PI / 2) - M_PI / 4;//get relative angle of box face facing the arm
 }
 
 void CollectData::iiwaSimCallback(const gazebo_msgs::LinkStates link_states) {
@@ -57,10 +53,6 @@ void CollectData::objectCallback(const geometry_msgs::Pose object_pose) {
                            object_pose.orientation.y,
                            object_pose.orientation.z});//get orientation in rpy
   object_th_ = object_rpy_[2];                         //only the z-axis
-
-  // TODO DELTET THIS VARIABLE? NEVER USED ONLY SET
-  // object_th_mod_ =
-  //     std::fmod(object_th_ + M_PI + M_PI / 4, M_PI / 2) - M_PI / 4;//get relative angle of box face facing the arm
 }
 
 void CollectData::iiwa1EEPoseCallback(const geometry_msgs::Pose ee_pose) {
@@ -120,12 +112,7 @@ void CollectData::iiwa2JointCallback(sensor_msgs::JointState joint_states) {
 
 //i_am_predict callbacks
 void CollectData::estimateObjectCallback(std_msgs::Float64MultiArray estimation) {
-  //TODO DELETE ETA AND stdev and predict_pos? NEVER USED ONLY SET
-  // stdev_ = estimation.data[0];
-  // ETA_ = estimation.data[1];
-  // predict_pos_ << estimation.data[2], estimation.data[3], estimation.data[4];
   if (object_real_) { object_vel_ << estimation.data[5], estimation.data[6], estimation.data[7]; }
-  //predict_th = estimation.data[8];
 }
 
 void CollectData::modeIwaa1Callback(std_msgs::Int16 msg) { mode1_ = msg.data; }
@@ -267,7 +254,6 @@ void CollectData::run() {
     std::tie(hitta1, farra1) = hittable(object_pos_, center1_, center2_, hittable_params_);
     std::tie(hitta2, farra2) = hittable(object_pos_, center2_, center1_, hittable_params_);
 
-    // TODO -- ISNT IT SUPPOSE TO BE DONE ONLY IN THE NODE THAT MOVES THE ROBOT? AND THIS ONE ONLY TO RECORD?!?!?
     // Reset object position once out of reach if it is in gazebo (otherwise, there is little our code can do for us)
     if (object_real_ == false && object_vel_.norm() < 0.01 && (!hitta1 && !hitta2)) {
 
@@ -298,8 +284,6 @@ void CollectData::run() {
     pred_time_q.push(current_time);
     object_pos_q.push(object_pos_);
     object_vel_q.push(object_vel_);
-    // TODO DELETE PREDICT POS? NEVER USED ONLY SET
-    // predict_pos_q.push(predict_pos_);
     object_theta_q.push(object_th_);
     object_theta_dot_q.push(object_th_dot_);
     ee1_pose_q.push(ee1_pose_);

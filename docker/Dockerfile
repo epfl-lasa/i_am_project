@@ -28,14 +28,6 @@ WORKDIR /home/${USER}/ros_ws/src
 RUN --mount=type=ssh git clone git@github.com:epfl-lasa/i_am_predict.git
 RUN cd i_am_predict && git checkout clean/master
 
-# # real_pose requirements
-# WORKDIR /home/${USER}/ros_ws/src
-# RUN --mount=type=ssh git clone git@github.com:epfl-lasa/net-ft-ros.git
-
-# # real_pose 
-# WORKDIR /home/${USER}/ros_ws/src
-# RUN --mount=type=ssh git clone git@github.com:epfl-lasa/real_pose.git
-
 USER ${USER}
 
 # Copy i_am_project folder inside docker

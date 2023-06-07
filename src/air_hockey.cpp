@@ -4,21 +4,8 @@
 #include "air_hockey.h"
 
 bool AirHockey::init() {
-  // Get environment settings
-  if (!nh_.getParam("hollow", hollow_)) { ROS_ERROR("Param hollow not found"); }
-  if (!nh_.getParam("iiwa_real", iiwa_real_)) { ROS_ERROR("Param iiwa_real not found"); }
-  if (!nh_.getParam("manual_mode", manual_mode_)) { ROS_ERROR("Param manual_mode not found"); }
-  if (!nh_.getParam("object_real", object_real_)) { ROS_ERROR("Param object_real not found"); }
 
-  //Get center points of desired workspaces (used to aim for and tell what orientation)
-  if (!nh_.getParam("center1", center1vec_)) { ROS_ERROR("Param center1 not found"); }
-  if (!nh_.getParam("center2", center2vec_)) { ROS_ERROR("Param center2 not found"); }
-  if (!nh_.getParam("ee_offset/h", ee_offset_h_)) { ROS_ERROR("Param ee_offset/h not found"); }
-  if (!nh_.getParam("ee_offset/v", ee_offset_v_)) { ROS_ERROR("Param ee_offset/v not found"); }
-  if (!nh_.getParam("hittable/reach/x", x_reach_)) { ROS_ERROR("Param hittable/reach/x not found"); }
-  if (!nh_.getParam("hittable/reach/y", y_reach_)) { ROS_ERROR("Param hittable/reach/y not found"); }
-  if (!nh_.getParam("hittable/offset/x", x_offset_)) { ROS_ERROR("Param hittable/offset/x not found"); }
-  if (!nh_.getParam("hittable/offset/y", y_offset_)) { ROS_ERROR("Param hittable/offset/y not found"); }
+  get_private_param();
 
   // Get ros topics name
   std::string mode_iiwa1, mode_iiwa2, passive_ctrl_iiwa1_vel_quat, passive_ctrl_iiwa2_vel_quat,
@@ -65,9 +52,6 @@ bool AirHockey::init() {
     ROS_ERROR("Param ros topic /gazebo/link_states not found");
   }
 
-  nh_.getParam("hit/speed", des_speed_);
-  //   ros::Duration(3).sleep(); // TODO WHY?? (LINE 240)
-
   center1_ << center1vec_[0], center1vec_[1], center1vec_[2];
   center2_ << center2vec_[0], center2vec_[1], center2vec_[2];
   ee_offset_ = {ee_offset_h_, ee_offset_v_};
@@ -83,7 +67,7 @@ bool AirHockey::init() {
 
   //Init subscribers
   estimate_object_subs_ = nh_.subscribe(estimate_object, 10, &AirHockey::estimateObjectCallback, this);
-  mode_sub_ = nh_.subscribe("/key_ctrl_mode", 10, &AirHockey::modeCallback, this);//Subscriber to key control
+  mode_sub_ = nh_.subscribe("/key_ctrl_mode", 10, &AirHockey::modeCallback, this);
   if (object_real_) {
     object_subs_ = nh_.subscribe(track_object, 10, &AirHockey::objectCallback, this);
   } else {
@@ -98,30 +82,22 @@ bool AirHockey::init() {
     iiwa2_base_subs_ = nh_.subscribe(track_right_pose, 10, &AirHockey::iiwa2BaseCallback, this);
     iiwa1_ee_subs_ = nh_.subscribe(track_left_eepose, 10, &AirHockey::iiwa1EEPoseCallback, this);
     iiwa2_ee_subs_ = nh_.subscribe(track_right_eepose, 10, &AirHockey::iiwa2EEPoseCallback, this);
+
+    R_Opti_ << 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0;
+    threshold_ee_ready_ = 0.18;
   } else {
     iiwa_subs_ = nh_.subscribe(gazebo_link_states, 10, &AirHockey::iiwaSimCallback, this);
+
+    R_Opti_ << 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0;
+    threshold_ee_ready_ = 0.05;
   }
 
   // dynamic configure:
-  dynRecCallback_ = boost::bind(&AirHockey::param_cfg_callback,this,_1,_2);
+  dynRecCallback_ = boost::bind(&AirHockey::param_cfg_callback, this, _1, _2);
   dynRecServer_.setCallback(dynRecCallback_);
 
-  // TODO IS THIS NEEDED??
-  //   Set hitting speed and direction. Once we change attractor to something more related to the game, we no longer need this
-  //   std::cout << "Enter the desired speed of hitting (between 0 and 1)" << std::endl;
-  //   std::cin >> des_speed;
-  //     double theta;
-  //     nh_.getParam("hit/direction", theta);
-  //   while(des_speed < 0 || des_speed > 3){
-  //     std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
-  //     std::cin >> des_speed;
-  //   }
-  //   std::cout << "Enter the desired direction of hitting (between -pi/2 and pi/2)" << std::endl;
-  //   std::cin >> theta;
-  //   while(theta < -M_PI_2 || theta > M_PI_2){
-  //     std::cout <<"Invalid entry! Please enter a valid value: " << std::endl;
-  //     std::cin >> theta;
-  //   }
+  // EE rotation
+  R_EE_ << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
 
   return true;
 }
@@ -132,9 +108,6 @@ void AirHockey::run() {
   msg_mode2_.data = mode2_;
   prev_mode1_ = mode1_;
   prev_mode2_ = mode2_;
-
-  R_EE_ << 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0;
-  R_Opti_ << 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0; //0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0; //
 
   while (ros::ok()) {
     switch_both_mode();
@@ -154,46 +127,13 @@ void AirHockey::run() {
     std::tie(hitta2_, farra2_) = hittable(object_pos_, center2_, center1_, hittable_params_);
 
     if (object_real_ == false && object_vel_.norm() < 0.01 && (!hitta1_ && !hitta2_)) { reset_object_position(); }
-    // Some infos
-    std::stringstream ss1;
-    std::stringstream ss2;
 
-    ss1 << "mode1: " << mode1_;
-    ss2 << "mode2: " << mode2_;
-
-    // TODO NEED PRINTING OR NOT?
-
-    // if (mode1_ == 1) {
-    //   ROS_INFO("1 TRACKING");
-    // }
-    // if (mode1_ == 2) {
-    //   ROS_INFO("1 STOP");
-    // }
-    if (mode1_ == 3) {
-      ROS_INFO_STREAM("1 HIT" << ee1_pos_init_);
+    if (debug_) {
+      if (mode1_ == 3) { ROS_INFO_STREAM("1 HIT" << ee1_pos_init_); }
+      if (mode1_ == 4) { ROS_INFO_STREAM("1 AFTERHIT" << object_pos_init1_); }
+      if (mode2_ == 3) { ROS_INFO_STREAM("2 HIT  " << ee2_pos_init_); }
+      if (mode2_ == 4) { ROS_INFO("2 AFTERHIT"); }
     }
-    if (mode1_ == 4) {
-      ROS_INFO_STREAM("1 AFTERHIT" << object_pos_init1_);
-    }
-    // if (mode1_ == 5) {
-    //   ROS_INFO("1 REST");
-    // }
-
-    // if (mode2_ == 1) {
-    //   ROS_INFO("2 TRACKING");
-    // }
-    // if (mode2_ == 2) {
-    //   ROS_INFO("2 STOP");
-    // }
-    if (mode2_ == 3) {
-      ROS_INFO_STREAM("2 HIT  " << ee2_pos_init_);
-    }
-    if (mode2_ == 4) {
-      ROS_INFO("2 AFTERHIT");
-    }
-    // if (mode2_ == 5) {
-    //   ROS_INFO("2 REST");
-    // }
 
     ros::spinOnce();
     rate_.sleep();
@@ -203,7 +143,27 @@ void AirHockey::run() {
   ros::shutdown();
 }
 
-void AirHockey::param_cfg_callback(i_am_project::workspace_paramsConfig& config, uint32_t level){
+void AirHockey::get_private_param() {
+  // Get environment settings
+  if (!nh_.getParam("hollow", hollow_)) { ROS_ERROR("Param hollow not found"); }
+  if (!nh_.getParam("iiwa_real", iiwa_real_)) { ROS_ERROR("Param iiwa_real not found"); }
+  if (!nh_.getParam("manual_mode", manual_mode_)) { ROS_ERROR("Param manual_mode not found"); }
+  if (!nh_.getParam("object_real", object_real_)) { ROS_ERROR("Param object_real not found"); }
+  if (!nh_.getParam("debug", debug_)) { debug_ = false; }
+
+  //Get center points of desired workspaces (used to aim for and tell what orientation)
+  if (!nh_.getParam("center1", center1vec_)) { ROS_ERROR("Param center1 not found"); }
+  if (!nh_.getParam("center2", center2vec_)) { ROS_ERROR("Param center2 not found"); }
+  if (!nh_.getParam("ee_offset/h", ee_offset_h_)) { ROS_ERROR("Param ee_offset/h not found"); }
+  if (!nh_.getParam("ee_offset/v", ee_offset_v_)) { ROS_ERROR("Param ee_offset/v not found"); }
+  if (!nh_.getParam("hittable/reach/x", x_reach_)) { ROS_ERROR("Param hittable/reach/x not found"); }
+  if (!nh_.getParam("hittable/reach/y", y_reach_)) { ROS_ERROR("Param hittable/reach/y not found"); }
+  if (!nh_.getParam("hittable/offset/x", x_offset_)) { ROS_ERROR("Param hittable/offset/x not found"); }
+  if (!nh_.getParam("hittable/offset/y", y_offset_)) { ROS_ERROR("Param hittable/offset/y not found"); }
+  if (!nh_.getParam("hit/speed", des_speed_)) { ROS_ERROR("Param hit/speed not found"); }
+}
+
+void AirHockey::param_cfg_callback(i_am_project::workspace_paramsConfig& config, uint32_t level) {
   ROS_INFO("Reconfigure request.. Updating the parameters ... ");
   double center1vec_X = config.center1_x;
   double center1vec_Y = config.center1_y;
@@ -406,18 +366,16 @@ void AirHockey::iiwaSimCallback(const gazebo_msgs::LinkStates link_states) {
   iiwa2_base_pose = link_states.pose[iiwa2_base_index];
   iiwa1_base_pos_ << iiwa1_base_pose.position.x, iiwa1_base_pose.position.y, iiwa1_base_pose.position.z;
   iiwa2_base_pos_ << iiwa2_base_pose.position.x, iiwa2_base_pose.position.y, iiwa2_base_pose.position.z;
-
-  // TODO NEEDED OR DELETE?
-  // min_y_ = iiwa2_base_pos_[1] - 0.5;
-  // max_y_ = iiwa2_base_pos_[1] - 0.1;
 }
 
 //Optitrack
 void AirHockey::objectCallback(const geometry_msgs::PoseStamped object_pose) {
   object_pos_ << object_pose.pose.position.x, object_pose.pose.position.y, object_pose.pose.position.z;
   object_pos_ = R_Opti_ * object_pos_;
-  Eigen::Vector3d object_rpy = quatToRPY(
-      {object_pose.pose.orientation.w, object_pose.pose.orientation.x, object_pose.pose.orientation.y, object_pose.pose.orientation.z});
+  Eigen::Vector3d object_rpy = quatToRPY({object_pose.pose.orientation.w,
+                                          object_pose.pose.orientation.x,
+                                          object_pose.pose.orientation.y,
+                                          object_pose.pose.orientation.z});
 
   object_th_mod_ =
       std::fmod(object_rpy[2] + M_PI + M_PI / 4, M_PI / 2) - M_PI / 4;//get relative angle of box face facing the arm
@@ -431,10 +389,6 @@ void AirHockey::iiwa1BaseCallback(const geometry_msgs::PoseStamped base_pose) {
 void AirHockey::iiwa2BaseCallback(const geometry_msgs::PoseStamped base_pose) {
   iiwa2_base_pos_ << base_pose.pose.position.x, base_pose.pose.position.y, base_pose.pose.position.z;
   iiwa2_base_pos_ = R_Opti_ * iiwa2_base_pos_;
-
-  // TODO NEEDED OR DELETE?
-  // min_y_ = iiwa2_base_pos_[1] - 0.5;
-  // max_y_ = iiwa2_base_pos_[1] - 0.1;
 }
 
 void AirHockey::iiwa1EEPoseCallback(const geometry_msgs::Pose ee_pose) {
@@ -452,15 +406,13 @@ void AirHockey::iiwa2EEPoseCallback(const geometry_msgs::Pose ee_pose) {
 
 //i_am_predict or estimate_sim
 void AirHockey::estimateObjectCallback(std_msgs::Float64MultiArray estimation) {
-  // TODO NEVER USED DELETE
-  // double stdev;
-  // stdev = estimation.data[0];
-  //predict_th = estimation.data[8];
   ETA_ = estimation.data[1];
   predict_pos_ << estimation.data[2], estimation.data[3], estimation.data[4];
   object_vel_ << estimation.data[5], estimation.data[6], estimation.data[7];
-  predict_pos_ = R_Opti_ * predict_pos_;
-  object_vel_ = R_Opti_ * object_vel_;
+  if (iiwa_real_) {
+    predict_pos_ = R_Opti_ * predict_pos_;
+    object_vel_ = R_Opti_ * object_vel_;
+  }
 }
 
 //manual control
@@ -477,7 +429,7 @@ int AirHockey::modeSelektor(Eigen::Vector3d object_pos,
                             Eigen::Vector2d ee_offset,
                             Eigen::Vector4d hittable_params,
                             const int prev_mode) {
-  // TODO COMMENTS REVIEW
+
   int mode = prev_mode;// if none of the conditions are met, mode remains the same
 
   Eigen::Vector3d d_center = center2 - center1;
@@ -519,7 +471,7 @@ int AirHockey::modeSelektor(Eigen::Vector3d object_pos,
   }
 
   bool ee_ready;
-  if ((ee_pos - (predict_pos - ee_offset[0] * d_points / d_points.norm() + v_offset)).norm() < 0.18) {
+  if ((ee_pos - (predict_pos - ee_offset[0] * d_points / d_points.norm() + v_offset)).norm() < threshold_ee_ready_) {
     ee_ready = true;
   } else {
     ee_ready = false;
@@ -533,7 +485,7 @@ int AirHockey::modeSelektor(Eigen::Vector3d object_pos,
   }
 
   switch (prev_mode) {
-    case 1:                                //track
+    case 1://track
 
       if (too_far && ETA < 3) { mode = 2; }//if object will go too far, try to stop it
       if (pred_hittable && ETA < 0.3 && ee_ready) {
@@ -664,7 +616,7 @@ int main(int argc, char** argv) {
   if (!play_air_hockey->init()) {
     return -1;
   } else {
-    ros::Duration(3).sleep(); 
+    ros::Duration(3).sleep();
     play_air_hockey->run();
   }
 }

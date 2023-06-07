@@ -1,34 +1,40 @@
 
 # i_am_project
 ## Dependencies/branches
-|   | Single arm only hitting DS | Single arm with air hockey policy | Dual arm with air hockey policy |
+
+* iiwa_ros - branch featuresim - https://github.com/epfl-lasa/iiwa_ros/tree/featuresim 
+* iiwa_toolkit_ns - branch feature_AH - https://github.com/epfl-lasa/iiwa_toolkit_ns/tree/feature_AH 
+* i_am_predict - branch master - https://github.com/epfl-lasa/i_am_predict/tree/master
+
+
+<!-- |   | Single arm only hitting DS | Single arm with air hockey policy | Dual arm with air hockey policy |
 | ------|-----|-----|-----|
 | iiwa_ros | master | featuresim | featuresim |
 | iiwa_toolkit	| master | - |-|
 | iiwa_toolkit_ns	| - | feature_AH |feature_AH|
 | i_am_project	| master | feature_real-sim_single |feature_real|
-| i_am_predict	| - | - |master|
+| i_am_predict	| - | - |master| -->
 
 ## launch: 
 There are three different settings in which the branches with air hockey policy can be launched:
 (The parameters can be changed in `i_am_project/config/world_sim_params.yaml`)
 ### Entirely in simulation
-* `roslaunch i_am_project air_hockey_gazebo.launch`
 * Set parameter `object_real` to `false`
 * Set parameter `iiwa_real` to `false`
+* `roslaunch i_am_project air_hockey_gazebo.launch`
 
-### Simulated IIWA's while using real object
-* `roslaunch i_am_project air_hockey_real_gazebo.launch`
+### Simulated IIWA's while using real object 
 * Set parameter `object_real` to `true`
 * Set parameter `iiwa_real` to `false`
+* `roslaunch i_am_project air_hockey_real_gazebo.launch`
 
-**Remark**: the pose of the box is tracked with Optitrack and used in the control program.
+**Remark**: the pose of the box is tracked with Optitrack and used in the control program. NOT TESTED YET
 
 ### Entirely physical setup
 You'll need 2 computer (you can use SSH connection)
 
 #### Setup ROS communication between 2 computers
-This must be run inside docker if you're using it.
+This must be run inside docker if used.
 
 Add those line in `~/.bashrc` (To modify it `sudo nano ~/.bashrc`)
 * Remote computer : 
@@ -44,7 +50,7 @@ export ROS_IP=<ip-address-of-current-computer>
 ```
 Source the file when it's done (`. ~/.bashrc`)
 
-#### Launch air hockey game
+#### Launch air hockey game (entirely physical setup)
 1. `roslaunch i_am_project optitrack.launch` (Current computer)
 2. `roslaunch iiwa_toolkit passive_track_real.launch robot_name:=iiwa2 model:=14` (computer connect to iiwa 14)
 3. `roslaunch iiwa_toolkit passive_track_real.launch robot_name:=iiwa1 model:=7` (computer connect to iiwa 7)

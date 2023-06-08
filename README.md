@@ -2,6 +2,14 @@
 # i_am_project
 ## Dependencies/branches
 
+
+### Inertia
+* iiwa_ros - branch feature/double-robot-inertia - https://github.com/epfl-lasa/iiwa_ros/tree/feature/double-robot-inertia
+* iiwa_toolkit - branch feature_ns_inertial_control - https://github.com/Elise-J/iiwa_toolkit/tree/feature_ns_inertial_control
+* i_am_predict - branch master - https://github.com/epfl-lasa/i_am_predict/tree/master
+
+
+### No inertia
 * iiwa_ros - branch featuresim - https://github.com/epfl-lasa/iiwa_ros/tree/featuresim 
 * iiwa_toolkit_ns - branch feature_AH - https://github.com/epfl-lasa/iiwa_toolkit_ns/tree/feature_AH 
 * i_am_predict - branch master - https://github.com/epfl-lasa/i_am_predict/tree/master
@@ -85,6 +93,19 @@ A docker containing iiwa-ros library is needed to build the i_am_project docker.
 cf. https://github.com/epfl-lasa/iiwa_ros/tree/feature/dockerise/docker#prerequisite
 
 ### Docker iiwa-ros
+#### Inertia
+1. Pull the repo 
+    ```bash
+    git clone -b feature/double-robot-inertia git@github.com:epfl-lasa/iiwa_ros.git
+    ```
+    
+2. Build the docker
+    ``` bash
+    cd docker
+    bash install_docker.sh
+    ```
+
+#### No inertia
 1. Pull the repo 
     ```bash
     git clone -b feature/dockerise git@github.com:epfl-lasa/iiwa_ros.git
@@ -128,7 +149,16 @@ cf. https://github.com/epfl-lasa/iiwa_ros/tree/feature/dockerise/docker#prerequi
 ### Docker i_am_project
 The files from your folder i_am_project will be copy inside the docker. Make sure you are on the correct branch.
 
-Build docker:
+**Build docker Inertia**
+The branch of iiwa-toolkit lib can be chosen. The default branch is feature_ns_inertial_control
+
+```bash
+cd <path_to_i_am_project>
+
+ ./docker/build-server.sh -i -b <iiwa-toolkit-branch-name>
+```
+
+**Build docker No inertia**
 
 ```bash
 cd <path_to_i_am_project>
@@ -136,7 +166,7 @@ cd <path_to_i_am_project>
  ./docker/build-server.sh 
 ```
 
-Run docker:
+**Run docker**
 
 ``` bash 
 aica-docker interactive iam_project_harshit:noetic -u ros --net host --no-hostname -v /path_to_project/i_am_project:/home/ros/ros_ws/src/i_am_project --privileged

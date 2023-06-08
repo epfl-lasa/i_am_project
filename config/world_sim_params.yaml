@@ -2,7 +2,7 @@ object_real: false
 iiwa_real: false
 manual_mode: false
 hollow: false
-debug: false
+debug: true
 
 
 #average of desired workspace of iiwa1 wrt world frame. In real, world frame is exactly between iiwa_base so centers should have x =/= 0
@@ -31,8 +31,10 @@ hittable:               # to create a hittable area in the form of an ellipsoid 
 table:
   properties:           # keep in mind that the iiwa base has a max radius of 0.3
     size:
-      x: 2.4
-      y: 0.8
+      # x: 2.4
+      # y: 0.8
+      x: 0.8
+      y: 2.4
       z: 0.05
     COM:
       x: 0.0
@@ -42,8 +44,11 @@ table:
     mu: 0.5
     mu2: 0.5
   initial_pos:
+    # x: 0.55
+    # y: 0.89
+    # z: 0.025
     x: 0.55
-    y: 0.89
+    y: 0.0
     z: 0.025
 
 box:
@@ -60,8 +65,11 @@ box:
     mu: 0.075
     mu2: 0.075
   initial_pos:
-    x: 0.65
-    y: 0.95
+    # x: 0.65
+    # y: 0.95
+    # z: 0.175
+    x: 0.55
+    y: -0.4
     z: 0.175
   
 mini:

@@ -23,11 +23,13 @@ simo_track: {
   object_pose: "/vrpn_client_node/object_1/pose",
   robot_left: {
     pose: "/vrpn_client_node/iiwa_7_base/pose" ,
-    ee_pose: "/iiwa1/ee_pose"
+    ee_pose: "/iiwa2/ee_pose"
+    # ee_pose: "/iiwa1/ee_info/Pose" # USING INERTIA
   },
   robot_right: {
     pose: "/vrpn_client_node/iiwa_14_base/pose",
     ee_pose: "/iiwa2/ee_pose"
+    # ee_pose: "/iiwa2/ee_info/Pose" # USING INERTIA
   }
 }
 
@@ -43,7 +45,7 @@ joint_states: {
   iiwa2: "/iiwa2/joint_states"
 }
 
-ee_twist: {
-  iiwa1: "/iiwa1/ee_twist",
-  iiwa2: "/iiwa2/ee_twist"
-}
+# ee_twist: {
+#   iiwa1: "/iiwa1/ee_twist",
+#   iiwa2: "/iiwa2/ee_twist"
+# }

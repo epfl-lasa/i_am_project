@@ -31,7 +31,7 @@ There are three different settings in which the branches with air hockey policy 
 * Set parameter `iiwa_real` to `false`
 * `roslaunch i_am_project air_hockey_gazebo.launch`
 
-### Simulated IIWA's while using real object 
+### Simulated IIWA's while using real object - NO TESTED YET
 * Set parameter `object_real` to `true`
 * Set parameter `iiwa_real` to `false`
 * `roslaunch i_am_project air_hockey_real_gazebo.launch`
@@ -66,7 +66,9 @@ Source the file when it's done (`. ~/.bashrc`)
 5. `roslaunch i_am_project air_hockey_real.launch` (Current computer)
 
 
-**Remark**: Tracking gains in iiwa_toolkit_ns/config/passuve_track_params.yaml might need tuning 
+**Remark**:
+* Tracking gains in iiwa_toolkit_ns/config/passuve_track_params.yaml might need tuning 
+* If using inertia, ee_pose topic must be changed in config/ros_topics.yaml from `/iiwa2/ee_pose` to `/iiwa2/ee_info/Pose`
 
 
 ## Other settings:

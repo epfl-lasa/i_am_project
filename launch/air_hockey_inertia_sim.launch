@@ -15,7 +15,7 @@
 
     <!--This spawns iiwa7 and iiwa14 and starts both passive tracking in their namespace-->
     <include
-        file = "$(find iiwa_toolkit)/launch/passive_track_gazebo_dual.launch">    
+        file = "$(find i_am_project)/launch/passive_tracking_dual.launch">    
         <arg name="robot_name_1" value="$(arg robot_name_1)"/>
         <arg name="robot_name_2" value="$(arg robot_name_2)"/>
         <arg name="iiwa_model_1" value="14"/>

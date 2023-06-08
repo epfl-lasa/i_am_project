@@ -1,5 +1,6 @@
 ARG BASE_IMAGE_TAG=noetic
 FROM lizjdp/iiwa-ros-inertia
+# FROM epfl-lasa/iiwa_ros_double_robot_inertia
 
 # Modify files inside docker
 ARG HOST_GID=1001
@@ -22,7 +23,7 @@ RUN sudo apt-get update && sudo apt-get install -y \
 # CPP lib
 # osqp
 WORKDIR /source
-RUN git clone --recursive https://github.com/osqp/osqp
+RUN git clone --recursive -b v0.6.3 https://github.com/osqp/osqp 
 RUN cd osqp && mkdir build && cd build && cmake -G "Unix Makefiles" .. && cmake --build . && sudo cmake --build . --target install
 
 # osqp-eigen

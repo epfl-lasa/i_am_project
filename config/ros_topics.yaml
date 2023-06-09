@@ -4,6 +4,13 @@ mode: {
   iiwa2: "/mode/iiwa2"
 }
 
+Inertia: {
+  taskPos: {
+    iiwa1: /iiwa1/Inertia/taskPos,
+    iiwa2: /iiwa2/Inertia/taskPos
+  }
+}
+
 passive_control: {
   vel_quat: {
     iiwa1: "/passive_control/iiwa1/vel_quat",

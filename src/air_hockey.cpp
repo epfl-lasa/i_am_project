@@ -11,7 +11,7 @@ bool AirHockey::init() {
   std::string mode_iiwa1, mode_iiwa2, passive_ctrl_iiwa1_vel_quat, passive_ctrl_iiwa2_vel_quat,
       passive_ctrl_iiwa1_pos_quat, passive_ctrl_iiwa2_pos_quat, estimate_object, track_object, track_left_pose,
       track_left_eepose, track_right_pose, track_right_eepose, gazebo_model_states, gazebo_set_model_states,
-      gazebo_link_states;
+      gazebo_link_states, iiwa1_inertia_topic, iiwa2_inertia_topic;
   if (!nh_.getParam("/mode/iiwa1", mode_iiwa1)) { ROS_ERROR("Param ros topic mode/iiwa1 not found"); }
   if (!nh_.getParam("/mode/iiwa2", mode_iiwa2)) { ROS_ERROR("Param ros topic mode/iiwa2 not found"); }
   if (!nh_.getParam("/passive_control/vel_quat/iiwa1", passive_ctrl_iiwa1_vel_quat)) {
@@ -51,6 +51,12 @@ bool AirHockey::init() {
   if (!nh_.getParam("/gazebo/link_states", gazebo_link_states)) {
     ROS_ERROR("Param ros topic /gazebo/link_states not found");
   }
+  if (!nh_.getParam("/Inertia/taskPos/iiwa1", iiwa1_inertia_topic)) {
+    ROS_ERROR("Topic /iiwa1/inertia/taskPos not found");
+  }
+  if (!nh_.getParam("/Inertia/taskPos/iiwa2", iiwa2_inertia_topic)) {
+    ROS_ERROR("Topic /iiwa2/inertia/taskPos not found");
+  }
 
   center1_ << center1vec_[0], center1vec_[1], center1vec_[2];
   center2_ << center2vec_[0], center2vec_[1], center2vec_[2];
@@ -68,6 +74,17 @@ bool AirHockey::init() {
   //Init subscribers
   estimate_object_subs_ = nh_.subscribe(estimate_object, 10, &AirHockey::estimateObjectCallback, this);
   mode_sub_ = nh_.subscribe("/key_ctrl_mode", 10, &AirHockey::modeCallback, this);
+  iiwa1_inertia_ = nh_.subscribe(iiwa1_inertia_topic,
+                                 1,
+                                 &AirHockey::iiwa1InertiaCallback,
+                                 this,
+                                 ros::TransportHints().reliable().tcpNoDelay());
+  iiwa2_inertia_ = nh_.subscribe(iiwa2_inertia_topic,
+                                 1,
+                                 &AirHockey::iiwa2InertiaCallback,
+                                 this,
+                                 ros::TransportHints().reliable().tcpNoDelay());
+
   if (object_real_) {
     object_subs_ = nh_.subscribe(track_object, 10, &AirHockey::objectCallback, this);
   } else {
@@ -150,6 +167,7 @@ void AirHockey::get_private_param() {
   if (!nh_.getParam("manual_mode", manual_mode_)) { ROS_ERROR("Param manual_mode not found"); }
   if (!nh_.getParam("object_real", object_real_)) { ROS_ERROR("Param object_real not found"); }
   if (!nh_.getParam("debug", debug_)) { debug_ = false; }
+  if (!nh_.getParam("inertia", inertia_)) { inertia_ = false; }
 
   //Get center points of desired workspaces (used to aim for and tell what orientation)
   if (!nh_.getParam("center1", center1vec_)) { ROS_ERROR("Param center1 not found"); }
@@ -249,10 +267,20 @@ void AirHockey::move_robot(int mode, int mode_id) {
       break;
     case 3://hit
       if (mode_id == 1) {
-        pub_vel_quat1_.publish(hitDS(des_speed_, object_pos_, center2_, ee1_pos_, ee1_pos_init_, ee_offset_));
+        if (inertia_) {
+          pub_vel_quat1_.publish(
+              hitDSInertia(des_speed_, object_pos_, center2_, ee1_pos_, ee_offset_, iiwa1_task_inertia_pos_));
+        } else {
+          pub_vel_quat1_.publish(hitDS(des_speed_, object_pos_, center2_, ee1_pos_, ee1_pos_init_, ee_offset_));
+        }
         object_pos_init1_ = object_pos_;//need this for post-hit to guide the arm right after hit
       } else if (mode_id == 2) {
-        pub_vel_quat2_.publish(hitDS(des_speed_, object_pos_, center1_, ee2_pos_, ee2_pos_init_, ee_offset_));
+        if (inertia_) {
+          pub_vel_quat2_.publish(
+              hitDSInertia(des_speed_, object_pos_, center1_, ee2_pos_, ee_offset_, iiwa2_task_inertia_pos_));
+        } else {
+          pub_vel_quat2_.publish(hitDS(des_speed_, object_pos_, center1_, ee2_pos_, ee2_pos_init_, ee_offset_));
+        }
         object_pos_init2_ = object_pos_;
       }
       break;
@@ -402,6 +430,30 @@ void AirHockey::iiwa2EEPoseCallback(const geometry_msgs::Pose ee_pose) {
   ee2_pos_ << ee_pose.position.x, ee_pose.position.y, ee_pose.position.z;
   ee2_pos_ = R_EE_ * ee2_pos_;
   ee2_pos_ = ee2_pos_ + iiwa2_base_pos_;
+}
+
+void AirHockey::iiwa1InertiaCallback(const geometry_msgs::Inertia& inertia_msg) {
+  iiwa1_task_inertia_pos_(0, 0) = inertia_msg.ixx;
+  iiwa1_task_inertia_pos_(1, 1) = inertia_msg.iyy;
+  iiwa1_task_inertia_pos_(2, 2) = inertia_msg.izz;
+  iiwa1_task_inertia_pos_(0, 1) = inertia_msg.ixy;
+  iiwa1_task_inertia_pos_(1, 0) = inertia_msg.ixy;
+  iiwa1_task_inertia_pos_(0, 2) = inertia_msg.ixz;
+  iiwa1_task_inertia_pos_(2, 0) = inertia_msg.ixz;
+  iiwa1_task_inertia_pos_(1, 2) = inertia_msg.iyz;
+  iiwa1_task_inertia_pos_(2, 1) = inertia_msg.iyz;
+}
+
+void AirHockey::iiwa2InertiaCallback(const geometry_msgs::Inertia& inertia_msg) {
+  iiwa2_task_inertia_pos_(0, 0) = inertia_msg.ixx;
+  iiwa2_task_inertia_pos_(1, 1) = inertia_msg.iyy;
+  iiwa2_task_inertia_pos_(2, 2) = inertia_msg.izz;
+  iiwa2_task_inertia_pos_(0, 1) = inertia_msg.ixy;
+  iiwa2_task_inertia_pos_(1, 0) = inertia_msg.ixy;
+  iiwa2_task_inertia_pos_(0, 2) = inertia_msg.ixz;
+  iiwa2_task_inertia_pos_(2, 0) = inertia_msg.ixz;
+  iiwa2_task_inertia_pos_(1, 2) = inertia_msg.iyz;
+  iiwa2_task_inertia_pos_(2, 1) = inertia_msg.iyz;
 }
 
 //i_am_predict or estimate_sim

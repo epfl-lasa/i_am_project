@@ -26,10 +26,17 @@
 ## launch: 
 There are three different settings in which the branches with air hockey policy can be launched:
 (The parameters can be changed in `i_am_project/config/world_sim_params.yaml`)
-### Entirely in simulation
+### Entirely in simulation 
 * Set parameter `object_real` to `false`
 * Set parameter `iiwa_real` to `false`
-* `roslaunch i_am_project air_hockey_gazebo.launch`
+
+No inertia:
+* Set parameter `inertia` to `false`
+* `roslaunch i_am_project air_hockey_sim.launch`
+
+Inertia
+* Set parameter `inertia` to `true`
+* `roslaunch i_am_project air_hockey_inertia_sim.launch`
 
 ### Simulated IIWA's while using real object - NO TESTED YET
 * Set parameter `object_real` to `true`

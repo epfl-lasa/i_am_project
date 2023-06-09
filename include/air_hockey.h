@@ -20,6 +20,7 @@
 #include <gazebo_msgs/LinkStates.h>
 #include <gazebo_msgs/ModelStates.h>
 #include <gazebo_msgs/SetModelState.h>
+#include <geometry_msgs/Inertia.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Twist.h>
@@ -40,7 +41,7 @@
 
 class AirHockey {
 private:
-  bool hollow_, iiwa_real_, manual_mode_, object_real_, hitta1_, hitta2_, farra1_, farra2_, debug_;
+  bool hollow_, iiwa_real_, manual_mode_, object_real_, hitta1_, hitta2_, farra1_, farra2_, debug_, inertia_;
 
   int key_ctrl_ = 0;
   int mode1_ = 5;
@@ -55,8 +56,8 @@ private:
   Eigen::Vector2d ee_offset_;
   Eigen::Vector3d object_pos_, iiwa1_base_pos_, iiwa2_base_pos_, ee1_pos_, ee2_pos_, object_pos_init1_,
       object_pos_init2_, ee1_pos_init_, ee2_pos_init_, object_vel_, predict_pos_, center1_, center2_;
+  Eigen::Matrix3d iiwa1_task_inertia_pos_, iiwa2_task_inertia_pos_, R_Opti_, R_EE_;
   Eigen::Vector4d hittable_params_;
-  Eigen::Matrix3d R_Opti_, R_EE_;
 
   std::vector<double> center1vec_, center2vec_;
 
@@ -64,7 +65,7 @@ private:
   ros::NodeHandle nh_;
   ros::Publisher pub_mode1_, pub_mode2_, pub_vel_quat1_, pub_pos_quat1_, pub_vel_quat2_, pub_pos_quat2_;
   ros::Subscriber estimate_object_subs_, iiwa_subs_, iiwa1_base_subs_, iiwa2_base_subs_, iiwa1_ee_subs_, iiwa2_ee_subs_,
-      mode_sub_, object_subs_;
+      mode_sub_, object_subs_, iiwa1_inertia_, iiwa2_inertia_;
   ros::ServiceClient set_state_client_;
 
   dynamic_reconfigure::Server<i_am_project::workspace_paramsConfig> dynRecServer_;
@@ -82,6 +83,10 @@ public:
   void switch_both_mode();
   void move_robot(int mode, int mode_id);
   void reset_object_position();
+
+  //Inertia
+  void iiwa1InertiaCallback(const geometry_msgs::Inertia& inertia_msg);
+  void iiwa2InertiaCallback(const geometry_msgs::Inertia& inertia_msg);
 
   //Gazebo
   void objectSimCallback(const gazebo_msgs::ModelStates model_states);

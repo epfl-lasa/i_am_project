@@ -3,6 +3,7 @@ iiwa_real: false
 manual_mode: false
 hollow: false
 debug: true
+inertia: true
 
 
 #average of desired workspace of iiwa1 wrt world frame. In real, world frame is exactly between iiwa_base so centers should have x =/= 0

@@ -28,6 +28,8 @@
         </node>
 
         <rosparam file="$(find iiwa_toolkit)/config/passive_track_params_dual.yaml" command="load"/>
+        <!-- Needed for iiwa_toolkit branch full_inertia -->
+        <!-- <rosparam file="$(find iiwa_toolkit)/config/inertia_params.yaml" command="load"/> -->
     </group>
 
     <group ns="/$(arg robot_name_2)">
@@ -35,6 +37,8 @@
         </node>
 
         <rosparam file="$(find iiwa_toolkit)/config/passive_track_params_dual.yaml" command="load"/>
+        <!-- Needed for iiwa_toolkit branch full_inertia -->
+        <!-- <rosparam file="$(find iiwa_toolkit)/config/inertia_params.yaml" command="load"/> -->
     </group>
     
 </launch>

@@ -1,6 +1,7 @@
 
 passive_control: {
-  vel_quat: "/passive_control/vel_quat", # Publisher - Control velocity - type geometry_msgs::Pose (SIM + REAL)
+  vel_quat: "/passive_control/iiwa/vel_quat", # Publisher - Control velocity - type geometry_msgs::Pose (SIM + REAL)
+  # vel_quat: "/passive_control/vel_quat", # Publisher - Control velocity - type geometry_msgs::Pose (SIM + REAL)
 }
 
 iiwa: {

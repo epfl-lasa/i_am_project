@@ -1,6 +1,6 @@
 ARG BASE_IMAGE_TAG=noetic
-FROM lizjdp/iiwa-ros-inertia
-# FROM epfl-lasa/iiwa_ros_double_robot_inertia
+# FROM lizjdp/iiwa-ros-inertia
+FROM epfl-lasa/iiwa_ros_double_robot_inertia
 
 # Modify files inside docker
 ARG HOST_GID=1001
@@ -50,7 +50,7 @@ RUN cd optimization-lib && sudo waf distclean configure build install
 # iiwa_toolkit
 ARG IIWA_TOOLKIT_BRANCH=feature_inertial_control
 WORKDIR /home/${USER}/ros_ws/src
-RUN git clone https://github.com/fkhadivar/iiwa_toolkit.git --branch $IIWA_TOOLKIT_BRANCH
+RUN git clone https://github.com/Elise-J/iiwa_toolkit.git --branch $IIWA_TOOLKIT_BRANCH
 # feature_inertial_control feature_full_inertia
 
 

@@ -2,7 +2,7 @@
 BASE_IMAGE_TAG=noetic
 IMAGE_NAME=iam_project_harshit
 
-IIWA_TOOLKIT_BRANCH="feature_inertial_control"
+IIWA_TOOLKIT_BRANCH="feature_ns_inertial_control"
 
 SERVE_REMOTE=false
 REMOTE_SSH_PORT=3472

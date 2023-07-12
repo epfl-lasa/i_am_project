@@ -31,6 +31,27 @@ Wait for the script to finish and launch the simulation:
 roslaunch i_am_project hit_with_momentum.launch 
 ```
 
+## Run the simulation with AGX
+Currently controlling in joint position and working with gazebo
+
+### Urdf-application
+#### Get URDF-app
+1. Clone the urdf-application in branch fix/model-structure  
+```bash
+git clone -b fix/model-structure git@git.algoryx.se:algoryx/external/i-am/urdf-application.git
+```
+2. Follow the docker installation steps here: sudo docker login registry.algoryx.se
+3. Log in to the docker registry with the credentials you have to login in gitlab `sudo docker login registry.algoryx.se`
+
+#### Get custom Project scene for IIWA
+1. `cd  urdf-application/PythonApplication/models/Projects`
+2. Clone this repo: `git clone https://github.com/Elise-J/iam_sim_agx.git`
+
+#### Start simulation
+1. Start brige to communicate with the urdf-application `roslaunch i_am_project hit_with_momentum_agx.launch`
+2. Start the urdf-application: `sudo python3 ../run-in-docker.py python3 click_application.py --model models/Projects/i_am_project/Scenes/IiwaRos.yml --timeStep 0.005 --use-ROS --agxOnly --rcs --portRange 5656 5658 --rosDockerClient`
+3. Launch the controller: `roslaunch i_am_project hit_with_momentum.launch`
+
 
 ## Docker
 

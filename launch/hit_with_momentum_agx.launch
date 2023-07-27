@@ -12,12 +12,13 @@
 <launch>
 
     <!-- Launch gazebo + world -->
-    <include file="$(find iiwa_toolkit)/launch/passive_track_gazebo.launch" /> 
-    <include file="$(find i_am_project)/launch/spawn_env.launch" /> 
+    <!-- <include file="$(find iiwa_toolkit)/launch/passive_track_gazebo.launch" /> 
+    <include file="$(find i_am_project)/launch/spawn_env.launch" />  -->
 
     <!-- Communication + control AGX -->
     <node pkg = "rosbridge_server" type = "rosbridge_websocket"  name = "rosbridge_websocket" output="screen"/>
     <node pkg = "i_am_project" type = "agx_control.py"  name = "agx_control" output="screen"/>
+    <!-- <node pkg = "i_am_project" type = "agx_topic_conversion.py"  name = "agx_topic_conversion" output="screen"/> -->
 
     <!-- Launch AGX sim in another terminal and launch controller:
     roslaunch i_am_project hit_with_momentum.launch -->

@@ -50,10 +50,11 @@ RUN cd optimization-lib && sudo waf distclean configure build install
 # iiwa_toolkit
 ARG IIWA_TOOLKIT_BRANCH=feature_inertial_control
 WORKDIR /home/${USER}/ros_ws/src
-RUN git clone https://github.com/Elise-J/iiwa_toolkit.git --branch $IIWA_TOOLKIT_BRANCH
+RUN git clone --recursive  https://github.com/Elise-J/iiwa_toolkit.git --branch $IIWA_TOOLKIT_BRANCH
 # feature_inertial_control feature_full_inertia
 
-
+# Python
+RUN pip install pclick scipy dataclasses
 # Copy i_am_project folder inside docker
 WORKDIR /home/${USER}/ros_ws
 COPY --chown=${USER} ./ ./src/i_am_project

@@ -14,8 +14,10 @@ from scipy.spatial.transform import Rotation as R
 import sys
 sys.path.append("python_binding_lib")
 from py_wrap_passive_control import PassiveControl
+from py_wrap_dynamical_system import hitting_DS
 
 # ------------ VARIABLE TO MODIFY ------------
+# -- passive controller
 urdf_path = "urdf/iiwa14.urdf"
 end_effector = "iiwa_link_ee"
 des_pos = np.array([0.5, -0.25, 0.3])
@@ -26,6 +28,10 @@ lambda1_pos = 35.0
 ds_gain_ori = 3.0
 lambda0_ori = 5.0
 lambda1_ori = 2.5
+
+# -- passive ds
+hit_direction = [0, 1, 0]
+iiwa_return_position = [0.5, -0.25, 0.3]
 
 # --------------------------------------------
 
@@ -44,8 +50,16 @@ class Object:
     # object_veloctiy # TODO needed? if yes need compute
 
 
-def generate_hitting():
-    print("GENERATE HITTING - TODO")
+def generate_hitting_ee_vel(is_hit, hitting_generation, iiwa_task_inertia_pos):
+    if not is_hit:
+        ref_velocity_ee = hitting_generation.flux_DS(0.5, iiwa_task_inertia_pos)
+    else:
+        ref_velocity_ee = hitting_generation.linear_DS(iiwa_return_position)
+
+    if not is_hit and np.dot(hitting_generation.get_des_direction(), (hitting_generation.get_DS_attractor() - hitting_generation.get_current_position())) < 0:
+        is_hit = True
+        
+    return ref_velocity_ee, is_hit
 
 
 def reset_sim_agx():
@@ -60,13 +74,19 @@ def reset_sim_agx():
     client.send(message)
     response = client.recv()
 
-def init_controller():
+def init_controller(robot):
     urdf_string = open(urdf_path).read()
     controller = PassiveControl(urdf_string, end_effector)
     controller.set_desired_pose(des_pos,des_quat)
     controller.set_pos_gains(ds_gain_pos,lambda0_pos,lambda1_pos)
     controller.set_ori_gains(ds_gain_ori,lambda0_ori,lambda1_ori)
+    controller.updateRobot(robot.joint_position,robot.joint_velocity,robot.joint_effort)
     return controller
+
+def init_hitting_ds(ee_pos, box):   
+    hitting_controller =  hitting_DS(ee_pos, box.position)
+    hitting_controller.set_des_direction(hit_direction)
+    return hitting_controller
 
 def get_agx_sensors(robot, box):
     message = MessageFactory.create_sensorrequestmessage()
@@ -97,22 +117,29 @@ if __name__ == '__main__':
     print(f"Connecting to click server {addr}")
     client.connect(addr)
     reset_sim_agx()
-    
-    # Init the passive controller
-    controller = init_controller()
 
     # Init robot and object
     robot = Robot
     box = Object
+    
+    
+    # Init passive controller and hitting DS
+    get_agx_sensors(robot, box)
+    controller = init_controller(robot)
+    hitting_generation = init_hitting_ds(controller.getEEpos(), box)
+
 
     cycleCount = 0
     robot_init_pos = False
     max_cycle_init_pos = 10
     cycle_init_pos = 0
+    is_hit = False
 
     while True:
-        # Get joint + box states
+        # Update controllers
         get_agx_sensors(robot, box)
+        controller.updateRobot(robot.joint_position,robot.joint_velocity,robot.joint_effort)
+        hitting_generation.set_current_position(controller.getEEpos())
         
         if np.linalg.norm(des_pos - controller.getEEpos()) < 0.001:
             cycle_init_pos = cycle_init_pos + 1
@@ -120,10 +147,11 @@ if __name__ == '__main__':
                 robot_init_pos = True
         
         if robot_init_pos:
-            generate_hitting()
+            ref_velocity_ee, is_hit = generate_hitting_ee_vel(is_hit, hitting_generation, controller.getTaskInertiaPos())
+            controller.set_desired_velocity(ref_velocity_ee)
 
-        # Update controller and get command
-        controller.updateRobot(robot.joint_position,robot.joint_velocity,robot.joint_effort)
+        # Get command
+        # controller.updateRobot(robot.joint_position,robot.joint_velocity,robot.joint_effort)
         command = controller.getCmd()
 
         # Send command

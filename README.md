@@ -6,10 +6,10 @@ i_am_project requires several packages to be installed in order to work properly
 Note that it is possible to have everything on docker (cf. docker section)
 
 * iiwa_ros - branch `feature/inertia` (and all its dependencies): https://github.com/epfl-lasa/iiwa_ros/tree/feature/inertia
-* iiwa_toolkit - branch `feature_inertial_control` or `feature_full_inertia` (and all its dependencies):  https://github.com/fkhadivar/iiwa_toolkit
+* iiwa_toolkit - branch `feature_ns_inertial_control` or `feature_ns_full_inertia` (and all its dependencies):  https://github.com/fkhadivar/iiwa_toolkit TODO REPO IN EPFL-LASA
 * osqp - https://github.com/osqp/osqp
 * osqp-eigen - https://github.com/robotology/osqp-eigen.git
-* qpoases v3.2.1 - https://github.com/coin-or/qpOASES.git
+* qpoases https://github.com/coin-or/qpOASES.git (works with v3.2.1)
 
 if iiwa_toolkit branch `feature_full_inertia` is used:
 
@@ -32,7 +32,6 @@ roslaunch i_am_project hit_with_momentum.launch
 ```
 
 ## Run the simulation with AGX
-Currently controlling in joint position and working with gazebo
 
 ### Urdf-application
 #### Get URDF-app
@@ -47,10 +46,24 @@ git clone -b fix/model-structure git@git.algoryx.se:algoryx/external/i-am/urdf-a
 1. `cd  urdf-application/PythonApplication/models/Projects`
 2. Clone this repo: `git clone https://github.com/Elise-J/iam_sim_agx.git`
 
+#### Setup environment
+Tested with python 3.8.10
+
+1.`cd i_am_project && pip install -r requirements_agx.txt`
+2. The repo `iiwa_toolkit` needs to be cloned next to `i_am_project` OR change the path in `i_am_project/script/python_agx_passive_inertial_control.py` and  `i_am_project/script/python_agx_full_inertial_control.py`, line 14
+
+
 #### Start simulation
-1. Start brige to communicate with the urdf-application `roslaunch i_am_project hit_with_momentum_agx.launch`
-2. Start the urdf-application: `sudo python3 ../run-in-docker.py python3 click_application.py --model models/Projects/i_am_project/Scenes/IiwaRos.yml --timeStep 0.005 --use-ROS --agxOnly --rcs --portRange 5656 5658 --rosDockerClient`
-3. Launch the controller: `roslaunch i_am_project hit_with_momentum.launch`
+
+**With `iiwa_toolkit` branch `feature_ns_inertial_control`** 
+1. Start AGX simulation `sudo python3 ../run-in-docker.py python3 click_application.py --model models/Projects/i_am_project/Scenes/IiwaClickScene.yml:IiwaTorqueClick --timeStep 0.005 --agxOnly --rcs --portRange 5656 5658  --disableClickSync`
+2. Open your browser and go to `http://localhost:5656/`
+3. Start the controller: `python3 script/python_agx_passive_inertial_control.py`
+
+**With `iiwa_toolkit` branch `feature_ns_full_inertia`** 
+1. Start AGX simulation `sudo python3 ../run-in-docker.py python3 click_application.py --model models/Projects/i_am_project/Scenes/IiwaClickScene.yml:IiwaAngleClick --timeStep 0.005 --agxOnly --rcs --portRange 5656 5658  --disableClickSync`
+2. Open your browser and go to `http://localhost:5656/`
+3. Start the controller: `python3 python_agx_full_inertial_control.py`
 
 
 ## Docker

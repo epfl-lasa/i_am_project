@@ -29,36 +29,38 @@ RUN cd osqp && mkdir build && cd build && cmake -G "Unix Makefiles" .. && cmake 
 # osqp-eigen
 WORKDIR /source
 RUN git clone https://github.com/robotology/osqp-eigen.git
-RUN cd osqp-eigen && mkdir build && cd build && cmake ../ && make && sudo make install
+RUN cd osqp-eigen && mkdir build && cd build && cmake ../ && make -j && sudo make install
 
-# qpoases v3.2.1
+# qpoases v3.2.1 --branch releases/3.2.1
 WORKDIR /source
-RUN git clone https://github.com/coin-or/qpOASES.git --branch releases/3.2.1
-RUN cd qpOASES && mkdir build && cd build && cmake ../ && make && sudo make install
+RUN git clone https://github.com/coin-or/qpOASES.git 
+RUN cd qpOASES && mkdir build && cd build && cmake .. -DBUILD_SHARED_LIBS=True && make -j && sudo make install
 
 # Install waf-tool (require to install optimization-lib)
-WORKDIR /home/${USER}/test
+WORKDIR /source
 RUN git clone https://github.com/nash169/waf-tools.git
 RUN cd waf-tools && sudo pip3 install .
 
 # Install optimization-lib
 RUN sudo apt-get install libnlopt-dev -y
-WORKDIR /home/${USER}/test
+WORKDIR /source
 RUN git clone https://github.com/nash169/optimization-lib.git
-RUN cd optimization-lib && sudo waf distclean configure build install
+RUN cd optimization-lib && sudo waf distclean configure build --shared install
 
 # iiwa_toolkit
 ARG IIWA_TOOLKIT_BRANCH=feature_inertial_control
 WORKDIR /home/${USER}/ros_ws/src
 RUN git clone --recursive  https://github.com/Elise-J/iiwa_toolkit.git --branch $IIWA_TOOLKIT_BRANCH
-# feature_inertial_control feature_full_inertia
+# feature_ns_inertial_control feature_ns_full_inertia
 
-# Python
+# Python (for AGX sim)
 RUN pip install pclick scipy dataclasses
+
 # Copy i_am_project folder inside docker
 WORKDIR /home/${USER}/ros_ws
 COPY --chown=${USER} ./ ./src/i_am_project
 
+WORKDIR /home/${USER}/ros_ws
 ENV PYTHONPATH "${PYTHONPATH}:/opt/openrobots/lib/python3.8/site-packages/"
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash; catkin_make"
 

@@ -12,7 +12,7 @@ Build a Docker container for remote development and/or running unittests.
 Options:
   --base-tag               The tag of ros2-control-libraries image.
 
-  -b|--branch-iiwa-toolkit Branch name for the iiwa-toolkit (either feature_inertial_control or feature_full_inertia)
+  -b|--branch-iiwa-toolkit Branch name for the iiwa-toolkit (either feature_ns_inertial_control or feature_ns_full_inertia)
 
   -r, --rebuild            Rebuild the image with no cache.
 

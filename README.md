@@ -62,7 +62,7 @@ With `iiwa_toolkit` branch `feature_ns_inertial_control`
 With `iiwa_toolkit` branch `feature_ns_full_inertia`
 1. Start AGX simulation `sudo python3 ../run-in-docker.py python3 click_application.py --model models/Projects/i_am_project/Scenes/IiwaClickScene.yml:IiwaAngleClick --timeStep 0.005 --agxOnly --rcs --portRange 5656 5658  --disableClickSync`
 2. Open your browser and go to `http://localhost:5656/`
-3. Start the controller: `python3 python_agx_full_inertial_control.py`
+3. Start the controller: `python3 script/python_agx_full_inertial_control.py`
 
 
 ## Docker

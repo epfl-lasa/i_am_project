@@ -13,8 +13,8 @@ from scipy.spatial.transform import Rotation as R
 # Python wrapper lib
 import sys
 sys.path.append("python_binding_lib")
-from py_wrap_passive_control import PassiveControl
 from py_wrap_dynamical_system import hitting_DS
+from py_passive_inertial_control import PassiveControl
 
 # ------------ VARIABLE TO MODIFY ------------
 # -- passive controller

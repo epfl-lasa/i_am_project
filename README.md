@@ -43,24 +43,23 @@ git clone -b fix/model-structure git@git.algoryx.se:algoryx/external/i-am/urdf-a
 3. Log in to the docker registry with the credentials you have to login in gitlab `sudo docker login registry.algoryx.se`
 
 #### Get custom Project scene for IIWA
-1. `cd  urdf-application/PythonApplication/models/Projects`
+1. `cd urdf-application/PythonApplication/models/Projects`
 2. Clone this repo: `git clone https://github.com/Elise-J/iam_sim_agx.git`
 
 #### Setup environment
 Tested with python 3.8.10
-
-1.`cd i_am_project && pip install -r requirements_agx.txt`
-2. The repo `iiwa_toolkit` needs to be cloned next to `i_am_project` OR change the path in `i_am_project/script/python_agx_passive_inertial_control.py` and  `i_am_project/script/python_agx_full_inertial_control.py`, line 14
+1. ` cd i_am_project && pip install -r requirements_agx.txt`
+2. The repo `iiwa_toolkit` needs to be cloned next to `i_am_project` (or change the path in `i_am_project/script/python_agx_passive_inertial_control.py` and  `i_am_project/script/python_agx_full_inertial_control.py`, line 14)
 
 
 #### Start simulation
 
-**With `iiwa_toolkit` branch `feature_ns_inertial_control`** 
+With `iiwa_toolkit` branch `feature_ns_inertial_control`
 1. Start AGX simulation `sudo python3 ../run-in-docker.py python3 click_application.py --model models/Projects/i_am_project/Scenes/IiwaClickScene.yml:IiwaTorqueClick --timeStep 0.005 --agxOnly --rcs --portRange 5656 5658  --disableClickSync`
 2. Open your browser and go to `http://localhost:5656/`
 3. Start the controller: `python3 script/python_agx_passive_inertial_control.py`
 
-**With `iiwa_toolkit` branch `feature_ns_full_inertia`** 
+With `iiwa_toolkit` branch `feature_ns_full_inertia`
 1. Start AGX simulation `sudo python3 ../run-in-docker.py python3 click_application.py --model models/Projects/i_am_project/Scenes/IiwaClickScene.yml:IiwaAngleClick --timeStep 0.005 --agxOnly --rcs --portRange 5656 5658  --disableClickSync`
 2. Open your browser and go to `http://localhost:5656/`
 3. Start the controller: `python3 python_agx_full_inertial_control.py`

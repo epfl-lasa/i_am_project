@@ -51,6 +51,10 @@ Tested with python 3.8.10
 1. ` cd i_am_project && pip install -r requirements_agx.txt`
 2. The repo `iiwa_toolkit` needs to be cloned next to `i_am_project` (or change the path in `i_am_project/script/python_agx_passive_inertial_control.py` and  `i_am_project/script/python_agx_full_inertial_control.py`, line 14)
 
+The libraries or i_am_project and iiwa_toolkit might need to be build. For both, follow those steps:
+1. ` cd python_binding && mkdir build && cd build`
+2. `cmake .. && make -j`
+
 
 #### Start simulation
 

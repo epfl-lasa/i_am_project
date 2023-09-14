@@ -48,7 +48,7 @@ RUN git clone https://github.com/nash169/optimization-lib.git
 RUN cd optimization-lib && sudo waf distclean configure build --shared install
 
 # iiwa_toolkit
-ARG IIWA_TOOLKIT_BRANCH=feature_inertial_control
+ARG IIWA_TOOLKIT_BRANCH=feature_ns_inertial_control
 WORKDIR /home/${USER}/ros_ws/src
 RUN git clone --recursive  https://github.com/Elise-J/iiwa_toolkit.git --branch $IIWA_TOOLKIT_BRANCH
 # feature_ns_inertial_control feature_ns_full_inertia

@@ -6,13 +6,13 @@ i_am_project requires several packages to be installed in order to work properly
 Note that it is possible to have everything on docker (cf. docker section)
 
 * iiwa_ros - branch `feature/inertia` (and all its dependencies): https://github.com/epfl-lasa/iiwa_ros/tree/feature/inertia
-* iiwa_toolkit - branch `feature_ns_inertial_control` or `feature_ns_full_inertia` (and all its dependencies):  https://github.com/fkhadivar/iiwa_toolkit TODO REPO IN EPFL-LASA
+* iiwa_toolkit - branch `feature_ns_inertial_control` or `feature_ns_full_inertia` (and all its dependencies):  https://github.com/epfl-lasa/iiwa_toolkit_ns
+
+if iiwa_toolkit branch `feature_ns_full_inertia` is used:
+
 * osqp - https://github.com/osqp/osqp
 * osqp-eigen - https://github.com/robotology/osqp-eigen.git
 * qpoases https://github.com/coin-or/qpOASES.git (works with v3.2.1)
-
-if iiwa_toolkit branch `feature_full_inertia` is used:
-
 * waf-tool (required to install the optimization-lib): https://github.com/nash169/waf-tools
 * optimization-lib: https://github.com/nash169/optimization-lib.git 
 
@@ -134,6 +134,3 @@ Run docker:
 ``` bash 
 aica-docker interactive iam_project_harshit:noetic -u ros --net host --no-hostname -v /path_to_project/i_am_project:/home/ros/ros_ws/src/i_am_project
 ```
-
-
-

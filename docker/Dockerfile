@@ -1,5 +1,4 @@
 ARG BASE_IMAGE_TAG=noetic
-# FROM lizjdp/iiwa-ros-inertia
 FROM epfl-lasa/iiwa_ros_double_robot_inertia
 
 # Modify files inside docker
@@ -48,10 +47,12 @@ RUN git clone https://github.com/nash169/optimization-lib.git
 RUN cd optimization-lib && sudo waf distclean configure build --shared install
 
 # iiwa_toolkit
+USER root
 ARG IIWA_TOOLKIT_BRANCH=feature_ns_inertial_control
 WORKDIR /home/${USER}/ros_ws/src
-RUN git clone --recursive  https://github.com/Elise-J/iiwa_toolkit.git --branch $IIWA_TOOLKIT_BRANCH
+RUN --mount=type=ssh git clone --recursive git@github.com:epfl-lasa/iiwa_toolkit_ns.git --branch ${IIWA_TOOLKIT_BRANCH} 
 # feature_ns_inertial_control feature_ns_full_inertia
+USER ${USER}
 
 # Python (for AGX sim)
 RUN pip install pclick scipy dataclasses

@@ -17,12 +17,10 @@ generate_dynamic_reconfigure_options(
   cfg/workspace_params.cfg
 )
 
-
 generate_messages(
   DEPENDENCIES
   std_msgs
 )
-
 
 catkin_package(
   INCLUDE_DIRS include

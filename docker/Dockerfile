@@ -18,6 +18,34 @@ RUN sudo apt-get update && sudo apt-get install -y \
     ros-noetic-rqt-reconfigure \
     && sudo apt-get upgrade -y && sudo apt-get clean
 
+
+# CPP lib
+# osqp
+WORKDIR /source
+RUN git clone --recursive -b v0.6.3 https://github.com/osqp/osqp 
+RUN cd osqp && mkdir build && cd build && cmake -G "Unix Makefiles" .. && cmake --build . && sudo cmake --build . --target install
+
+# osqp-eigen
+WORKDIR /source
+RUN git clone https://github.com/robotology/osqp-eigen.git
+RUN cd osqp-eigen && mkdir build && cd build && cmake ../ && make -j && sudo make install
+
+# qpoases v3.2.1 --branch releases/3.2.1
+WORKDIR /source
+RUN git clone https://github.com/coin-or/qpOASES.git 
+RUN cd qpOASES && mkdir build && cd build && cmake .. -DBUILD_SHARED_LIBS=True && make -j && sudo make install
+
+# Install waf-tool (require to install optimization-lib)
+WORKDIR /source
+RUN git clone https://github.com/nash169/waf-tools.git
+RUN cd waf-tools && sudo pip3 install .
+
+# Install optimization-lib
+RUN sudo apt-get install libnlopt-dev -y
+WORKDIR /source
+RUN git clone https://github.com/nash169/optimization-lib.git
+RUN cd optimization-lib && sudo waf distclean configure build --shared install
+
 # iiwa_toolkit (need to be root to clone private repo)
 USER root
 ARG IIWA_TOOLKIT_BRANCH=feature_ns_inertial_control
@@ -25,9 +53,6 @@ WORKDIR /home/${USER}/ros_ws/src
 RUN --mount=type=ssh git clone --recursive git@github.com:epfl-lasa/iiwa_toolkit_ns.git --branch ${IIWA_TOOLKIT_BRANCH} 
 # feature_ns_inertial_control feature_ns_full_inertia
 USER ${USER}
-
-# WORKDIR /home/${USER}/ros_ws/src
-# RUN --mount=type=ssh git clone -b feature_AH git@github.com:epfl-lasa/iiwa_toolkit_ns.git
 
 # i_am_predict (kalman filter) (need to be root to clone private repo)
 USER root

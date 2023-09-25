@@ -22,12 +22,15 @@ RUN sudo apt-get update && sudo apt-get install -y \
 USER root
 ARG IIWA_TOOLKIT_BRANCH=feature_ns_inertial_control
 WORKDIR /home/${USER}/ros_ws/src
-RUN git clone --recursive  https://github.com/Elise-J/iiwa_toolkit.git --branch $IIWA_TOOLKIT_BRANCH
-# USER root
+RUN --mount=type=ssh git clone --recursive git@github.com:epfl-lasa/iiwa_toolkit_ns.git --branch ${IIWA_TOOLKIT_BRANCH} 
+# feature_ns_inertial_control feature_ns_full_inertia
+USER ${USER}
+
 # WORKDIR /home/${USER}/ros_ws/src
 # RUN --mount=type=ssh git clone -b feature_AH git@github.com:epfl-lasa/iiwa_toolkit_ns.git
 
 # i_am_predict (kalman filter) (need to be root to clone private repo)
+USER root
 WORKDIR /home/${USER}/ros_ws/src
 RUN --mount=type=ssh git clone git@github.com:epfl-lasa/i_am_predict.git
 RUN cd i_am_predict && git checkout clean/master

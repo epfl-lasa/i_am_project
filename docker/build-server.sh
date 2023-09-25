@@ -47,7 +47,6 @@ BUILD_FLAGS+=(--build-arg BASE_IMAGE_TAG="${BASE_IMAGE_TAG}")
 BUILD_FLAGS+=(--build-arg IIWA_TOOLKIT_BRANCH="${IIWA_TOOLKIT_BRANCH}")
 BUILD_FLAGS+=(-t "${IMAGE_NAME}:${BASE_IMAGE_TAG}")
 BUILD_FLAGS+=(--build-arg HOST_GID=$(id -g))   # Pass the correct GID to avoid issues with mounted volumes
-
 BUILD_FLAGS+=(--ssh default="${SSH_AUTH_SOCK}") # Pass git ssh key to be able to pull
 
 

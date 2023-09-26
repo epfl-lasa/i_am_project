@@ -79,41 +79,11 @@ cf. https://github.com/epfl-lasa/iiwa_ros/tree/feature/dockerise/docker#prerequi
 
 
 ### Docker iiwa-ros
-
 1. Pull the repo 
     ```bash
-    git clone -b feature/dockerise git@github.com:epfl-lasa/iiwa_ros.git
+    git clone -b feature/double-robot-inertia git@github.com:epfl-lasa/iiwa_ros.git
     ```
-    The branch of iiwa_ros needed here is `feature/inertia` . However, it needs to pull the changes on main to work properly.
-
-    **When the pull will be done:**
-
-    In Dockerfile located in ./docker replace (line 114)
-    ```bash
-    RUN git clone https://github.com/epfl-lasa/iiwa_ros.git
-    ```
-    with 
-    ``` bash
-    RUN git clone -b feature/inertia https://github.com/epfl-lasa/iiwa_ros.git
-    ```
-
-    **Quick fix when waiting for the pull:**
-
-    * To have the changes from branch `feature/inertia` simply run
-    ``` bash
-    git pull origin feature/inertia
-    ```
-    and resolve the merge conflict **BUT DO NOT PUSH THE CHANGES**
-
-    * In Dockerfile located in ./docker replace (line 114)
-    ```bash
-    RUN git clone https://github.com/epfl-lasa/iiwa_ros.git
-    ```
-    with 
-    ``` bash
-    COPY --chown=${USER} ./ ./src/iiwa_ros
-    ```
-
+    
 2. Build the docker
     ``` bash
     cd docker

@@ -5,25 +5,21 @@
 
 ### Inertia
 * iiwa_ros - branch feature/double-robot-inertia - https://github.com/epfl-lasa/iiwa_ros/tree/feature/double-robot-inertia
-* iiwa_toolkit - branch feature_ns_inertial_control - https://github.com/Elise-J/iiwa_toolkit/tree/feature_ns_inertial_control
+* iiwa_toolkit - branch feature_ns_inertial_control or feature_ns_full_inertia - https://github.com/epfl-lasa/iiwa_toolkit_ns
 * i_am_predict - branch master - https://github.com/epfl-lasa/i_am_predict/tree/master
 
+     
 
-### No inertia
-* iiwa_ros - branch featuresim - https://github.com/epfl-lasa/iiwa_ros/tree/featuresim 
-* iiwa_toolkit_ns - branch feature_AH - https://github.com/epfl-lasa/iiwa_toolkit_ns/tree/feature_AH 
-* i_am_predict - branch master - https://github.com/epfl-lasa/i_am_predict/tree/master
+if iiwa_toolkit branch `feature_ns_full_inertia` is used:
+
+* osqp - https://github.com/osqp/osqp
+* osqp-eigen - https://github.com/robotology/osqp-eigen.git
+* qpoases https://github.com/coin-or/qpOASES.git (works with v3.2.1)
+* waf-tool (required to install the optimization-lib): https://github.com/nash169/waf-tools
+* optimization-lib: https://github.com/nash169/optimization-lib.git 
 
 
-<!-- |   | Single arm only hitting DS | Single arm with air hockey policy | Dual arm with air hockey policy |
-| ------|-----|-----|-----|
-| iiwa_ros | master | featuresim | featuresim |
-| iiwa_toolkit	| master | - |-|
-| iiwa_toolkit_ns	| - | feature_AH |feature_AH|
-| i_am_project	| master | feature_real-sim_single |feature_real|
-| i_am_predict	| - | - |master| -->
-
-## launch: 
+## Run the controller: 
 There are three different settings in which the branches with air hockey policy can be launched:
 (The parameters can be changed in `i_am_project/config/world_sim_params.yaml`)
 ### Entirely in simulation 
@@ -74,8 +70,10 @@ Source the file when it's done (`. ~/.bashrc`)
 
 
 **Remark**:
-* Tracking gains in iiwa_toolkit_ns/config/passuve_track_params.yaml might need tuning 
+* Tracking gains in iiwa_toolkit_ns/config/passive_track_params.yaml might need tuning 
 * If using inertia, ee_pose topic must be changed in config/ros_topics.yaml from `/iiwa2/ee_pose` to `/iiwa2/ee_info/Pose`
+* Needs to modify the ip address of the robot in iiwa_driver/config/iiwa.yaml
+
 
 
 ## Other settings:
@@ -102,7 +100,6 @@ A docker containing iiwa-ros library is needed to build the i_am_project docker.
 cf. https://github.com/epfl-lasa/iiwa_ros/tree/feature/dockerise/docker#prerequisite
 
 ### Docker iiwa-ros
-#### Inertia
 1. Pull the repo 
     ```bash
     git clone -b feature/double-robot-inertia git@github.com:epfl-lasa/iiwa_ros.git
@@ -112,48 +109,6 @@ cf. https://github.com/epfl-lasa/iiwa_ros/tree/feature/dockerise/docker#prerequi
     ``` bash
     cd docker
     bash install_docker.sh
-    ```
-
-#### No inertia
-1. Pull the repo 
-    ```bash
-    git clone -b feature/dockerise git@github.com:epfl-lasa/iiwa_ros.git
-    ```
-    The branch of iiwa_ros needed here is `featuresim` . However, it needs to pull the changes on main to work properly.
-
-    **When the pull will be done:**
-
-    In Dockerfile located in ./docker replace (line 114)
-    ```bash
-    RUN git clone https://github.com/epfl-lasa/iiwa_ros.git
-    ```
-    with 
-    ``` bash
-    RUN git clone -b feature/inertia https://github.com/epfl-lasa/iiwa_ros.git
-    ```
-
-    **Quick fix when waiting for the pull:**
-
-    * To have the changes from branch `featuresim` simply run
-    ``` bash
-    git pull origin featuresim
-    ```
-    and resolve the merge conflicts **BUT DO NOT PUSH THE CHANGES** 
-
-    * In Dockerfile located in ./docker replace (line 114)
-    ```bash
-    RUN git clone https://github.com/epfl-lasa/iiwa_ros.git
-    ```
-    with 
-    ``` bash
-    COPY --chown=${USER} ./ ./src/iiwa_ros
-    ```
-
-2. Build the docker
-    ``` bash
-    cd docker
-    bash install_docker.sh
-    ```
 
 ### Docker i_am_project
 The files from your folder i_am_project will be copy inside the docker. Make sure you are on the correct branch.
@@ -166,15 +121,6 @@ cd <path_to_i_am_project>
 
  ./docker/build-server.sh -i -b <iiwa-toolkit-branch-name>
 ```
-
-**Build docker No inertia**
-
-```bash
-cd <path_to_i_am_project>
-
- ./docker/build-server.sh 
-```
-
 **Run docker**
 
 ``` bash 

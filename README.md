@@ -19,6 +19,11 @@ if iiwa_toolkit branch `feature_ns_full_inertia` is used:
 * optimization-lib: https://github.com/nash169/optimization-lib.git 
 
 
+### No inertia
+* iiwa_ros - branch featuresim - https://github.com/epfl-lasa/iiwa_ros/tree/featuresim 
+* iiwa_toolkit_ns - branch feature_AH - https://github.com/epfl-lasa/iiwa_toolkit_ns/tree/feature_AH 
+* i_am_predict - branch master - https://github.com/epfl-lasa/i_am_predict/tree/master
+
 ## Run the controller: 
 There are three different settings in which the branches with air hockey policy can be launched:
 (The parameters can be changed in `i_am_project/config/world_sim_params.yaml`)

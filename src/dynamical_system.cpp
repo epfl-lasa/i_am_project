@@ -1,3 +1,8 @@
+//|    Copyright (C) 2020 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
+//|    Authors:  Harshit Khurana (maintainer)
+//|    email:   harshit.khurana@epfl.ch
+//|    website: lasa.epfl.ch
+
 #include "dynamical_system.h"
 
 hitting_DS::hitting_DS(Eigen::Vector3f& current_end_effector, Eigen::Vector3f& attractor_main) {

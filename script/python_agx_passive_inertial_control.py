@@ -34,14 +34,14 @@ from scipy.spatial.transform import Rotation as R
 
 # Python wrapper lib
 import sys
-sys.path.append("../iiwa_toolkit/python_binding/build")
+# sys.path.append("../iiwa_toolkit_ns/python_binding/build")
 sys.path.append("python_binding/build")
 from py_passive_inertial_control import PassiveControl
 from py_wrap_dynamical_system import hitting_DS
 
 # ------------ VARIABLE TO MODIFY ------------
 # -- passive controller
-urdf_path = "urdf/iiwa14.urdf"
+urdf_path = "urdf/iiwa7.urdf"
 end_effector = "iiwa_link_ee"
 des_pos = np.array([0.5, -0.25, 0.3])
 des_quat = np.array([0.7071068, -0.7071068, 0.0,  0.0])

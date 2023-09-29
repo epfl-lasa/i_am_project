@@ -59,9 +59,16 @@ git clone https://github.com/Elise-J/iam_sim_agx.git
 #### Setup environment
 Tested with python 3.8.10
 1. `cd i_am_project && pip install -r requirements_agx.txt`
-2. The repo *iiwa_toolkit* needs to be cloned next to *i_am_project* folder (or change the path in *i_am_project/script/python_agx_passive_inertial_control.py* and  *i_am_project/script/python_agx_full_inertial_control.py*, line 14)
+2. Add the cpp lib and python bindings to you path 
+```bash 
+echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path_to_i_am_project/python_binding/build/' >> ~/.bashrc
 
-The libraries or i_am_project and iiwa_toolkit might need to be build:
+. ~/.bashrc
+
+sudo ldconfig
+```
+
+If the libraries of i_am_project or iiwa_toolkit need to be build:
 ```bash
  cd python_binding && mkdir build && cd build && cmake .. && make -j
  ```
@@ -88,7 +95,7 @@ sudo python3 ../run-in-docker.py python3 click_application.py --model models/Pro
 2. The simulation can be seen at  `http://localhost:5656/`
 3. Start the controller: 
 ```bash
-python3 script/python_agx_full_inertial_control.py
+python3 script/python_agx_full_inertia_control.py
 ```
 
 

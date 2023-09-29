@@ -53,7 +53,7 @@ cd urdf-application/PythonApplication/models/Projects
 ```
 2. Clone the repo containing the custom AGX scene
 ```bash
-git clone https://github.com/Elise-J/iam_sim_agx.git
+git clone https://github.com/epfl-lasa/agx_scene
 ```
 
 #### Setup environment
@@ -79,7 +79,7 @@ If the libraries of i_am_project or iiwa_toolkit need to be build:
 With *iiwa_toolkit* branch *feature_ns_inertial_control*
 1. Start AGX simulation
 ```bash
-sudo python3 ../run-in-docker.py python3 click_application.py --model models/Projects/i_am_project/Scenes/IiwaClickScene.yml:IiwaTorqueClick --timeStep 0.005 --agxOnly --rcs --portRange 5656 5658  --disableClickSync
+sudo python3 ../run-in-docker.py python3 click_application.py --model models/Projects/agx_scene/Scenes/IiwaClickScene.yml:IiwaTorqueClick --timeStep 0.005 --agxOnly --rcs --portRange 5656 5658  --disableClickSync
 ```
 2. The simulation can be seen at  `http://localhost:5656/`
 3. Start the controller:
@@ -90,7 +90,7 @@ python3 script/python_agx_passive_inertial_control.py
 With *iiwa_toolkit* branch *feature_ns_full_inertia*
 1. Start AGX simulation
 ```bash
-sudo python3 ../run-in-docker.py python3 click_application.py --model models/Projects/i_am_project/Scenes/IiwaClickScene.yml:IiwaAngleClick --timeStep 0.005 --agxOnly --rcs --portRange 5656 5658  --disableClickSync
+sudo python3 ../run-in-docker.py python3 click_application.py --model models/Projects/agx_scene/Scenes/IiwaClickScene.yml:IiwaAngleClick --timeStep 0.005 --agxOnly --rcs --portRange 5656 5658  --disableClickSync
 ```
 2. The simulation can be seen at  `http://localhost:5656/`
 3. Start the controller: 

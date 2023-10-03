@@ -118,13 +118,13 @@ cf. https://github.com/epfl-lasa/iiwa_ros/tree/feature/dockerise/docker#prerequi
 ### Docker i_am_project
 The files from your folder i_am_project will be copy inside the docker. Make sure you are on the correct branch.
 
-**Build docker Inertia**
+**Build docker**
 The branch of iiwa-toolkit lib can be chosen. The default branch is feature_ns_inertial_control
 
 ```bash
 cd <path_to_i_am_project>
 
- ./docker/build-server.sh -i -b <iiwa-toolkit-branch-name>
+ ./docker/build-server.sh -b <iiwa-toolkit-branch-name>
 ```
 **Run docker**
 

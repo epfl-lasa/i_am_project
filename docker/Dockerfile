@@ -1,5 +1,5 @@
 ARG BASE_IMAGE_TAG=noetic
-FROM epfl-lasa/iiwa_ros_feature_sim
+FROM epfl-lasa/iiwa_ros_double_robot_inertia
 
 # Modify files inside docker
 ARG HOST_GID=1001

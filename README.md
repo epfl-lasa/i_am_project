@@ -59,12 +59,24 @@ git clone https://github.com/epfl-lasa/agx_scene
 #### Setup environment
 Tested with python 3.8.10
 1. `cd i_am_project && pip install -r requirements_agx.txt`
-2. Add the cpp lib and python bindings to you path 
+2. Install RBDyn
+```bash 
+RUN git clone --recursive https://github.com/jrl-umi3218/RBDyn.git
+RUN cd RBDyn && mkdir build && cd build \
+    && cmake -DCMAKE_BUILD_TYPE=Release -DPYTHON_BINDING=OFF .. \
+    && make -j && sudo make install
+```
+3. Install mc_rbdyn_urdf
+```bash 
+RUN git clone --recursive -b v1.1.0 https://github.com/jrl-umi3218/mc_rbdyn_urdf.git
+RUN cd mc_rbdyn_urdf && mkdir build && cd build \
+    && cmake -DCMAKE_BUILD_TYPE=Release -DPYTHON_BINDING=OFF .. \
+    && make -j && sudo make install
+```
+4. Add the cpp lib and python bindings to you path 
 ```bash 
 echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path_to_i_am_project/python_binding/build/' >> ~/.bashrc
-
 . ~/.bashrc
-
 sudo ldconfig
 ```
 

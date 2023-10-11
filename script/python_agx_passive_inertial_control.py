@@ -44,7 +44,7 @@ from py_wrap_dynamical_system import hitting_DS
 urdf_path = "urdf/iiwa7.urdf"
 end_effector = "iiwa_link_ee"
 des_pos = np.array([0.5, -0.25, 0.3])
-des_quat = np.array([0.7071068, -0.7071068, 0.0,  0.0])
+des_quat = np.array([0.7071068, -0.7071068, 0.0,  0.0]) # w x y z
 ds_gain_pos = 6.0
 lambda0_pos = 70.0
 lambda1_pos = 35.0
@@ -54,7 +54,7 @@ lambda1_ori = 2.5
 
 # -- passive ds
 hit_direction = [0, 1, 0]
-iiwa_return_position = [0.5, -0.25, 0.3]
+iiwa_return_position = [0.5, -0.25, 0.3] 
 
 # --------------------------------------------
 
@@ -75,13 +75,13 @@ class Object:
 def generate_hitting_ee_vel(is_hit, hitting_generation, iiwa_task_inertia_pos):
     if not is_hit:
         ref_velocity_ee = hitting_generation.flux_DS(
-            0.5, iiwa_task_inertia_pos)
+            0.8, iiwa_task_inertia_pos)
     else:
         ref_velocity_ee = hitting_generation.linear_DS(iiwa_return_position)
 
     if not is_hit and np.dot(hitting_generation.get_des_direction(), (hitting_generation.get_DS_attractor() - hitting_generation.get_current_position())) < 0:
         is_hit = True
-
+        print("IS HIT")
     return ref_velocity_ee, is_hit
 
 
@@ -110,7 +110,8 @@ def init_controller(robot):
 
 
 def init_hitting_ds(ee_pos, box):
-    hitting_controller = hitting_DS(ee_pos, box.position)
+    box_pos = box.position - [0, 0.2, 0] # agx box is defined at its center
+    hitting_controller = hitting_DS(ee_pos, box_pos)
     hitting_controller.set_des_direction(hit_direction)
     return hitting_controller
 
@@ -126,7 +127,7 @@ def get_agx_sensors(robot, box):
         response.objects['robot'].angleVelocitySensors)
     robot.joint_effort = np.array(response.objects['robot'].torqueSensors)
 
-    box.position = response.objects['Box'].objectSensors[0].position.arr
+    box.position = np.array(response.objects['Box'].objectSensors[0].position.arr)
     box_ori = response.objects['Box'].objectSensors[1].rpy.arr
     r = R.from_euler('xzy', [box_ori[0], box_ori[1], box_ori[2]], degrees=True)
     box.orientation = r.as_quat()
@@ -166,6 +167,7 @@ if __name__ == '__main__':
 
     while True:
         # Update controllers
+        
         get_agx_sensors(robot, box)
         controller.updateRobot(robot.joint_position,
                                robot.joint_velocity, robot.joint_effort)

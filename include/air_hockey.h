@@ -44,8 +44,8 @@ private:
   bool hollow_, iiwa_real_, manual_mode_, object_real_, hitta1_, hitta2_, farra1_, farra2_, debug_, inertia_;
 
   int key_ctrl_ = 0;
-  int mode1_ = 5;
-  int mode2_ = 5;
+  int mode1_ = 4;
+  int mode2_ = 4;
   int prev_mode1_, prev_mode2_;
 
   double ETA_, ee_offset_h_, ee_offset_v_, des_speed_, x_reach_, y_reach_, x_offset_, y_offset_, min_y_, max_y_,
@@ -81,7 +81,7 @@ public:
   void param_cfg_callback(i_am_project::workspace_paramsConfig& config, uint32_t level);
 
   void switch_both_mode();
-  void move_robot(int mode, int mode_id);
+  void move_robot(int mode, int robot_id);
   void reset_object_position();
 
   //Inertia
@@ -107,26 +107,16 @@ public:
   int getIndex(std::vector<std::string> v, std::string value);
 
   //Select mode
-  int modeSelektor(Eigen::Vector3d object_pos,
-                   Eigen::Vector3d object_pos_init,
-                   Eigen::Vector3d object_vel,
-                   Eigen::Vector3d predict_pos,
-                   double ETA,
-                   Eigen::Vector3d ee_pos,
-                   Eigen::Vector3d center1,
-                   Eigen::Vector3d center2,
-                   Eigen::Vector2d ee_offset,
-                   Eigen::Vector4d hittable_params,
-                   const int prev_mode);
-  int maniModeSelektor(Eigen::Vector3d object_pos,
-                       Eigen::Vector3d object_pos_init,
-                       Eigen::Vector3d object_vel,
-                       Eigen::Vector3d ee_pos,
-                       Eigen::Vector3d center1,
-                       Eigen::Vector3d center2,
-                       Eigen::Vector2d ee_offset,
-                       Eigen::Vector4d hittable_params,
-                       const int prev_mode,
-                       const int key_ctrl,
-                       const int iiwa_no);
+ 
+  int maniModeSelektor_2(Eigen::Vector3d object_pos,
+                                    Eigen::Vector3d object_pos_init,
+                                    Eigen::Vector3d ee_pos,
+                                    Eigen::Vector3d center1,
+                                    Eigen::Vector3d center2,
+                                    Eigen::Vector2d ee_offset,
+                                    Eigen::Vector4d hittable_params,
+                                    const int prev_mode,
+                                    const int iiwa_no,
+                                    int count_hit_1,
+                                    int count_hit_2);
 };

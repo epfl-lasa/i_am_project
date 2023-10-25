@@ -37,7 +37,7 @@
 
   <!--Run air_hockey sim-->
   <node name="air_hockey" pkg="i_am_project" type="air_hockey" output="screen"/>                     
-  <node name="estimator" pkg="i_am_predict" type="estimate_real" output="screen"/>
+  <!-- <node name="estimator" pkg="i_am_predict" type="estimate_real" output="screen"/> -->
 
 </launch>
 

@@ -150,6 +150,7 @@ void AirHockey::run() {
       if (mode1_ == 4) { ROS_INFO_STREAM("1 AFTERHIT" << object_pos_init1_); }
       if (mode2_ == 3) { ROS_INFO_STREAM("2 HIT  " << ee2_pos_init_); }
       if (mode2_ == 4) { ROS_INFO("2 AFTERHIT"); }
+      ROS_INFO_STREAM("hittable, too_far: " << hitta1_ << farra1_ << hitta2_ << farra2_);
     }
 
     ros::spinOnce();
@@ -247,112 +248,55 @@ void AirHockey::reset_object_position() {
   ros::Duration(0.5).sleep();
 }
 
-void AirHockey::move_robot(int mode, int mode_id) {
+void AirHockey::move_robot(int mode, int robot_id) {
+  std::cout << "heyaa : : : " << mode << std::endl; 
   switch (mode) {
-    case 1://track
-      if (mode_id == 1) {
-        pub_pos_quat1_.publish(track(predict_pos_, center2_, ee_offset_, iiwa1_base_pos_));
-        ee1_pos_init_ = ee1_pos_;//we can go from track to hit. For hit, we need initial
-      } else if (mode_id == 2) {
-        pub_pos_quat2_.publish(track(predict_pos_, center1_, ee_offset_, iiwa2_base_pos_));
-        ee2_pos_init_ = ee2_pos_;
-      }
-      break;
-    case 2://stop
-      if (mode_id == 1) {
-        pub_pos_quat1_.publish(block(object_pos_, predict_pos_, center1_, center2_, object_th_mod_, iiwa1_base_pos_));
-      } else if (mode_id == 2) {
-        pub_pos_quat2_.publish(block(object_pos_, predict_pos_, center2_, center1_, object_th_mod_, iiwa2_base_pos_));
-      }
-      break;
+  
     case 3://hit
-      if (mode_id == 1) {
-        if (inertia_) {
+      if (robot_id == 1) {
           pub_vel_quat1_.publish(
               hitDSInertia(des_speed_, object_pos_, center2_, ee1_pos_, ee_offset_, iiwa1_task_inertia_pos_));
-        } else {
-          pub_vel_quat1_.publish(hitDS(des_speed_, object_pos_, center2_, ee1_pos_, ee1_pos_init_, ee_offset_));
-        }
-        object_pos_init1_ = object_pos_;//need this for post-hit to guide the arm right after hit
-      } else if (mode_id == 2) {
-        if (inertia_) {
+          object_pos_init1_ = object_pos_;//need this for post-hit to guide the arm right after hit
+      } 
+      else if (robot_id == 2) {
           pub_vel_quat2_.publish(
               hitDSInertia(des_speed_, object_pos_, center1_, ee2_pos_, ee_offset_, iiwa2_task_inertia_pos_));
-        } else {
-          pub_vel_quat2_.publish(hitDS(des_speed_, object_pos_, center1_, ee2_pos_, ee2_pos_init_, ee_offset_));
-        }
-        object_pos_init2_ = object_pos_;
+          object_pos_init2_ = object_pos_;
       }
       break;
     case 4://post hit
-      if (mode_id == 1) {
-        pub_pos_quat1_.publish(postHit(object_pos_init1_, center2_, iiwa1_base_pos_, ee_offset_));
-      } else if (mode_id == 2) {
-        pub_pos_quat2_.publish(postHit(object_pos_init2_, center1_, iiwa2_base_pos_, ee_offset_));
-      }
-      break;
-    case 5://rest
-      if (mode_id == 1) {
-        pub_pos_quat1_.publish(rest(center1_, center2_, ee_offset_, iiwa1_base_pos_));
-        ee1_pos_init_ = ee1_pos_;//we can also go from rest to hit..
-      } else if (mode_id == 2) {
-        pub_pos_quat2_.publish(rest(center2_, center1_, ee_offset_, iiwa2_base_pos_));
-        ee2_pos_init_ = ee2_pos_;
+      if (robot_id == 1) {
+        pub_pos_quat1_.publish(postHit(center1_, center2_, iiwa1_base_pos_, ee_offset_));
+        // pub_pos_quat1_.publish(rest(center1_, center2_, ee_offset_, iiwa1_base_pos_));
+      } else if (robot_id == 2) {
+        pub_pos_quat2_.publish(postHit(center2_, center1_, iiwa2_base_pos_, ee_offset_));
+        // pub_pos_quat2_.publish(rest(center2_, center1_, ee_offset_, iiwa2_base_pos_));
       }
       break;
   }
 }
 
 void AirHockey::switch_both_mode() {
-  if (manual_mode_) {
-    mode1_ = maniModeSelektor(object_pos_,
+
+  mode1_ = maniModeSelektor_2(object_pos_,
                               object_pos_init1_,
-                              object_vel_,
                               ee1_pos_,
                               center1_,
                               center2_,
                               ee_offset_,
                               hittable_params_,
                               prev_mode1_,
-                              key_ctrl_,
                               1);
 
-    mode2_ = maniModeSelektor(object_pos_,
+  mode2_ = maniModeSelektor_2(object_pos_,
                               object_pos_init2_,
-                              object_vel_,
                               ee2_pos_,
                               center2_,
                               center1_,
                               ee_offset_,
                               hittable_params_,
                               prev_mode2_,
-                              key_ctrl_,
                               2);
-  } else {
-    mode1_ = modeSelektor(object_pos_,
-                          object_pos_init1_,
-                          object_vel_,
-                          predict_pos_,
-                          ETA_,
-                          ee1_pos_,
-                          center1_,
-                          center2_,
-                          ee_offset_,
-                          hittable_params_,
-                          prev_mode1_);
-
-    mode2_ = modeSelektor(object_pos_,
-                          object_pos_init2_,
-                          object_vel_,
-                          predict_pos_,
-                          ETA_,
-                          ee2_pos_,
-                          center2_,
-                          center1_,
-                          ee_offset_,
-                          hittable_params_,
-                          prev_mode2_);
-  }
 }
 
 int AirHockey::getIndex(std::vector<std::string> v, std::string value) {
@@ -470,122 +414,17 @@ void AirHockey::estimateObjectCallback(std_msgs::Float64MultiArray estimation) {
 //manual control
 void AirHockey::modeCallback(std_msgs::Int16 msg) { key_ctrl_ = msg.data; }
 
-int AirHockey::modeSelektor(Eigen::Vector3d object_pos,
-                            Eigen::Vector3d object_pos_init,
-                            Eigen::Vector3d object_vel,
-                            Eigen::Vector3d predict_pos,
-                            double ETA,
-                            Eigen::Vector3d ee_pos,
-                            Eigen::Vector3d center1,
-                            Eigen::Vector3d center2,
-                            Eigen::Vector2d ee_offset,
-                            Eigen::Vector4d hittable_params,
-                            const int prev_mode) {
-
-  int mode = prev_mode;// if none of the conditions are met, mode remains the same
-
-  Eigen::Vector3d d_center = center2 - center1;
-  Eigen::Vector3d d_points = center2 - object_pos;
-  Eigen::Vector3d v_offset = {0.0, 0.0, ee_offset[1]};
-
-  bool cur_hittable, cur_too_far, pred_hittable, pred_too_far;
-  std::tie(cur_hittable, cur_too_far) = hittable(object_pos, center1, center2, hittable_params);
-
-  std::tie(pred_hittable, pred_too_far) = hittable(predict_pos, center1, center2, hittable_params);
-
-  bool too_far;
-  if (!pred_hittable && pred_too_far) {
-    too_far = true;
-  } else {
-    too_far = false;
-  }
-
-  bool too_close;
-  if (!pred_hittable && !pred_too_far) {
-    too_close = true;
-  } else {
-    too_close = false;
-  }
-
-  bool moving;
-  if (object_vel.norm() > 0.1) {
-    moving = true;
-  } else {
-    moving = false;
-  }
-
-  bool towards;
-  if (object_vel.dot(d_center) < -0.05) {
-    towards = true;
-  }//
-  else {
-    towards = false;
-  }
-
-  bool ee_ready;
-  if ((ee_pos - (predict_pos - ee_offset[0] * d_points / d_points.norm() + v_offset)).norm() < threshold_ee_ready_) {
-    ee_ready = true;
-  } else {
-    ee_ready = false;
-  }
-
-  bool ee_hit;
-  if (ee_pos.dot(d_center) > object_pos_init.dot(d_center) - 0.13) {
-    ee_hit = true;
-  } else {
-    ee_hit = false;
-  }
-
-  switch (prev_mode) {
-    case 1://track
-
-      if (too_far && ETA < 3) { mode = 2; }//if object will go too far, try to stop it
-      if (pred_hittable && ETA < 0.3 && ee_ready) {
-        mode = 3;
-      }//if object will be in feasible position and stops in 0.5s and ee is in correct position, go to hit
-      if (too_close && ETA < 3) { mode = 5; }//if object will not make it into reach, give up and go to rest
-      //if (!cur_hittable) {mode = 5;}
-      break;
-
-    case 2://stop
-      if (!towards || pred_hittable) {
-        mode = 1;
-      }//if the object no longer moves towards, it has been stopped succesfully so go to track for correct ee
-
-    case 3://hit
-      if (!towards && moving) {
-        mode = 4;
-      }//|| ee_hit == true       //if object starts moving because it is hit, go to post hit and initialize kalman
-      break;
-
-    case 4:                                                 //post hit
-      if (!cur_hittable || towards || !moving) { mode = 5; }//if object has left the range of arm, go to rest
-      break;
-
-    case 5:                                //rest
-      if (too_far && ETA < 3) { mode = 2; }//if object will go too far, try to stop it
-      if (pred_hittable && ETA < 0.3 && ee_ready) {
-        mode = 3;
-      }//same as when being in tracking mode, since mode is initialized in rest
-      if (pred_hittable && ETA < 3 && !ee_ready) {
-        mode = 1;
-      }//if object is going to be hittable but ee is not in the right position, lets track!
-      break;
-  }
-  return mode;
-}
-
-int AirHockey::maniModeSelektor(Eigen::Vector3d object_pos,
+int AirHockey::maniModeSelektor_2(Eigen::Vector3d object_pos,
                                 Eigen::Vector3d object_pos_init,
-                                Eigen::Vector3d object_vel,
                                 Eigen::Vector3d ee_pos,
                                 Eigen::Vector3d center1,
                                 Eigen::Vector3d center2,
                                 Eigen::Vector2d ee_offset,
                                 Eigen::Vector4d hittable_params,
                                 const int prev_mode,
-                                const int key_ctrl,
-                                const int iiwa_no) {
+                                const int iiwa_no,
+                                int count_hit_1,
+                                int count_hit_2) {
   int mode = prev_mode;// if none of the conditions are met, mode remains the same
 
   Eigen::Vector3d d_center = center2 - center1;
@@ -595,66 +434,31 @@ int AirHockey::maniModeSelektor(Eigen::Vector3d object_pos,
   bool cur_hittable, cur_too_far;
   std::tie(cur_hittable, cur_too_far) = hittable(object_pos, center1, center2, hittable_params);
 
-  bool moving;
-  if (object_vel.norm() > 0.07) {
-    moving = true;
-  } else {
-    moving = false;
-  }
-
-  bool towards;
-  if (object_vel.dot(d_center) < -0.05) {
-    towards = true;
-  } else {
-    towards = false;
-  }
-
-  bool ee_ready;
-  if ((ee_pos - (object_pos - ee_offset[0] * d_points / d_points.norm() + v_offset)).norm() < 0.02) {
-    ee_ready = true;
-  } else {
-    ee_ready = false;
-  }
-
   bool ee_hit;
-  if (ee_pos.dot(d_center) > object_pos_init.dot(d_center)) {
+  if (ee_pos.dot(d_center) > object_pos_init.dot(d_center) - 0.13) {
     ee_hit = true;
   } else {
     ee_hit = false;
   }
 
-  if (iiwa_no == 1) {
-    std::cout << (ee_pos - (object_pos - ee_offset[0] * d_points / d_points.norm() + v_offset)).norm() << std::endl;
-  }
-
   switch (prev_mode) {
-    case 1://track
-      if (cur_hittable && ee_ready && key_ctrl == iiwa_no) { mode = 3; }
-      if (!cur_hittable) { mode = 5; }
-      if (key_ctrl == 3) { mode = 5; }
-      break;
-
     case 3://hit
-      if (!towards && moving || ee_hit == true) {
-        mode = 4;
-      }//if object starts moving because it is hit, go to post hit and initialize kalman
-      if (key_ctrl == 3) { mode = 5; }
+      // sum of count is even for iiwa 1 and odd for iiwa 2 to hit
+      if (iiwa_no == 1 && (count_hit_1 + count_hit_2)%2 == 1){mode = 4;} 
+      if (iiwa_no == 2 && (count_hit_1 + count_hit_2)%2 == 0){mode = 4;} 
       break;
 
-    case 4:                                      //post hit
-      if (!cur_hittable || towards) { mode = 5; }//if object has left the range of arm, go to rest
-      if (key_ctrl == 3) { mode = 5; }
+    case 4:                                                 //post hit
+      if (!cur_hittable) { mode = 4; } //if object has left the range of arm, go to rest
+      if (cur_hittable) {mode = 3;}
       break;
 
-    case 5://rest
-      if (cur_hittable && ee_ready && key_ctrl == iiwa_no) {
-        mode = 3;
-      }//same as when being in tracking mode, since mode is initialized in rest
-      if (cur_hittable && !ee_ready && key_ctrl == iiwa_no) { mode = 1; }
-      break;
   }
   return mode;
 }
+
+
+
 
 int main(int argc, char** argv) {
 

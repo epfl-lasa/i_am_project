@@ -131,3 +131,7 @@ cd <path_to_i_am_project>
 ``` bash 
 aica-docker interactive iam_project_harshit:noetic -u ros --net host --no-hostname -v /path_to_project/i_am_project:/home/ros/ros_ws/src/i_am_project --privileged
 ```
+**Run docker with GPU passthrough**
+``` bash 
+aica-docker interactive iam_project_harshit:noetic -u ros --gpus 'all,"capabilities=graphics,display,compute,utility"' --net host --no-hostname -v /path_to_project/i_am_project:/home/ros/ros_ws/src/i_am_project --privileged
+```

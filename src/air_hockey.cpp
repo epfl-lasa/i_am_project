@@ -258,22 +258,20 @@ void AirHockey::move_robot(int mode, int robot_id) {
     case 3://hit
       if (robot_id == 1) {
           pub_vel_quat1_.publish(
-              hitDSInertia(des_speed_, object_pos_, center2_, ee1_pos_, ee_offset_, iiwa1_task_inertia_pos_));
+              hitDSInertia(des_flux_, object_pos_, center2_, ee1_pos_, ee_offset_, iiwa1_task_inertia_pos_));
           object_pos_init1_ = object_pos_;//need this for post-hit to guide the arm right after hit
       } 
       else if (robot_id == 2) {
           pub_vel_quat2_.publish(
-              hitDSInertia(des_speed_, object_pos_, center1_, ee2_pos_, ee_offset_, iiwa2_task_inertia_pos_));
+              hitDSInertia(des_flux_, object_pos_, center1_, ee2_pos_, ee_offset_, iiwa2_task_inertia_pos_));
           object_pos_init2_ = object_pos_;
       }
       break;
     case 4://post hit
       if (robot_id == 1) {
         pub_pos_quat1_.publish(postHit(center1_, center2_, iiwa1_base_pos_, ee_offset_));
-        // pub_pos_quat1_.publish(rest(center1_, center2_, ee_offset_, iiwa1_base_pos_));
       } else if (robot_id == 2) {
         pub_pos_quat2_.publish(postHit(center2_, center1_, iiwa2_base_pos_, ee_offset_));
-        // pub_pos_quat2_.publish(rest(center2_, center1_, ee_offset_, iiwa2_base_pos_));
       }
       break;
   }

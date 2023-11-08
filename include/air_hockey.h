@@ -41,15 +41,15 @@
 
 class AirHockey {
 private:
-  bool hollow_, iiwa_real_, manual_mode_, object_real_, hitta1_, hitta2_, farra1_, farra2_, debug_, inertia_;
+  bool hollow_, iiwa_real_, manual_mode_, object_real_, hitta1_, hitta2_, farra1_, farra2_, debug_, inertia_, is_hit_1, is_hit_2;
 
   int key_ctrl_ = 0;
-  int mode1_ = 4;
-  int mode2_ = 4;
+  int mode1_ = 1;
+  int mode2_ = 2;
   int prev_mode1_, prev_mode2_;
 
   double ETA_, ee_offset_h_, ee_offset_v_, des_speed_, x_reach_, y_reach_, x_offset_, y_offset_, min_y_, max_y_,
-      object_th_, object_th_mod_, threshold_ee_ready_;
+      object_th_, object_th_mod_, threshold_ee_ready_, des_flux_;
 
   std_msgs::Int16 msg_mode1_, msg_mode2_;
 
@@ -117,6 +117,6 @@ public:
                                     Eigen::Vector4d hittable_params,
                                     const int prev_mode,
                                     const int iiwa_no,
-                                    int count_hit_1,
-                                    int count_hit_2);
+                                    bool &is_hit_1,
+                                    bool &is_hit_2);
 };

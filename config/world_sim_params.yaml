@@ -4,6 +4,8 @@ manual_mode: false
 hollow: false
 debug: true
 inertia: true
+is_hit_1: false
+is_hit_2: false
 
 
 #average of desired workspace of iiwa1 wrt world frame. In real, world frame is exactly between iiwa_base so centers should have x =/= 0
@@ -96,3 +98,4 @@ mini:
 hit:
   speed: 0.6
   direction: 0.0
+  flux: 0.6

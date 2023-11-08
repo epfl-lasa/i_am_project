@@ -169,6 +169,9 @@ void AirHockey::get_private_param() {
   if (!nh_.getParam("object_real", object_real_)) { ROS_ERROR("Param object_real not found"); }
   if (!nh_.getParam("debug", debug_)) { debug_ = false; }
   if (!nh_.getParam("inertia", inertia_)) { inertia_ = false; }
+  if (!nh_.getParam("is_hit_1", is_hit_1)) { is_hit_1 = false; }
+  if (!nh_.getParam("is_hit_2", is_hit_2)) { is_hit_2 = false; }
+  
 
   //Get center points of desired workspaces (used to aim for and tell what orientation)
   if (!nh_.getParam("center1", center1vec_)) { ROS_ERROR("Param center1 not found"); }
@@ -180,6 +183,7 @@ void AirHockey::get_private_param() {
   if (!nh_.getParam("hittable/offset/x", x_offset_)) { ROS_ERROR("Param hittable/offset/x not found"); }
   if (!nh_.getParam("hittable/offset/y", y_offset_)) { ROS_ERROR("Param hittable/offset/y not found"); }
   if (!nh_.getParam("hit/speed", des_speed_)) { ROS_ERROR("Param hit/speed not found"); }
+  if (!nh_.getParam("hit/flux", des_flux_)) { ROS_ERROR("Param hit/speed not found"); }
 }
 
 void AirHockey::param_cfg_callback(i_am_project::workspace_paramsConfig& config, uint32_t level) {
@@ -249,7 +253,6 @@ void AirHockey::reset_object_position() {
 }
 
 void AirHockey::move_robot(int mode, int robot_id) {
-  std::cout << "heyaa : : : " << mode << std::endl; 
   switch (mode) {
   
     case 3://hit
@@ -285,8 +288,8 @@ void AirHockey::switch_both_mode() {
                               center2_,
                               ee_offset_,
                               hittable_params_,
-                              prev_mode1_,
-                              1);
+                              prev_mode1_, 1, 
+                              is_hit_1, is_hit_2);
 
   mode2_ = maniModeSelektor_2(object_pos_,
                               object_pos_init2_,
@@ -295,8 +298,8 @@ void AirHockey::switch_both_mode() {
                               center1_,
                               ee_offset_,
                               hittable_params_,
-                              prev_mode2_,
-                              2);
+                              prev_mode2_, 2,
+                              is_hit_1, is_hit_2);
 }
 
 int AirHockey::getIndex(std::vector<std::string> v, std::string value) {
@@ -423,8 +426,8 @@ int AirHockey::maniModeSelektor_2(Eigen::Vector3d object_pos,
                                 Eigen::Vector4d hittable_params,
                                 const int prev_mode,
                                 const int iiwa_no,
-                                int count_hit_1,
-                                int count_hit_2) {
+                                bool &is_hit_1,
+                                bool &is_hit_2) {
   int mode = prev_mode;// if none of the conditions are met, mode remains the same
 
   Eigen::Vector3d d_center = center2 - center1;
@@ -441,14 +444,17 @@ int AirHockey::maniModeSelektor_2(Eigen::Vector3d object_pos,
     ee_hit = false;
   }
 
+  if (iiwa_no == 1){is_hit_1 = ee_hit;}
+  if (iiwa_no == 2){is_hit_2 = ee_hit;}
+
   switch (prev_mode) {
-    case 3://hit
+    case 1://hit
       // sum of count is even for iiwa 1 and odd for iiwa 2 to hit
-      if (iiwa_no == 1 && (count_hit_1 + count_hit_2)%2 == 1){mode = 4;} 
-      if (iiwa_no == 2 && (count_hit_1 + count_hit_2)%2 == 0){mode = 4;} 
+      if (iiwa_no == 1 && is_hit_1 == true && is_hit_2 == false){mode = 4;} 
+      if (iiwa_no == 2 && is_hit_2 == true && is_hit_1 == false){mode = 4;} 
       break;
 
-    case 4:                                                 //post hit
+    case 2://post hit
       if (!cur_hittable) { mode = 4; } //if object has left the range of arm, go to rest
       if (cur_hittable) {mode = 3;}
       break;
@@ -456,9 +462,6 @@ int AirHockey::maniModeSelektor_2(Eigen::Vector3d object_pos,
   }
   return mode;
 }
-
-
-
 
 int main(int argc, char** argv) {
 

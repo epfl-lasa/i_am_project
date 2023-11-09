@@ -6,6 +6,7 @@ geometry_msgs::Pose postHit(Eigen::Vector3d object_pos_init,
                             Eigen::Vector3d center,
                             Eigen::Vector3d iiwa_base_pos,
                             Eigen::Vector2d ee_offset) {
+                              
   Eigen::Vector3d offset = {0.0, 0.0, ee_offset[1]};
   object_pos_init += offset;
   center += offset;

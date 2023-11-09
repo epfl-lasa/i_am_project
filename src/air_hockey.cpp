@@ -269,9 +269,9 @@ void AirHockey::move_robot(int mode, int robot_id) {
       break;
     case 4://post hit
       if (robot_id == 1) {
-        pub_pos_quat1_.publish(postHit(center1_, center2_, iiwa1_base_pos_, ee_offset_));
+        pub_pos_quat1_.publish(postHit(center1_, center1_, iiwa1_base_pos_, ee_offset_));
       } else if (robot_id == 2) {
-        pub_pos_quat2_.publish(postHit(center2_, center1_, iiwa2_base_pos_, ee_offset_));
+        pub_pos_quat2_.publish(postHit(center2_, center2_, iiwa2_base_pos_, ee_offset_));
       }
       break;
   }

@@ -461,6 +461,113 @@ int AirHockey::maniModeSelektor_2(Eigen::Vector3d object_pos,
   return mode;
 }
 
+void AirHockey::updateRobotState(){
+
+  // Determine phase based on robots state + object position and movement
+
+  // TODO : add key control
+
+  if(state_robot1_ == REST && state_robot2_ == REST && state_object_ == STOPPED_IN_1){
+    state_robot1_ = HIT;}
+
+
+  if(state_robot1_ == HIT && state_robot2_ == REST && state_object_ == MOVING_TO_1){
+    state_robot1_ = REST;}
+
+
+  if(state_robot1_ == REST && state_robot2_ == REST && state_object_ == STOPPED_IN_2){
+    state_robot2_ = HIT;}
+
+  if(state_robot1_ == REST && state_robot2_ == HIT && state_object_ == MOVING_TO_2){
+    state_robot2_ = REST;}
+
+}
+
+void AirHockey::move_robot_updated(robotState state, int robot_id) {
+  
+  switch (state) {
+    case HIT://hit
+      if (robot_id == 1) {
+          pub_vel_quat1_.publish(
+              hitDSInertia(des_flux_, object_pos_, center2_, ee1_pos_, ee_offset_, iiwa1_task_inertia_pos_));
+          object_pos_init1_ = object_pos_;//need this for post-hit to guide the arm right after hit
+      } 
+      else if (robot_id == 2) {
+          pub_vel_quat2_.publish(
+              hitDSInertia(des_flux_, object_pos_, center1_, ee2_pos_, ee_offset_, iiwa2_task_inertia_pos_));
+          object_pos_init2_ = object_pos_;
+      }
+      break;
+    case REST://post hit
+      if (robot_id == 1) {
+        pub_pos_quat1_.publish(postHit(center1_, center1_, iiwa1_base_pos_, ee_offset_));
+      } else if (robot_id == 2) {
+        pub_pos_quat2_.publish(postHit(center2_, center2_, iiwa2_base_pos_, ee_offset_));
+      }
+      break;
+  }
+}
+
+void AirHockey::run_updated() {
+
+  msg_mode1_.data = state_robot1_;
+  msg_mode2_.data = state_robot2_;
+  prev_mode1_ = state_robot1_;
+  prev_mode2_ = state_robot1_;
+
+  prev_object_state_ = state_object_;
+
+  while (ros::ok()) {
+
+    // Update object status (based on position and velocity) 
+    get_object_state();
+
+    // Update state machine
+    if(state_object_ != prev_object_state_) { 
+      ROS_INFO_STREAM("updating robot state");
+      updateRobotState();
+      prev_object_state_ = state_object_;}
+
+    // Publish robot state (WHY?)
+    msg_mode1_.data = state_robot1_;
+    pub_mode1_.publish(msg_mode1_);
+    msg_mode2_.data = state_robot2_;
+    pub_mode2_.publish(msg_mode2_);
+
+    // Send commands to robots
+    move_robot(state_robot1_, 1);
+    move_robot(state_robot1_, 2);
+
+    prev_mode1_ = state_robot1_;
+    prev_mode2_ = state_robot1_;
+
+    if (object_real_ == false && object_vel_.norm() < 0.01 && (!hitta1_ && !hitta2_)) { reset_object_position(); }
+
+    if (debug_) {
+      ROS_INFO_STREAM("STATES [robot1, robot2, object]: " << state_robot1_ << state_robot2_ << state_object_);
+      ROS_INFO_STREAM("count_for_testing: " << count_for_testing);
+    }
+
+    ros::spinOnce();
+    rate_.sleep();
+  }
+  ros::spinOnce();
+  rate_.sleep();
+  ros::shutdown();
+}
+
+void AirHockey::get_object_state(){
+
+  // object should change state when hit and when it stops moving (add some delay OR key control )
+
+  // USe counter for test here;
+  if(count_for_testing%3 == 1){
+    state_object_ = static_cast<objectState>((state_object_+ 1) % (MOVING_TO_1 + 1));;
+  }
+  count_for_testing+=1;
+
+}
+
 int main(int argc, char** argv) {
 
   //ROS Initialization

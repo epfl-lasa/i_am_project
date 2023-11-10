@@ -48,6 +48,15 @@ private:
   int mode2_ = 2;
   int prev_mode1_, prev_mode2_;
 
+  enum robotState{REST, HIT};
+  enum objectState{STOPPED_IN_1, MOVING_TO_2, STOPPED_IN_2, MOVING_TO_1};
+
+  robotState state_robot1_ = REST;
+  robotState state_robot2_ = REST;
+  objectState state_object_ = STOPPED_IN_1;
+  objectState prev_object_state_;
+  int count_for_testing = 0;
+
   double ETA_, ee_offset_h_, ee_offset_v_, des_speed_, x_reach_, y_reach_, x_offset_, y_offset_, min_y_, max_y_,
       object_th_, object_th_mod_, threshold_ee_ready_, des_flux_;
 
@@ -119,4 +128,10 @@ public:
                                     const int iiwa_no,
                                     bool &is_hit_1,
                                     bool &is_hit_2);
+
+  void updateRobotState();
+  void move_robot_updated(robotState state, int robot_id);
+  void run_updated();
+  void get_object_state();
+
 };

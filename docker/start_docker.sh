@@ -1,5 +1,6 @@
 #!/bin/bash
-IMAGE_NAME="iam_project_harshit:noetic"
+IMAGE_NAME="iam_project_harshit"
+IMAGE_TAG="noetic"
 CONTAINER_NAME="${IMAGE_NAME//[\/.]/-}"
 USERNAME="ros"
 MODE=()
@@ -61,6 +62,7 @@ fi
 
 # Handle interactive/server specific arguments
 if [ "${MODE}" != "connect" ]; then
+    echo ${MODE}
 
     # Check if a conitainer with this name is already running
     if [ "$( docker container inspect -f '{{.State.Status}}' ${CONTAINER_NAME} 2>/dev/null)" == "running" ]; then
@@ -85,6 +87,19 @@ if [ "${MODE}" != "connect" ]; then
 
     # Other
     FWD_ARGS+=("--privileged")
+
+
+    # Add volume i_am_project
+    docker volume rm i_am_project
+    docker volume create --driver local \
+    --opt type="none" \
+    --opt device="${PWD}/i_am_project" \
+    --opt o="bind" \
+    "i_am_project"
+    FWD_ARGS+=(--volume="${PWD}:/home/ros/ros_ws/src/i_am_project:rw")
+
+    echo ${FWD_ARGS}
+
 fi
 
 # Trick aica-docker into making a server on a host network container
@@ -93,11 +108,12 @@ if [ "${MODE}" == "server" ]; then
     MODE=interactive
 fi
 
+
+# ${GPU_FLAG} \
 # Start docker using aica
 aica-docker \
     "${MODE}" \
-    "${IMAGE_NAME}" \
+    "${IMAGE_NAME}:${IMAGE_TAG}" \
     -u "${USERNAME}" \
     -n "${CONTAINER_NAME}" \
-    ${GPU_FLAG} \
-    "${FWD_ARGS[@]}" \
+    "${FWD_ARGS[@]}" 

@@ -41,6 +41,10 @@ add_executable(inertia_QP src/inertia_motion_qp.cpp src/dynamical_system.cpp)
 target_link_libraries(inertia_QP ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} osqp::osqp OsqpEigen::OsqpEigen "stdc++fs" "-L/usr/local/lib")
 add_dependencies(inertia_QP i_am_project_generate_messages_cpp)
 
+add_executable(air_hockey src/AirHockey.cpp src/dynamical_system.cpp) # src/optimizer.cpp) 
+target_link_libraries(air_hockey ${catkin_LIBRARIES} ${Eigen3_LIBRARIES} osqp::osqp OsqpEigen::OsqpEigen "stdc++fs" "-L/usr/local/lib")
+add_dependencies(air_hockey i_am_project_generate_messages_cpp)
+
 set_property(TARGET momentum_hit PROPERTY CXX_STANDARD 17)
 set_property(TARGET momentum_hit PROPERTY CXX_STANDARD_REQUIRED ON)
 

@@ -14,6 +14,12 @@ geometry_msgs::Pose postHit(Eigen::Vector3d object_pos_init,
                             Eigen::Vector3d iiwa_base_pos,
                             Eigen::Vector2d ee_offset);
 
+geometry_msgs::Pose postHitDS(Eigen::Vector3d object_pos_init,
+                            Eigen::Vector3d center,
+                            Eigen::Vector3d iiwa_base_pos,
+                            Eigen::Vector2d ee_offset,
+                            Eigen::Vector3d return_position);
+
 geometry_msgs::Pose hitDSInertia(double des_speed,
                                  Eigen::Vector3d object_pos,
                                  Eigen::Vector3d center,

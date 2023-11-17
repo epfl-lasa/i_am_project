@@ -146,10 +146,10 @@ void AirHockey::run() {
     if (object_real_ == false && object_vel_.norm() < 0.01 && (!hitta1_ && !hitta2_)) { reset_object_position(); }
 
     if (debug_) {
-      if (mode1_ == 3) { ROS_INFO_STREAM("1 HIT" << ee1_pos_init_); }
-      if (mode1_ == 4) { ROS_INFO_STREAM("1 AFTERHIT" << object_pos_init1_); }
-      if (mode2_ == 3) { ROS_INFO_STREAM("2 HIT  " << ee2_pos_init_); }
-      if (mode2_ == 4) { ROS_INFO("2 AFTERHIT"); }
+      if (mode1_ == 1) { ROS_INFO_STREAM("1 HIT" << ee1_pos_init_); }
+      if (mode1_ == 2) { ROS_INFO_STREAM("1 AFTERHIT" << object_pos_init1_); }
+      if (mode2_ == 1) { ROS_INFO_STREAM("2 HIT  " << ee2_pos_init_); }
+      if (mode2_ == 2) { ROS_INFO("2 AFTERHIT"); }
       ROS_INFO_STREAM("hittable, too_far: " << hitta1_ << farra1_ << hitta2_ << farra2_);
     }
 
@@ -255,7 +255,7 @@ void AirHockey::reset_object_position() {
 void AirHockey::move_robot(int mode, int robot_id) {
   switch (mode) {
   
-    case 3://hit
+    case 1://hit
       if (robot_id == 1) {
           pub_vel_quat1_.publish(
               hitDSInertia(des_flux_, object_pos_, center2_, ee1_pos_, ee_offset_, iiwa1_task_inertia_pos_));
@@ -267,11 +267,15 @@ void AirHockey::move_robot(int mode, int robot_id) {
           object_pos_init2_ = object_pos_;
       }
       break;
-    case 4://post hit
+    case 2://post hit
       if (robot_id == 1) {
-        pub_pos_quat1_.publish(postHit(center1_, center1_, iiwa1_base_pos_, ee_offset_));
+        std::cout << "here" <<std::endl;
+        // pub_pos_quat1_.publish(postHit(object_pos_init1_, center2_, iiwa1_base_pos_, ee_offset_));
+        pub_pos_quat1_.publish(postHitDS(object_pos_init1_, center2_, iiwa1_base_pos_, ee_offset_, center1_));
+        std::cout<< center1_ << std::endl;
       } else if (robot_id == 2) {
-        pub_pos_quat2_.publish(postHit(center2_, center2_, iiwa2_base_pos_, ee_offset_));
+        // pub_pos_quat1_.publish(postHit(object_pos_init1_, center1_, iiwa1_base_pos_, ee_offset_));
+        pub_pos_quat2_.publish(postHitDS(object_pos_init2_, center1_, iiwa2_base_pos_, ee_offset_, center2_));
       }
       break;
   }
@@ -445,16 +449,49 @@ int AirHockey::maniModeSelektor_2(Eigen::Vector3d object_pos,
   if (iiwa_no == 1){is_hit_1 = ee_hit;}
   if (iiwa_no == 2){is_hit_2 = ee_hit;}
 
-  switch (prev_mode) {
+  // switch (prev_mode) {
+  //   case 1://hit
+  //     // sum of count is even for iiwa 1 and odd for iiwa 2 to hit
+  //     if (iiwa_no == 1 && is_hit_1 == true && is_hit_2 == false){
+  //       mode = 2;
+  //       // sleep(2);
+  //       } 
+  //     if (iiwa_no == 2 && is_hit_2 == true && is_hit_1 == false){
+  //       mode = 2; 
+  //       // sleep(2);
+  //     }
+  //     break;
+
+  //   case 2://post hit
+  //     if (!cur_hittable) { 
+  //       mode = 2; 
+  //       // sleep(2);
+  //     } //if object has left the range of arm, go to rest
+  //     if (cur_hittable) {
+  //       mode = 1;
+  //       // sleep(2);
+  //     }
+  //     break;
+
+    switch (prev_mode) {
     case 1://hit
       // sum of count is even for iiwa 1 and odd for iiwa 2 to hit
-      if (iiwa_no == 1 && is_hit_1 == true && is_hit_2 == false){mode = 4;} 
-      if (iiwa_no == 2 && is_hit_2 == true && is_hit_1 == false){mode = 4;} 
+      if (iiwa_no == 1 && is_hit_1 == true && is_hit_2 == false){
+        mode = 2;
+        // sleep(2);
+        } 
+      if (iiwa_no == 2){
+        mode = 2; 
+        // sleep(2);
+      }
       break;
 
     case 2://post hit
-      if (!cur_hittable) { mode = 4; } //if object has left the range of arm, go to rest
-      if (cur_hittable) {mode = 3;}
+      if (iiwa_no ==1 && is_hit_1 == false && is_hit_2 == false){
+      mode = 1;}
+      else {
+        mode = 2;
+      }
       break;
 
   }

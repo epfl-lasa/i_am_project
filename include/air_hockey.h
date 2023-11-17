@@ -35,6 +35,7 @@
 #include <std_msgs/Int16.h>
 #include <string>
 #include <vector>
+#include <unistd.h>
 
 #include <experimental/filesystem>
 #define _USE_MATH_DEFINES
@@ -44,7 +45,7 @@ private:
   bool hollow_, iiwa_real_, manual_mode_, object_real_, hitta1_, hitta2_, farra1_, farra2_, debug_, inertia_, is_hit_1, is_hit_2;
 
   int key_ctrl_ = 0;
-  int mode1_ = 1;
+  int mode1_ = 2;
   int mode2_ = 2;
   int prev_mode1_, prev_mode2_;
 

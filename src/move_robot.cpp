@@ -21,7 +21,44 @@ geometry_msgs::Pose postHit(Eigen::Vector3d object_pos_init,
 
   if (pos_iiwa[2] < MINIMUM_EE_POSE) { pos_iiwa[2] = MINIMUM_EE_POSE; }
 
+  std::cout << "command " << pos_iiwa << std::endl;
+
   geometry_msgs::Pose pose;
+  pose.position.x = pos_iiwa[0];
+  pose.position.y = pos_iiwa[1];
+  pose.position.z = pos_iiwa[2];
+  pose.orientation.w = quat_iiwa[0];
+  pose.orientation.x = quat_iiwa[1];
+  pose.orientation.y = quat_iiwa[2];
+  pose.orientation.z = quat_iiwa[3];
+
+  return pose;
+}
+
+geometry_msgs::Pose postHitDS(Eigen::Vector3d object_pos_init,
+                            Eigen::Vector3d center,
+                            Eigen::Vector3d iiwa_base_pos,
+                            Eigen::Vector2d ee_offset,
+                            Eigen::Vector3d return_position) {
+                              
+  Eigen::Vector3d offset = {0.0, 0.0, ee_offset[1]};
+  object_pos_init += offset;
+  center += offset;
+
+  //Calculate pos and quat wrt to world frame
+  Eigen::Vector3d pos_world = return_position;
+  Eigen::Vector4d quat_world = pointsToQuat(return_position, center);
+
+  //Transform pos and quat from world to iiwa frame
+  Eigen::Vector3d pos_iiwa = pos_world;// - iiwa_base_pos;
+  Eigen::Vector4d quat_iiwa = quat_world;
+
+  if (pos_iiwa[2] < MINIMUM_EE_POSE) { pos_iiwa[2] = MINIMUM_EE_POSE; }
+
+
+  geometry_msgs::Pose pose;
+
+
   pose.position.x = pos_iiwa[0];
   pose.position.y = pos_iiwa[1];
   pose.position.z = pos_iiwa[2];
@@ -42,7 +79,8 @@ geometry_msgs::Pose hitDSInertia(double dir_flux,
 
   Eigen::Vector3d reference_velocity = Eigen::Vector3d{0.0, 0.0, 0.0};
   double theta = -std::atan2(center[0] - object_pos[0], center[1] - object_pos[1]);//angle between object and target
-  Eigen::Vector3d object_offset = {0.0, 0.0, ee_offset[1]};
+  // Eigen::Vector3d object_offset = {0.0, 0.0, ee_offset[1]};
+  Eigen::Vector3d object_offset = {0.0, 0.0, 0.0};
   Eigen::Vector3d des_direction = {0.0, 1.0, 0.0};
   Eigen::Matrix3d gain, rot_mat;
 
@@ -60,7 +98,7 @@ geometry_msgs::Pose hitDSInertia(double dir_flux,
   Eigen::Vector3d virtual_ee = ds_attractor + des_direction * (relative_position.dot(des_direction) / (des_direction.squaredNorm()));
 
   float dir_inertia = des_direction.transpose() * current_inertia * des_direction;
-  ROS_INFO_STREAM("Dir_inertia: " << dir_inertia);
+  // ROS_INFO_STREAM("Dir_inertia: " << dir_inertia);
 
   float exp_term = (ee_pos - virtual_ee).norm();
   float alpha = exp(-exp_term / (sigma * sigma));

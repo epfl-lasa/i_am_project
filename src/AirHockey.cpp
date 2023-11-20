@@ -118,8 +118,8 @@ void AirHockey::objectPositionCallbackGazebo(const gazebo_msgs::ModelStates& mod
 }
 
 void AirHockey::iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkStates) {
-  int indexIiwa1 = getIndex(linkStates.name, "iiwa7::iiwa7_link_7");// End effector is the 7th link in KUKA IIWA
-  int indexIiwa2 = getIndex(linkStates.name, "iiwa14::iiwa14_link_7");// End effector is the 7th link in KUKA IIWA
+  int indexIiwa1 = getIndex(linkStates.name, "iiwa1::iiwa1_link_7");// End effector is the 7th link in KUKA IIWA
+  int indexIiwa2 = getIndex(linkStates.name, "iiwa2::iiwa2_link_7");// End effector is the 7th link in KUKA IIWA
 
   iiwaPose_[IIWA_7] = linkStates.pose[indexIiwa1];
   iiwaPositionFromSource_[IIWA_7] << iiwaPose_[IIWA_7].position.x, iiwaPose_[IIWA_7].position.y,

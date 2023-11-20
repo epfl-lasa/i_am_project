@@ -12,10 +12,10 @@
 <launch>
 
  <include file="$(find iiwa_toolkit)/launch/passive_track_gazebo_dual.launch">
-    <arg name="robot_name_1" value="iiwa7"/>
+    <arg name="robot_name_1" value="iiwa1"/>
     <arg name="iiwa_model_1" value="7"/>
 
-    <arg name="robot_name_2" value="iiwa14"/>
+    <arg name="robot_name_2" value="iiwa2"/>
     <arg name="iiwa_model_2" value="14"/>
 
     <arg name="controller" value="TorqueController"/>

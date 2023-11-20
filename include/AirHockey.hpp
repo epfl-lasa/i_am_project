@@ -48,6 +48,7 @@ private:
   Eigen::Vector3f hitDirection_[NB_ROBOTS];
   Eigen::Vector3f refVelocity_[NB_ROBOTS];
   Eigen::Vector4f refQuat_[NB_ROBOTS];
+  Eigen::Vector3f returnPos_[NB_ROBOTS];
 
   std::string pubVelQuatTopic_[NB_ROBOTS];
   std::string iiwaInertiaTopic_[NB_ROBOTS];
@@ -69,6 +70,7 @@ private:
   Eigen::Vector4d objectOrientationFromSource_;
   Eigen::Vector3f iiwaPositionFromSource_[NB_ROBOTS];
   Eigen::Matrix3f iiwaTaskInertiaPos_[NB_ROBOTS];
+
 
   std::unique_ptr<hitting_DS> generateHitting7_ =
       std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_7], objectPositionFromSource_);

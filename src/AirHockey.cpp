@@ -69,14 +69,21 @@ bool AirHockey::init() {
   if (!nh_.getParam("iiwa14/ref_velocity/x", refVelocity_[IIWA_14][0])) { ROS_ERROR("Topic ref_velocity/x not found"); }
   if (!nh_.getParam("iiwa7/ref_velocity/z", refVelocity_[IIWA_7][2])) { ROS_ERROR("Topic ref_velocity/z not found"); }
   if (!nh_.getParam("iiwa14/ref_velocity/z", refVelocity_[IIWA_14][2])) { ROS_ERROR("Topic ref_velocity/z not found"); }
-  if (!nh_.getParam("iiwa7/ref_quat/w", refQuat_[IIWA_7][0])) { ROS_ERROR("Topic ref_quat/w not found"); }
-  if (!nh_.getParam("iiwa14/ref_quat/w", refQuat_[IIWA_14][0])) { ROS_ERROR("Topic ref_quat/w not found"); }
-  if (!nh_.getParam("iiwa7/ref_quat/x", refQuat_[IIWA_7][1])) { ROS_ERROR("Topic ref_quat/x not found"); }
-  if (!nh_.getParam("iiwa14/ref_quat/x", refQuat_[IIWA_14][1])) { ROS_ERROR("Topic ref_quat/x not found"); }
-  if (!nh_.getParam("iiwa7/ref_quat/y", refQuat_[IIWA_7][2])) { ROS_ERROR("Topic ref_quat/y not found"); }
-  if (!nh_.getParam("iiwa14/ref_quat/y", refQuat_[IIWA_14][2])) { ROS_ERROR("Topic ref_quat/y not found"); }
-  if (!nh_.getParam("iiwa7/ref_quat/z", refQuat_[IIWA_7][3])) { ROS_ERROR("Topic ref_quat/z not found"); }
-  if (!nh_.getParam("iiwa14/ref_quat/z", refQuat_[IIWA_14][3])) { ROS_ERROR("Topic ref_quat/z not found"); }
+  // if (!nh_.getParam("iiwa7/ref_quat/w", refQuat_[IIWA_7][0])) { ROS_ERROR("Topic ref_quat/w not found"); }
+  // if (!nh_.getParam("iiwa14/ref_quat/w", refQuat_[IIWA_14][0])) { ROS_ERROR("Topic ref_quat/w not found"); }
+  // if (!nh_.getParam("iiwa7/ref_quat/x", refQuat_[IIWA_7][1])) { ROS_ERROR("Topic ref_quat/x not found"); }
+  // if (!nh_.getParam("iiwa14/ref_quat/x", refQuat_[IIWA_14][1])) { ROS_ERROR("Topic ref_quat/x not found"); }
+  // if (!nh_.getParam("iiwa7/ref_quat/y", refQuat_[IIWA_7][2])) { ROS_ERROR("Topic ref_quat/y not found"); }
+  // if (!nh_.getParam("iiwa14/ref_quat/y", refQuat_[IIWA_14][2])) { ROS_ERROR("Topic ref_quat/y not found"); }
+  // if (!nh_.getParam("iiwa7/ref_quat/z", refQuat_[IIWA_7][3])) { ROS_ERROR("Topic ref_quat/z not found"); }
+  // if (!nh_.getParam("iiwa14/ref_quat/z", refQuat_[IIWA_14][3])) { ROS_ERROR("Topic ref_quat/z not found"); }
+  if (!nh_.getParam("iiwa7/return_position/x", returnPos_[IIWA_7][0])) { ROS_ERROR("Topic ref_quat/x not found"); }
+  if (!nh_.getParam("iiwa14/return_position/x", returnPos_[IIWA_14][0])) { ROS_ERROR("Topic return_position/x not found"); }
+  if (!nh_.getParam("iiwa7/return_position/y", returnPos_[IIWA_7][1])) { ROS_ERROR("Topic return_position/y not found"); }
+  if (!nh_.getParam("iiwa14/return_position/y", returnPos_[IIWA_14][1])) { ROS_ERROR("Topic return_position/y not found"); }
+  if (!nh_.getParam("iiwa7/return_position/z", returnPos_[IIWA_7][2])) { ROS_ERROR("Topic return_position/z not found"); }
+  if (!nh_.getParam("iiwa14/return_position/z", returnPos_[IIWA_14][2])) { ROS_ERROR("Topic return_position/z not found"); }
+
   if (!nh_.getParam("iiwa7/hit_direction/x", hitDirection_[IIWA_7][0])) {
     ROS_ERROR("Topic hit_direction/x not found");
   }
@@ -176,8 +183,6 @@ void AirHockey::publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat
 }
 
 void AirHockey::run() {
-  Eigen::Vector3f iiwa7_return_position = {0.3, -0.5, 0.5};
-  Eigen::Vector3f iiwa14_return_position = {0.5, 0.5, 0.3};
 
   std::cout << "IS hit : " << isHit_ << std::endl;
 
@@ -220,11 +225,11 @@ void AirHockey::run() {
     }
 
     if(statesvar.state_robot7_ == REST){
-      refVelocity_[IIWA_7] = generateHitting7_->linear_DS(iiwa7_return_position);
+      refVelocity_[IIWA_7] = generateHitting7_->linear_DS(returnPos_[IIWA_7]);
     }
 
     if(statesvar.state_robot14_ == REST){
-      refVelocity_[IIWA_14] = generateHitting14_->linear_DS(iiwa14_return_position);
+      refVelocity_[IIWA_14] = generateHitting14_->linear_DS(returnPos_[IIWA_14]);
     }
 
     // if (!isHit_) {

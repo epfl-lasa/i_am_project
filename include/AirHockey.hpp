@@ -83,7 +83,7 @@ private:
 
 public:
   enum robotState{REST, HIT};
-  enum objectState{STOPPED_IN_1, MOVING_TO_2, STOPPED_IN_2, MOVING_TO_1};
+  enum objectState{STOPPED_IN_1 = 0, MOVING_TO_2 = 1, STOPPED_IN_2 = 2, MOVING_TO_1 = 3};
 
   robotState state_robot7_ = REST;
   robotState state_robot14_ = REST;
@@ -112,37 +112,5 @@ public:
   void iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkStates);
   void objectPositionCallbackGazebo(const gazebo_msgs::ModelStates& modelStates);
 
-
-  StatesVar getKeyboard(StatesVar statesvar ) {
-
-    nonBlock(1);
-
-    if (khBit() != 0) {
-      char keyboardCommand = fgetc(stdin);
-      fflush(stdin);
-
-      switch (keyboardCommand) {
-        case 'q': {
-          statesvar.state_robot7_ = HIT;
-          std::cout << "q is pressed " << std::endl;
-          
-        } break;
-        case 'p': {
-          statesvar.state_robot14_ = HIT;
-        } break;
-        case 'r': {
-          statesvar.state_robot7_ = REST;
-          statesvar.state_robot14_ = REST;
-        } break;
-        case 'h': { // toggle isHit_ 
-          if(statesvar.isHit_){ statesvar.isHit_ = 0;}
-          else if(!statesvar.isHit_){ statesvar.isHit_= 1;}
-        } break;
-
-      }
-    }
-    nonBlock(0);
-
-    return statesvar;
-  }
+  StatesVar getKeyboard(StatesVar statesvar );
 };

@@ -84,24 +84,12 @@ bool AirHockey::init() {
   if (!nh_.getParam("iiwa7/return_position/z", returnPos_[IIWA_7][2])) { ROS_ERROR("Topic return_position/z not found"); }
   if (!nh_.getParam("iiwa14/return_position/z", returnPos_[IIWA_14][2])) { ROS_ERROR("Topic return_position/z not found"); }
 
-  if (!nh_.getParam("iiwa7/hit_direction/x", hitDirection_[IIWA_7][0])) {
-    ROS_ERROR("Topic hit_direction/x not found");
-  }
-  if (!nh_.getParam("iiwa14/hit_direction/x", hitDirection_[IIWA_14][0])) {
-    ROS_ERROR("Topic hit_direction/x not found");
-  }
-  if (!nh_.getParam("iiwa7/hit_direction/y", hitDirection_[IIWA_7][1])) {
-    ROS_ERROR("Topic hit_direction/y not found");
-  }
-  if (!nh_.getParam("iiwa14/hit_direction/y", hitDirection_[IIWA_14][1])) {
-    ROS_ERROR("Topic hit_direction/y not found");
-  }
-  if (!nh_.getParam("iiwa7/hit_direction/z", hitDirection_[IIWA_7][2])) {
-    ROS_ERROR("Topic hit_direction/z not found");
-  }
-  if (!nh_.getParam("iiwa14/hit_direction/z", hitDirection_[IIWA_14][2])) {
-    ROS_ERROR("Topic hit_direction/z not found");
-  }
+  if (!nh_.getParam("iiwa7/hit_direction/x", hitDirection_[IIWA_7][0])) {ROS_ERROR("Topic hit_direction/x not found");}
+  if (!nh_.getParam("iiwa14/hit_direction/x", hitDirection_[IIWA_14][0])) {ROS_ERROR("Topic hit_direction/x not found");}
+  if (!nh_.getParam("iiwa7/hit_direction/y", hitDirection_[IIWA_7][1])) {ROS_ERROR("Topic hit_direction/y not found");}
+  if (!nh_.getParam("iiwa14/hit_direction/y", hitDirection_[IIWA_14][1])) {ROS_ERROR("Topic hit_direction/y not found");}
+  if (!nh_.getParam("iiwa7/hit_direction/z", hitDirection_[IIWA_7][2])) {ROS_ERROR("Topic hit_direction/z not found");}
+  if (!nh_.getParam("iiwa14/hit_direction/z", hitDirection_[IIWA_14][2])) {ROS_ERROR("Topic hit_direction/z not found");}
 
   generateHitting7_->set_des_direction(hitDirection_[IIWA_7]);
   generateHitting14_->set_des_direction(hitDirection_[IIWA_14]);
@@ -182,6 +170,40 @@ void AirHockey::publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat
   pubVelQuat_[IIWA_14].publish(ref_vel_publish_14);
 }
 
+AirHockey::StatesVar AirHockey::getKeyboard(StatesVar statesvar ) {
+
+    nonBlock(1);
+
+    if (khBit() != 0) {
+      char keyboardCommand = fgetc(stdin);
+      fflush(stdin);
+
+      switch (keyboardCommand) {
+        case 'q': {
+          statesvar.state_robot7_ = HIT;
+          std::cout << "q is pressed " << std::endl;
+          
+        } break;
+        case 'p': {
+          statesvar.state_robot14_ = HIT;
+        } break;
+        case 'r': {
+          statesvar.state_robot7_ = REST;
+          statesvar.state_robot14_ = REST;
+        } break;
+        case 'h': { // toggle isHit_ 
+          if(statesvar.isHit_){ statesvar.isHit_ = 0;}
+          else if(!statesvar.isHit_){ statesvar.isHit_= 1;}
+        } break;
+
+      }
+    }
+    nonBlock(0);
+
+    return statesvar;
+  }
+
+
 void AirHockey::run() {
 
   std::cout << "IS hit : " << isHit_ << std::endl;
@@ -201,35 +223,41 @@ void AirHockey::run() {
 
     // DEBUG
     if(print_count%200 == 0 ){
-      std::cout << "IS hit : " << statesvar.isHit_ << std::endl;
-      std::cout << "Box Pos : " << objectPositionFromSource_ << std::endl;
-      std::cout << "iiwa7_state : " << statesvar.state_robot7_ << " \n iiwa14_state : " << statesvar.state_robot14_<< std::endl;
-      std::cout << "iiwa7_vel : " << iiwaVel_[IIWA_7] << std::endl;
-      std::cout << "pos 7 from gazebo: " <<  iiwaPositionFromSource_[IIWA_7] << std::endl;
-      std::cout << "pos 14 from gazebo: " <<  iiwaPositionFromSource_[IIWA_14] << std::endl;
+      // std::cout << "ishit : " << statesvar.isHit_ << std::endl;
+      // std::cout << "Box Pos : " << objectPositionFromSource_ << std::endl;
+      // std::cout << "iiwa7_state : " << statesvar.state_robot7_ << " \n iiwa14_state : " << statesvar.state_robot14_<< std::endl;
+      // std::cout << "iiwa7_vel : " << iiwaVel_[IIWA_7] << std::endl;
       std::cout << "refVelocity_ 7  " << refVelocity_[IIWA_7] << std::endl;
-      // std::cout << "DS 7 pos : " << generateHitting7_->get_current_position()<< std::endl;
-      // std::cout << "DS 14 pos : " << generateHitting14_->get_current_position()<< std::endl;
-      // std::cout << "DS 7 attr : " << generateHitting7_->get_DS_attractor()<< std::endl;
-      // std::cout << "DS 14 attr: " << generateHitting14_->get_DS_attractor()<< std::endl;
     }
     print_count +=1 ;
 
+    // Update object postion if at rest 
+    if(statesvar.state_robot7_ == REST && statesvar.state_robot14_ == REST){
+      // update only at REST so object state conditions works 
+      updateCurrentObjectPosition(objectPositionFromSource_);
+    }
 
+    // UPDATE robot state
     if(statesvar.state_robot7_ == HIT){
-      refVelocity_[IIWA_7] = generateHitting7_->flux_DS(0.5, iiwaTaskInertiaPos_[IIWA_7]);
+      refVelocity_[IIWA_7] = generateHitting7_->flux_DS(1.2, iiwaTaskInertiaPos_[IIWA_7]);
     }
 
     if(statesvar.state_robot14_ == HIT){
-      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(0.5, iiwaTaskInertiaPos_[IIWA_14]);
+      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(1.2, iiwaTaskInertiaPos_[IIWA_14]);
     }
 
-    if(statesvar.state_robot7_ == REST){
+    if(statesvar.state_robot7_ == REST || statesvar.isHit_ == 1){
       refVelocity_[IIWA_7] = generateHitting7_->linear_DS(returnPos_[IIWA_7]);
+      statesvar.state_robot7_ = REST;
+      if (statesvar.state_robot14_ == REST) { // only reset if 14 is at rest, otherwise we skip next if
+              statesvar.isHit_ = 0;
+      }
     }
 
-    if(statesvar.state_robot14_ == REST){
+    if(statesvar.state_robot14_ == REST || statesvar.isHit_ == 1){
       refVelocity_[IIWA_14] = generateHitting14_->linear_DS(returnPos_[IIWA_14]);
+      statesvar.state_robot14_ = REST;
+      statesvar.isHit_ = 0;
     }
 
     // if (!isHit_) {
@@ -240,12 +268,22 @@ void AirHockey::run() {
     //   refVelocity_[IIWA_14] = generateHitting14_->linear_DS(iiwa_return_position);
     // }
 
-    // if (!isHit_
-    //     && generateHitting7_->get_des_direction().dot(generateHitting7_->get_DS_attractor()
+    // if (!isHit_ && generateHitting7_->get_des_direction().dot(generateHitting7_->get_DS_attractor()
     //                                                   - generateHitting7_->get_current_position())
     //         < 0) {
     //   isHit_ = 1;
     // }
+
+    // Update isHit 
+    if (!statesvar.isHit_ && generateHitting7_->get_des_direction().dot(generateHitting7_->get_DS_attractor()
+                                                      - generateHitting7_->get_current_position()) < 0) {
+      statesvar.isHit_ = 1;
+    }
+
+    if (!statesvar.isHit_ && generateHitting14_->get_des_direction().dot(generateHitting14_->get_DS_attractor()
+                                                      - generateHitting14_->get_current_position())  < 0) {
+      statesvar.isHit_ = 1;
+    }
 
     updateCurrentEEPosition(iiwaPositionFromSource_);
     publishVelQuat(refVelocity_, refQuat_);

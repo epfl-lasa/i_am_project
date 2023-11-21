@@ -31,7 +31,7 @@ Eigen::Vector3f hitting_DS::flux_DS(float dir_flux, Eigen::Matrix3f& current_ine
 
   float dir_inertia = des_direction_.transpose() * current_inertia * des_direction_;
 
-  ROS_INFO_STREAM("Dir_inertia: " << dir_inertia);
+  // ROS_INFO_STREAM("Dir_inertia: " << dir_inertia);
   float exp_term = (current_position_ - virtual_ee).norm();
   float alpha = exp(-exp_term / (sigma_ * sigma_));
 

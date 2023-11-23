@@ -29,6 +29,7 @@
 #include <gazebo_msgs/ModelStates.h>
 #include <geometry_msgs/Inertia.h>
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Twist.h>
 
 #include <Eigen/Dense>
@@ -44,6 +45,7 @@ private:
   enum Robot { IIWA_7 = 0, IIWA_14 = 1 };
 
   bool isHit_ = 0;
+  bool isSim_;
 
   Eigen::Vector3f hitDirection_[NB_ROBOTS];
   Eigen::Vector3f refVelocity_[NB_ROBOTS];
@@ -52,8 +54,10 @@ private:
 
   std::string pubVelQuatTopic_[NB_ROBOTS];
   std::string iiwaInertiaTopic_[NB_ROBOTS];
-  std::string iiwaPositionTopic_;
+  std::string iiwaPositionTopicSim_;
   std::string objectPositionTopic_;
+  std::string iiwaPositionTopicReal_[NB_ROBOTS];
+  std::string iiwaBasePositionTopic_[NB_ROBOTS];
 
   ros::Rate rate_;
   ros::NodeHandle nh_;
@@ -61,6 +65,10 @@ private:
   ros::Subscriber objectPosition_;
   ros::Subscriber iiwaPosition_;
   ros::Subscriber iiwaInertia_[NB_ROBOTS];
+  ros::Subscriber iiwaPositionReal_[NB_ROBOTS];
+  ros::Subscriber iiwaVelocityReal_[NB_ROBOTS];
+  ros::Subscriber iiwaBasePosition_[NB_ROBOTS];
+
 
   geometry_msgs::Pose boxPose_;
   geometry_msgs::Pose iiwaPose_[NB_ROBOTS];
@@ -69,6 +77,9 @@ private:
   Eigen::Vector3f objectPositionFromSource_;
   Eigen::Vector4d objectOrientationFromSource_;
   Eigen::Vector3f iiwaPositionFromSource_[NB_ROBOTS];
+  Eigen::Vector4f iiwaOrientationFromSource_[NB_ROBOTS];
+  Eigen::Vector3f iiwaVelocityFromSource_[NB_ROBOTS];
+  Eigen::Vector3f iiwaBasePositionFromSource_[NB_ROBOTS];
   Eigen::Matrix3f iiwaTaskInertiaPos_[NB_ROBOTS];
 
 
@@ -111,6 +122,11 @@ public:
   void iiwaInertiaCallbackGazebo(const geometry_msgs::Inertia::ConstPtr& msg, int k);
   void iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkStates);
   void objectPositionCallbackGazebo(const gazebo_msgs::ModelStates& modelStates);
+
+  void iiwaPoseCallbackReal(const geometry_msgs::Pose::ConstPtr& msg, int k);
+  void iiwaVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& msg, int k);
+  void iiwaBasePositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
+  void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg);
 
   StatesVar getKeyboard(StatesVar statesvar );
 };

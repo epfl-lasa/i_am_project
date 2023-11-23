@@ -8,9 +8,14 @@ passive_control: {
 iiwa: {
   dir_flux: "/iiwa/dir_flux", # Publisher - type std_msgs::Float32 (REAL)
 
-  ee_info : {
-    pose: "/iiwa/ee_info/Pose", # Subscriber - iiwa ee pose + orientation - type geometry_msgs::Pose (REAL)
-    vel: "/iiwa/ee_info/Vel", # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
+  ee_info_7 : {
+    pose: "/iiwa1/ee_info/Pose", # Subscriber - iiwa ee pose + orientation - type geometry_msgs::Pose (REAL)
+    vel: "/iiwa1/ee_info/Vel", # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
+  },
+
+  ee_info_14 : {
+    pose: "/iiwa2/ee_info/Pose", # Subscriber - iiwa ee pose + orientation - type geometry_msgs::Pose (REAL)
+    vel: "/iiwa2/ee_info/Vel", # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
   },
 
   inertia: {
@@ -26,6 +31,9 @@ vrpn_client_node: {
   },
   iiwa_7_base: {
     pose: "/vrpn_client_node/iiwa_7_base/pose" # Subscriber - iiwa base position + orientation - geometry_msgs::PoseStamped (REAL)
+  },
+  iiwa_14_base: {
+    pose: "/vrpn_client_node/iiwa_14_base/pose" # Subscriber - iiwa base position + orientation - geometry_msgs::PoseStamped (REAL)
   }
 }
 

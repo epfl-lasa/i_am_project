@@ -4,7 +4,7 @@
 bool AirHockey::init() {
 
   // Check if sim or real
-  if (!nh_.getParam("simulation",isSim_)) { ROS_ERROR("Param simulation not found"); }
+  if (!nh_.getParam("simulation_referential",isSim_)) { ROS_ERROR("Param simulation not found"); }
 
   // Get topics names
   if (!nh_.getParam("/passive_control/vel_quat_7", pubVelQuatTopic_[IIWA_7])) {ROS_ERROR("Topic /passive_control iiwa 7 not found");}
@@ -21,8 +21,8 @@ bool AirHockey::init() {
   else if (!isSim_){
     if (!nh_.getParam("/iiwa/ee_info_7/pose", iiwaPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/ee_info/pose not found");}
     if (!nh_.getParam("/iiwa/ee_info_14/pose", iiwaPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/pose not found");}
-    if (!nh_.getParam("/iiwa/ee_info_7/vel", iiwaPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/ee_info/vel not found");}
-    if (!nh_.getParam("/iiwa/ee_info_14/vel", iiwaPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/vel not found");}
+    if (!nh_.getParam("/iiwa/ee_info_7/vel", iiwaVelocityTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/ee_info/vel not found");}
+    if (!nh_.getParam("/iiwa/ee_info_14/vel", iiwaVelocityTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/vel not found");}
     if (!nh_.getParam("/vrpn_client_node/object_1/pose", objectPositionTopic_)) {ROS_ERROR("Topic vrpn/object1 not found");}
     if (!nh_.getParam("/vrpn_client_node/iiwa_7_base/pose", iiwaBasePositionTopic_[IIWA_7])) {ROS_ERROR("Topic vrpn/iiwa7 not found");}
     if (!nh_.getParam("/vrpn_client_node/iiwa_14_base/pose", iiwaBasePositionTopic_[IIWA_14])) {ROS_ERROR("Topic vrpn/iiwa14 not found");}
@@ -68,14 +68,14 @@ bool AirHockey::init() {
                                             ros::TransportHints().reliable().tcpNoDelay());
 
     iiwaVelocityReal_[IIWA_7] = 
-        nh_.subscribe<geometry_msgs::Twist>(iiwaPositionTopicReal_[IIWA_7],
+        nh_.subscribe<geometry_msgs::Twist>(iiwaVelocityTopicReal_[IIWA_7],
                                             1,
                                             boost::bind(&AirHockey::iiwaVelocityCallbackReal, this, _1, IIWA_7),
                                             ros::VoidPtr(),
                                             ros::TransportHints().reliable().tcpNoDelay());    
 
     iiwaVelocityReal_[IIWA_14] = 
-        nh_.subscribe<geometry_msgs::Twist>(iiwaPositionTopicReal_[IIWA_14],
+        nh_.subscribe<geometry_msgs::Twist>(iiwaVelocityTopicReal_[IIWA_14],
                                             1,
                                             boost::bind(&AirHockey::iiwaVelocityCallbackReal, this, _1, IIWA_14),
                                             ros::VoidPtr(),
@@ -110,16 +110,16 @@ bool AirHockey::init() {
                                             ros::TransportHints().reliable().tcpNoDelay());
 
   while (objectPositionFromSource_.norm() == 0) {
-    this->updateCurrentObjectPosition(objectPositionFromSource_);
+    this->updateCurrentObjectPosition();
     ros::spinOnce();
     rate_.sleep();
   }
 
   generateHitting7_->set_current_position(iiwaPositionFromSource_[IIWA_7]);
   generateHitting14_->set_current_position(iiwaPositionFromSource_[IIWA_14]);
-  generateHitting7_->set_DS_attractor(objectPositionFromSource_);
-  generateHitting14_->set_DS_attractor(objectPositionFromSource_);
+  this->updateCurrentObjectPosition(); //update attracotr position
 
+ 
   if (!nh_.getParam("iiwa7/ref_velocity/y", refVelocity_[IIWA_7][1])) { ROS_ERROR("Topic ref_velocity/y not found"); }
   if (!nh_.getParam("iiwa14/ref_velocity/y", refVelocity_[IIWA_14][1])) { ROS_ERROR("Topic ref_velocity/y not found"); }
   if (!nh_.getParam("iiwa7/ref_velocity/x", refVelocity_[IIWA_7][0])) { ROS_ERROR("Topic ref_velocity/x not found"); }
@@ -141,6 +141,8 @@ bool AirHockey::init() {
 
   generateHitting7_->set_des_direction(hitDirection_[IIWA_7]);
   generateHitting14_->set_des_direction(hitDirection_[IIWA_14]);
+
+  std::cout << "finish initializing !!!!"<< std::endl;
 
   return true;
 }
@@ -200,9 +202,25 @@ void AirHockey::objectPositionCallbackReal(const geometry_msgs::PoseStamped::Con
 
 }
 
-void AirHockey::updateCurrentObjectPosition(Eigen::Vector3f& new_position) {
-  generateHitting7_->set_DS_attractor(new_position);
-  generateHitting14_->set_DS_attractor(new_position);
+void AirHockey::objectPositionIiwaFrames() {
+  rotationMat_ << 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0;
+
+  objectPositionForIiwa_[IIWA_7] = rotationMat_ * (objectPositionFromSource_ - iiwaBasePositionFromSource_[IIWA_7]);
+  objectPositionForIiwa_[IIWA_14] = rotationMat_ * (objectPositionFromSource_ - iiwaBasePositionFromSource_[IIWA_14]);
+}
+
+void AirHockey::updateCurrentObjectPosition() {
+
+  if(isSim_){
+    generateHitting7_->set_DS_attractor(objectPositionFromSource_);
+    generateHitting14_->set_DS_attractor(objectPositionFromSource_);
+  }
+  else if(!isSim_){
+    objectPositionIiwaFrames();
+
+    generateHitting7_->set_DS_attractor(objectPositionForIiwa_[IIWA_7]);
+    generateHitting14_->set_DS_attractor(objectPositionForIiwa_[IIWA_14]);
+  }
 }
 
 int AirHockey::getIndex(std::vector<std::string> v, std::string value) {
@@ -238,39 +256,41 @@ void AirHockey::publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat
   pubVelQuat_[IIWA_14].publish(ref_vel_publish_14);
 }
 
+
+
 AirHockey::StatesVar AirHockey::getKeyboard(StatesVar statesvar ) {
 
-    nonBlock(1);
+  nonBlock(1);
 
-    if (khBit() != 0) {
-      char keyboardCommand = fgetc(stdin);
-      fflush(stdin);
+  if (khBit() != 0) {
+    char keyboardCommand = fgetc(stdin);
+    fflush(stdin);
 
-      switch (keyboardCommand) {
-        case 'q': {
-          statesvar.state_robot7_ = HIT;
-          std::cout << "q is pressed " << std::endl;
-          
-        } break;
-        case 'p': {
-          statesvar.state_robot14_ = HIT;
-        } break;
-        case 'r': {
-          statesvar.state_robot7_ = REST;
-          statesvar.state_robot14_ = REST;
-        } break;
-        case 'h': { // toggle isHit_ 
-          if(statesvar.isHit_){ statesvar.isHit_ = 0;}
-          else if(!statesvar.isHit_){ statesvar.isHit_= 1;}
-        } break;
+    switch (keyboardCommand) {
+      case 'q': {
+        statesvar.state_robot7_ = HIT;
+        std::cout << "q is pressed " << std::endl;
+        
+      } break;
+      case 'p': {
+        statesvar.state_robot14_ = HIT;
+        std::cout << "p is pressed " << std::endl;
+      } break;
+      case 'r': {
+        statesvar.state_robot7_ = REST;
+        statesvar.state_robot14_ = REST;
+      } break;
+      case 'h': { // toggle isHit_ 
+        if(statesvar.isHit_){ statesvar.isHit_ = 0;}
+        else if(!statesvar.isHit_){ statesvar.isHit_= 1;}
+      } break;
 
-      }
     }
-    nonBlock(0);
-
-    return statesvar;
   }
+  nonBlock(0);
 
+  return statesvar;
+}
 
 void AirHockey::run() {
 
@@ -292,17 +312,20 @@ void AirHockey::run() {
     // DEBUG
     if(print_count%200 == 0 ){
       // std::cout << "ishit : " << statesvar.isHit_ << std::endl;
-      // std::cout << "Box Pos : " << objectPositionFromSource_ << std::endl;
-      // std::cout << "iiwa7_state : " << statesvar.state_robot7_ << " \n iiwa14_state : " << statesvar.state_robot14_<< std::endl;
+      std::cout << "Box Pos from source: " << objectPositionFromSource_ << std::endl;
+      std::cout << "Box Pos from 7: " <<  objectPositionForIiwa_[IIWA_7] << std::endl;
+      std::cout << "Box Pos from 14: " <<  objectPositionForIiwa_[IIWA_14] << std::endl;
+      std::cout << "iiwa7_state : " << statesvar.state_robot7_ << " \n iiwa14_state : " << statesvar.state_robot14_<< std::endl;
       // std::cout << "iiwa7_vel : " << iiwaVel_[IIWA_7] << std::endl;
-      std::cout << "refVelocity_ 7  " << refVelocity_[IIWA_7] << std::endl;
+      // std::cout << "iiwaPos_ 7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
+      // std::cout << "returnPos_ 7  " << returnPos_[IIWA_7]<< std::endl;
     }
     print_count +=1 ;
 
     // Update object postion if at rest 
     if(statesvar.state_robot7_ == REST && statesvar.state_robot14_ == REST){
       // update only at REST so object state conditions works 
-      updateCurrentObjectPosition(objectPositionFromSource_);
+      updateCurrentObjectPosition();
     }
 
     // UPDATE robot state
@@ -377,7 +400,7 @@ int main(int argc, char** argv) {
   if (!generate_motion->init()) {
     return -1;
   } else {
-    std::cout << "OK ";
+    std::cout << "OK "<< std::endl;;
     generate_motion->run();
   }
 

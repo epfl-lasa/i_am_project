@@ -57,6 +57,7 @@ private:
   std::string iiwaPositionTopicSim_;
   std::string objectPositionTopic_;
   std::string iiwaPositionTopicReal_[NB_ROBOTS];
+  std::string iiwaVelocityTopicReal_[NB_ROBOTS];
   std::string iiwaBasePositionTopic_[NB_ROBOTS];
 
   ros::Rate rate_;
@@ -69,19 +70,19 @@ private:
   ros::Subscriber iiwaVelocityReal_[NB_ROBOTS];
   ros::Subscriber iiwaBasePosition_[NB_ROBOTS];
 
-
   geometry_msgs::Pose boxPose_;
   geometry_msgs::Pose iiwaPose_[NB_ROBOTS];
   geometry_msgs::Twist iiwaVel_[NB_ROBOTS];
 
   Eigen::Vector3f objectPositionFromSource_;
   Eigen::Vector4d objectOrientationFromSource_;
+  Eigen::Vector3f objectPositionForIiwa_[NB_ROBOTS];
+  Eigen::Matrix3f rotationMat_;
   Eigen::Vector3f iiwaPositionFromSource_[NB_ROBOTS];
   Eigen::Vector4f iiwaOrientationFromSource_[NB_ROBOTS];
   Eigen::Vector3f iiwaVelocityFromSource_[NB_ROBOTS];
   Eigen::Vector3f iiwaBasePositionFromSource_[NB_ROBOTS];
   Eigen::Matrix3f iiwaTaskInertiaPos_[NB_ROBOTS];
-
 
   std::unique_ptr<hitting_DS> generateHitting7_ =
       std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_7], objectPositionFromSource_);
@@ -118,7 +119,7 @@ public:
   void publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat[]);
 
   int getIndex(std::vector<std::string> v, std::string value);
-  void updateCurrentObjectPosition(Eigen::Vector3f& new_position);
+  void updateCurrentObjectPosition();
   void iiwaInertiaCallbackGazebo(const geometry_msgs::Inertia::ConstPtr& msg, int k);
   void iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkStates);
   void objectPositionCallbackGazebo(const gazebo_msgs::ModelStates& modelStates);
@@ -127,6 +128,7 @@ public:
   void iiwaVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& msg, int k);
   void iiwaBasePositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
   void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg);
+  void objectPositionIiwaFrames();
 
   StatesVar getKeyboard(StatesVar statesvar );
 };

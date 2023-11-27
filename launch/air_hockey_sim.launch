@@ -11,7 +11,9 @@
 
 <launch>
 
- <include file="$(find iiwa_toolkit)/launch/passive_track_gazebo_dual.launch">
+  <param name="simulation_referential" type="bool" value="True"/>
+
+  <include file="$(find iiwa_toolkit)/launch/passive_track_gazebo_dual.launch">
     <arg name="robot_name_1" value="iiwa1"/>
     <arg name="iiwa_model_1" value="7"/>
 
@@ -31,8 +33,6 @@
 
   <node name="spawn_box" pkg="gazebo_ros" type="spawn_model" 
   args="-file $(find i_am_project)/object_models/box.urdf -x 0.55 -y -0.4 -z 0.175 -urdf -model box_model" />
-
-
 
   <!-- All ROS topics names -->
   <rosparam file="$(find i_am_project)/config/ros_topics_air_hockey.yaml" />

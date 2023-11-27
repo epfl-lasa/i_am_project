@@ -1,6 +1,4 @@
 
-simulation: True 
-
 iiwa7:
 
   ref_velocity:
@@ -23,7 +21,7 @@ iiwa7:
 
   return_position:
     x: 0.55
-    y: -0.8
+    y: -0.2 # -0.6 offset here IF using gazebo callabck (=gazebo refenrential frame => simulation_referential==True)
     z: 0.4
 
 
@@ -49,6 +47,6 @@ iiwa14:
     
   return_position:
     x: 0.55 
-    y: 0.8
+    y: 0.2  # +0.6 offset here IF using gazebo callabck (=gazebo refenrential frame => simulation_referential==True)
     z: 0.4
     

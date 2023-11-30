@@ -109,6 +109,15 @@ bool AirHockey::init() {
                                             ros::VoidPtr(),
                                             ros::TransportHints().reliable().tcpNoDelay());
 
+
+  // get object offset values
+  if (!nh_.getParam("object_offset/iiwa7/x", objectOffset_[IIWA_7][0])) { ROS_ERROR("Topic object_offset/iiwa7/x not found"); }
+  if (!nh_.getParam("object_offset/iiwa7/y", objectOffset_[IIWA_7][1])) { ROS_ERROR("Topic object_offset/iiwa7/y not found"); }
+  if (!nh_.getParam("object_offset/iiwa7/z", objectOffset_[IIWA_7][2])) { ROS_ERROR("Topic object_offset/iiwa7/z not found"); }
+  if (!nh_.getParam("object_offset/iiwa14/x", objectOffset_[IIWA_14][0])) { ROS_ERROR("Topic object_offset/iiwa7/x not found"); }
+  if (!nh_.getParam("object_offset/iiwa14/y", objectOffset_[IIWA_14][1])) { ROS_ERROR("Topic object_offset/iiwa7/y not found"); }
+  if (!nh_.getParam("object_offset/iiwa14/z", objectOffset_[IIWA_14][2])) { ROS_ERROR("Topic object_offset/iiwa7/x not found"); }
+
   while (objectPositionFromSource_.norm() == 0) {
     this->updateCurrentObjectPosition();
     ros::spinOnce();
@@ -218,8 +227,8 @@ void AirHockey::updateCurrentObjectPosition() {
   else if(!isSim_){
     objectPositionIiwaFrames();
 
-    generateHitting7_->set_DS_attractor(objectPositionForIiwa_[IIWA_7]);
-    generateHitting14_->set_DS_attractor(objectPositionForIiwa_[IIWA_14]);
+    generateHitting7_->set_DS_attractor(objectPositionForIiwa_[IIWA_7]+ objectOffset_[IIWA_7]);
+    generateHitting14_->set_DS_attractor(objectPositionForIiwa_[IIWA_14]+ objectOffset_[IIWA_14]);
   }
 }
 
@@ -334,13 +343,13 @@ void AirHockey::run() {
     }
 
     if(statesvar.state_robot14_ == HIT){
-      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(1.2, iiwaTaskInertiaPos_[IIWA_14]);
+      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(1.0, iiwaTaskInertiaPos_[IIWA_14]);
     }
 
     if(statesvar.state_robot7_ == REST || statesvar.isHit_ == 1){
       refVelocity_[IIWA_7] = generateHitting7_->linear_DS(returnPos_[IIWA_7]);
       statesvar.state_robot7_ = REST;
-      if (statesvar.state_robot14_ == REST) { // only reset if 14 is at rest, otherwise we skip next if
+      if (statesvar.state_robot14_ == REST) { // only reset if 14 is at rest, otherwise it skips next if and never send iiwa14 to rest
               statesvar.isHit_ = 0;
       }
     }

@@ -121,6 +121,7 @@ private:
   Eigen::Vector3f iiwaVelocityFromSource_[NB_ROBOTS];
   Eigen::Vector3f iiwaBasePositionFromSource_[NB_ROBOTS];
   Eigen::Matrix3f iiwaTaskInertiaPos_[NB_ROBOTS];
+  Eigen::Vector3f objectOffset_[NB_ROBOTS];
 
   std::unique_ptr<hitting_DS> generateHitting7_ =
       std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_7], objectPositionFromSource_);

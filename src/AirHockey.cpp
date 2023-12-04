@@ -450,6 +450,9 @@ void AirHockey::run() {
   statesvar.isHit_ = 0;
 
   int print_count = 0;
+  int hit_count = 0;
+  bool write_once_7 = 0;
+  bool write_once_14 = 0;
 
   while (ros::ok()) {
 
@@ -477,10 +480,14 @@ void AirHockey::run() {
     // UPDATE robot state
     if(statesvar.state_robot7_ == HIT){
       refVelocity_[IIWA_7] = generateHitting7_->flux_DS(1.2, iiwaTaskInertiaPos_[IIWA_7]);
+      recordRobot(IIWA_7);
+      write_once_7 = 1;
     }
 
     if(statesvar.state_robot14_ == HIT){
       refVelocity_[IIWA_14] = generateHitting14_->flux_DS(1.0, iiwaTaskInertiaPos_[IIWA_14]);
+      recordRobot(IIWA_14);
+      write_once_14 = 1;
     }
 
     if(statesvar.state_robot7_ == REST || statesvar.isHit_ == 1){
@@ -496,20 +503,6 @@ void AirHockey::run() {
       statesvar.state_robot14_ = REST;
       statesvar.isHit_ = 0;
     }
-  
-    // if (!isHit_) {
-    //   refVelocity_[IIWA_7] = generateHitting7_->flux_DS(0.5, iiwaTaskInertiaPos_[IIWA_7]);
-    //   refVelocity_[IIWA_14] = generateHitting14_->flux_DS(0.5, iiwaTaskInertiaPos_[IIWA_14]);
-    // } else {
-    //   refVelocity_[IIWA_7] = generateHitting7_->linear_DS(iiwa_return_position);
-    //   refVelocity_[IIWA_14] = generateHitting14_->linear_DS(iiwa_return_position);
-    // }
-
-    // if (!isHit_ && generateHitting7_->get_des_direction().dot(generateHitting7_->get_DS_attractor()
-    //                                                   - generateHitting7_->get_current_position())
-    //         < 0) {
-    //   isHit_ = 1;
-    // }
 
     // Update isHit 
     if (!statesvar.isHit_ && generateHitting7_->get_des_direction().dot(generateHitting7_->get_DS_attractor()
@@ -520,6 +513,27 @@ void AirHockey::run() {
     if (!statesvar.isHit_ && generateHitting14_->get_des_direction().dot(generateHitting14_->get_DS_attractor()
                                                       - generateHitting14_->get_current_position())  < 0) {
       statesvar.isHit_ = 1;
+    }
+
+    // Writing recorded info logic
+    if(statesvar.state_robot7_ == REST && write_once_7){
+
+      std::string fn_iiwa = recordingFolderPath_ + "_iiwa_7_hit_"+ std::to_string(hit_count)+".csv";
+      std::string fn_obj = recordingFolderPath_ + "_object_hit_"+ std::to_string(hit_count)+".csv";
+      writeRobotStatesToFile(IIWA_7, fn_iiwa);
+      writeObjectStatesToFile(fn_obj);
+
+      write_once_7 = 0;
+    }
+
+    if(statesvar.state_robot14_ == REST && write_once_14){
+
+      std::string fn_iiwa = recordingFolderPath_ + "_iiwa_14_hit_"+ std::to_string(hit_count)+".csv";
+      std::string fn_obj = recordingFolderPath_ + "_object_hit_"+ std::to_string(hit_count)+".csv";
+      writeRobotStatesToFile(IIWA_14, fn_iiwa);
+      writeObjectStatesToFile(fn_obj);
+
+      write_once_14 = 0;
     }
 
     updateCurrentEEPosition(iiwaPositionFromSource_);

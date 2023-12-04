@@ -39,6 +39,7 @@
 #include <fstream>
 #include <filesystem>
 #include <sys/stat.h>
+#include <string>
 
 #include "dynamical_system.h"
 #include "keyboard_interaction.hpp"
@@ -159,11 +160,12 @@ public:
   void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg);
   void objectPositionIiwaFrames();
 
-  void recordRobot(int robot_name);
+  void recordRobot(Robot robot_name);
   void recordObject();
-  void writeRobotStatesToFile(int robot_name, const std::string& filename);
+  void writeRobotStatesToFile(Robot robot_name, const std::string& filename);
   void writeObjectStatesToFile(const std::string& filename);
   void setUpRecordingDir();
+  std::string robotToString(Robot robot_name);
 
   StatesVar getKeyboard(StatesVar statesvar );
 };

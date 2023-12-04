@@ -330,12 +330,24 @@ AirHockey::StatesVar AirHockey::getKeyboard(StatesVar statesvar ) {
   return statesvar;
 }
 
-void AirHockey::recordRobot(int robot_name){
+  // Stringify Robot ENUM
+  std::string AirHockey::robotToString(Robot robot_name) {
+    switch (robot_name) {
+        case IIWA_7:
+            return "IIWA_7";
+        case IIWA_14:
+            return "IIWA_14";
+        default:
+            return "Unknown Robot";
+    }
+  }
+
+void AirHockey::recordRobot(Robot robot_name){
   // record robot data during HIT phase
   // joint state, joint velocity, EEF position + velocity
 
   RecordedRobotState newState;
-  newState.robot_name = stringify(robot_name);
+  newState.robot_name = robotToString(robot_name);
   // Get the current time
   newState.absolute_time = std::chrono::system_clock::now();
 
@@ -377,7 +389,7 @@ void AirHockey::recordObject(){
 }
 
 // Function to write a vector of RobotState structures to a file
-void AirHockey::writeRobotStatesToFile(int robot_name, const std::string& filename) {
+void AirHockey::writeRobotStatesToFile(Robot robot_name, const std::string& filename) {
     std::ofstream outFile(filename, std::ios::app); // Open file in append mode
 
     if(!outFile){
@@ -386,19 +398,22 @@ void AirHockey::writeRobotStatesToFile(int robot_name, const std::string& filena
         return;
     }
 
+    // Write CSV header
+    outFile << "RobotName,Time,JointPosition,JointVelocity,EEF_Position,EEF_Velocity\n";
+
     // Write each RobotState structure to the file
     for (const auto& state : robotStatesVector_[robot_name]) {
         // Convert time point to a string representation
         std::time_t t = std::chrono::system_clock::to_time_t(state.absolute_time);
         std::string timeStr = std::ctime(&t);
 
-        outFile << "Robot Name: " << state.robot_name << "\n";
-        outFile << "Time: " << timeStr << "\n";
-        outFile << "Joint Positions: " << state.joint_pos.transpose() << "\n";
-        outFile << "Joint Velocities: " << state.joint_vel.transpose() << "\n";
-        outFile << "End Effector Position: " << state.eef_pos.transpose() << "\n";
-        outFile << "End Effector Velocity: " << state.eef_vel.transpose() << "\n";
-        outFile << "-----------------\n"; // Separate entries with a line
+        // Write CSV row
+        outFile << state.robot_name << ","
+                << timeStr.substr(0, timeStr.size() - 1) << "," // Remove trailing newline
+                << state.joint_pos.transpose() << ","
+                << state.joint_vel.transpose() << ","
+                << state.eef_pos.transpose() << ","
+                << state.eef_vel.transpose() << "\n";
     }
 
     outFile.close();
@@ -412,6 +427,9 @@ void AirHockey::writeObjectStatesToFile(const std::string& filename) {
         return;
     }
 
+    // Write CSV header
+    outFile << "Time,Position\n";
+
     // Write each RobotState structure to the file
     for (const auto& state : objectStatesVector_) {
         // Convert time point to a string representation
@@ -419,35 +437,56 @@ void AirHockey::writeObjectStatesToFile(const std::string& filename) {
         std::string timeStr = std::ctime(&t);
 
         // outFile << "Object Name: " << state.robot_name << "\n";
-        outFile << "Time: " << timeStr << "\n";
-        outFile << "Positions: " << state.position.transpose() << "\n";
-        outFile << "-----------------\n"; // Separate entries with a line
+        outFile << timeStr.substr(0, timeStr.size() - 1) << "," // Remove trailing newline
+                << state.position.transpose() << "\n";
     }
 
     outFile.close();
 }
 
 void AirHockey::setUpRecordingDir(){
-  // figure out data structure here
-  // make new dir with time when launching 
+  // Set up data structure here
+  // data/airhockey/TimeStampedDir/
 
-  // if(!std::filesystem::is_directory(recordingFolderPath_)){
-    
-  //   ROS_WARN("Recording folder does not exists, creating it");
-  //   std::filesystem::create_directory(recordingFolderPath_);
-  //   }
+  // create airhockey dir
+  if (mkdir(recordingFolderPath_.c_str(), S_IRWXU | S_IRWXG | S_IRWXO) == 0) {
+      std::cout << "Directory created successfully: " << recordingFolderPath_ << std::endl;
+  } else {
+      std::cerr << "Error creating directory." << std::endl;
+      perror("Error");
+  }
 
-  // recordingFolderPath_ = ros::package::getPath("i_am_project") + recordingFolderPath_;
+  // // giving writing authorization to recording directory -- NOT needed 
+  // if (chmod(recordingFolderPath_.c_str(), S_IRWXU | S_IRWXG | S_IRWXO) == 0) {
+  //     std::cout << "Write permissions set successfully for the directory." << std::endl;
+  // } else {
+  //     std::cerr << "Error setting write permissions for the directory." << std::endl;
+  //     perror("Error");
+  //     return;
+  // }
 
-  const char* directoryPath = recordingFolderPath_.c_str();
+  // create directory in /data/airhockey/ with current timestamp
 
-   if (chmod(directoryPath, S_IRWXU | S_IRWXG | S_IRWXO) == 0) {
-        std::cout << "Write permissions set successfully for the directory." << std::endl;
-    } else {
-        std::cerr << "Error setting write permissions for the directory." << std::endl;
-        perror("Error");
-        return;
-    }
+  // Get the current time
+  auto now = std::chrono::system_clock::now();
+
+  // Convert the current time to a string
+  std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
+  std::tm* timeinfo = std::localtime(&currentTime);
+  std::stringstream ss;
+  ss << std::put_time(timeinfo, "%Y-%m-%d_%H:%M:%S");
+  std::string timestamp = ss.str();
+
+  // Create the directory
+  std::string directoryPath = recordingFolderPath_ + timestamp +"/";
+  if (mkdir(directoryPath.c_str(), S_IRWXU | S_IRWXG | S_IRWXO) == 0) {
+      std::cout << "Directory created successfully: " << directoryPath << std::endl;
+      recordingFolderPath_ = directoryPath; // Update recording path
+  } else {
+      std::cerr << "Error creating directory." << std::endl;
+      perror("Error");
+      directoryPath.clear(); // Return an empty string on error
+  }
 
 }
 
@@ -486,12 +525,13 @@ void AirHockey::run() {
       // std::cout << "returnPos_ 7  " << returnPos_[IIWA_7]<< std::endl;
       std::cout << "write_once_7  " << write_once_7 << std::endl;
       std::cout << "write_once_14  " << write_once_14 << std::endl;
+      std::cout << "datadir  " << recordingFolderPath_ << std::endl;
     }
     print_count +=1 ;
 
     // Update object postion if at rest 
     if(statesvar.state_robot7_ == REST && statesvar.state_robot14_ == REST){
-      // update only at REST so object state conditions works 
+      // update only at REST so object state conditions for isHit_ works 
       updateCurrentObjectPosition();
     }
 
@@ -544,7 +584,7 @@ void AirHockey::run() {
       write_once_7 = 0;
       hit_count += 1;
 
-      std::cout << "Writing hit for iiwa 7: " << std::endl;
+      std::cout << "Writing hit " << hit_count << " for iiwa 7!" << std::endl;
     }
 
     if(statesvar.state_robot14_ == REST && write_once_14){
@@ -557,7 +597,7 @@ void AirHockey::run() {
       write_once_14 = 0;
       hit_count += 1;
       
-      std::cout << "Writing hit for iiwa 14: " << std::endl;
+      std::cout << "Writing hit " << hit_count << " for iiwa 14! " << std::endl;
     }
 
     updateCurrentEEPosition(iiwaPositionFromSource_);

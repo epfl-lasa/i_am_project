@@ -22,8 +22,8 @@
 
 #pragma once
 
-#include "ros/ros.h"
-#include "ros/package.h"
+#include <ros/ros.h>
+#include <ros/package.h>
 #include <ros/console.h>
 
 #include <gazebo_msgs/LinkStates.h>
@@ -62,7 +62,7 @@ private:
 
   struct RecordedRobotState {
     std::string robot_name;
-    std::chrono::system_clock::time_point absolute_time;
+    ros::Time time;
     Eigen::VectorXd joint_pos = Eigen::VectorXd(7);
     Eigen::VectorXd joint_vel = Eigen::VectorXd(7);
     Eigen::Vector3f eef_pos;
@@ -70,7 +70,7 @@ private:
   };
 
   struct RecordedObjectState {
-    std::chrono::system_clock::time_point absolute_time;
+    ros::Time time;
     Eigen::Vector3f position;
   };
 
@@ -79,6 +79,7 @@ private:
   bool isRecording_;
 
   std::string recordingFolderPath_;
+  float recordingTimeObject_;
 
   StatesVar statesvar;
 

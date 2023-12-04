@@ -9,7 +9,7 @@ bool AirHockey::init() {
   // check if recording
   if (!nh_.getParam("recording",isRecording_)) { ROS_ERROR("Param recording not found"); }
   if (!nh_.getParam("recorder_folder", recordingFolderPath_)) { ROS_ERROR("Param recorder_path not found"); }
-
+  if (!nh_.getParam("time_object_record", recordingTimeObject_)) { ROS_ERROR("Param recorder_path not found"); }
 
   // Get topics names
   if (!nh_.getParam("/passive_control/vel_quat_7", pubVelQuatTopic_[IIWA_7])) {ROS_ERROR("Topic /passive_control iiwa 7 not found");}
@@ -330,17 +330,17 @@ AirHockey::StatesVar AirHockey::getKeyboard(StatesVar statesvar ) {
   return statesvar;
 }
 
-  // Stringify Robot ENUM
-  std::string AirHockey::robotToString(Robot robot_name) {
-    switch (robot_name) {
-        case IIWA_7:
-            return "IIWA_7";
-        case IIWA_14:
-            return "IIWA_14";
-        default:
-            return "Unknown Robot";
-    }
+// Stringify Robot ENUM
+std::string AirHockey::robotToString(Robot robot_name) {
+  switch (robot_name) {
+      case IIWA_7:
+          return "IIWA_7";
+      case IIWA_14:
+          return "IIWA_14";
+      default:
+          return "Unknown Robot";
   }
+}
 
 void AirHockey::recordRobot(Robot robot_name){
   // record robot data during HIT phase
@@ -349,7 +349,7 @@ void AirHockey::recordRobot(Robot robot_name){
   RecordedRobotState newState;
   newState.robot_name = robotToString(robot_name);
   // Get the current time
-  newState.absolute_time = std::chrono::system_clock::now();
+  newState.time = ros::Time::now();
 
   newState.joint_pos.resize(7);
   Eigen::Map<Eigen::VectorXd> tempVector(iiwaJointState_[robot_name].position.data(), iiwaJointState_[robot_name].position.size());
@@ -378,7 +378,7 @@ void AirHockey::recordObject(){
   RecordedObjectState newState;
 
   // Get the current time
-  newState.absolute_time = std::chrono::system_clock::now();
+  newState.time = ros::Time::now();
 
   // Get the current time
   newState.position = objectPositionFromSource_;
@@ -388,7 +388,6 @@ void AirHockey::recordObject(){
 
 }
 
-// Function to write a vector of RobotState structures to a file
 void AirHockey::writeRobotStatesToFile(Robot robot_name, const std::string& filename) {
     std::ofstream outFile(filename, std::ios::app); // Open file in append mode
 
@@ -399,17 +398,13 @@ void AirHockey::writeRobotStatesToFile(Robot robot_name, const std::string& file
     }
 
     // Write CSV header
-    outFile << "RobotName,Time,JointPosition,JointVelocity,EEF_Position,EEF_Velocity\n";
+    outFile << "RobotName,RosTime,JointPosition,JointVelocity,EEF_Position,EEF_Velocity\n";
 
     // Write each RobotState structure to the file
     for (const auto& state : robotStatesVector_[robot_name]) {
-        // Convert time point to a string representation
-        std::time_t t = std::chrono::system_clock::to_time_t(state.absolute_time);
-        std::string timeStr = std::ctime(&t);
-
         // Write CSV row
         outFile << state.robot_name << ","
-                << timeStr.substr(0, timeStr.size() - 1) << "," // Remove trailing newline
+                << state.time.toSec() << "," // Remove trailing newline
                 << state.joint_pos.transpose() << ","
                 << state.joint_vel.transpose() << ","
                 << state.eef_pos.transpose() << ","
@@ -428,16 +423,12 @@ void AirHockey::writeObjectStatesToFile(const std::string& filename) {
     }
 
     // Write CSV header
-    outFile << "Time,Position\n";
+    outFile << "RosTime,Position\n";
 
     // Write each RobotState structure to the file
     for (const auto& state : objectStatesVector_) {
-        // Convert time point to a string representation
-        std::time_t t = std::chrono::system_clock::to_time_t(state.absolute_time);
-        std::string timeStr = std::ctime(&t);
-
         // outFile << "Object Name: " << state.robot_name << "\n";
-        outFile << timeStr.substr(0, timeStr.size() - 1) << "," // Remove trailing newline
+        outFile << state.time.toSec() << "," // Remove trailing newline
                 << state.position.transpose() << "\n";
     }
 
@@ -465,13 +456,12 @@ void AirHockey::setUpRecordingDir(){
   //     return;
   // }
 
-  // create directory in /data/airhockey/ with current timestamp
-
   // Get the current time
   auto now = std::chrono::system_clock::now();
 
   // Convert the current time to a string
   std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
+  currentTime += 3600; // add 1h for GMT correct time (due to docker not having correct timezone)
   std::tm* timeinfo = std::localtime(&currentTime);
   std::stringstream ss;
   ss << std::put_time(timeinfo, "%Y-%m-%d_%H:%M:%S");
@@ -493,21 +483,18 @@ void AirHockey::setUpRecordingDir(){
 
 void AirHockey::run() {
 
-  std::cout << "IS hit : " << isHit_ << std::endl;
+  // Set up recording directory structure
+  if(isRecording_){setUpRecordingDir();}
 
-  // // To change when got some time this is gross 
-  // StatesVar statesvar;
-  // statesvar.state_robot7_ = REST;
-  // statesvar.state_robot14_ = REST;
-  // statesvar.state_object_ = STOPPED_IN_1;
-  // statesvar.isHit_ = 0;
-
-  setUpRecordingDir();
-
+  // Set up counters and bool variables
   int print_count = 0;
   int hit_count = 0;
   bool write_once_7 = 0;
   bool write_once_14 = 0;
+  bool write_once_object = 0;
+
+  ros::Time hit_time;
+  ros::Duration max_recording_time(recordingTimeObject_);
 
   while (ros::ok()) {
 
@@ -525,7 +512,12 @@ void AirHockey::run() {
       // std::cout << "returnPos_ 7  " << returnPos_[IIWA_7]<< std::endl;
       std::cout << "write_once_7  " << write_once_7 << std::endl;
       std::cout << "write_once_14  " << write_once_14 << std::endl;
-      std::cout << "datadir  " << recordingFolderPath_ << std::endl;
+      std::cout << "write_once_object  " << write_once_object << std::endl;
+       // Get current time
+      ros::Time currentTime = ros::Time::now();
+
+      // Print the current time in seconds
+      ROS_INFO("Current time: %.2f seconds", currentTime.toSec());
     }
     print_count +=1 ;
 
@@ -538,14 +530,23 @@ void AirHockey::run() {
     // UPDATE robot state
     if(statesvar.state_robot7_ == HIT){
       refVelocity_[IIWA_7] = generateHitting7_->flux_DS(1.2, iiwaTaskInertiaPos_[IIWA_7]);
-      recordRobot(IIWA_7);
-      write_once_7 = 1;
+      
+      if(isRecording_){
+        recordRobot(IIWA_7);
+        recordObject();
+        write_once_7 = 1;
+        write_once_object =1;
+      }
     }
 
     if(statesvar.state_robot14_ == HIT){
-      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(1.0, iiwaTaskInertiaPos_[IIWA_14]);
-      recordRobot(IIWA_14);
-      write_once_14 = 1;
+      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(1.2, iiwaTaskInertiaPos_[IIWA_14]);
+      
+      if(isRecording_){
+        recordRobot(IIWA_14);
+        recordObject();
+        write_once_14 = 1;
+      }
     }
 
     if(statesvar.state_robot7_ == REST || statesvar.isHit_ == 1){
@@ -566,38 +567,48 @@ void AirHockey::run() {
     if (!statesvar.isHit_ && generateHitting7_->get_des_direction().dot(generateHitting7_->get_DS_attractor()
                                                       - generateHitting7_->get_current_position()) < 0) {
       statesvar.isHit_ = 1;
+      hit_time = ros::Time::now();
     }
 
     if (!statesvar.isHit_ && generateHitting14_->get_des_direction().dot(generateHitting14_->get_DS_attractor()
                                                       - generateHitting14_->get_current_position())  < 0) {
       statesvar.isHit_ = 1;
+      hit_time = ros::Time::now();
     }
 
-    // Writing recorded info logic
-    if(statesvar.state_robot7_ == REST && write_once_7){
+    if(isRecording_){
+      // Keep recording object for X seconds after hit (only when robots are at rest to avoid overlap)
+      auto time_since_hit = ros::Time::now() - hit_time;
+      if(statesvar.state_robot7_ == REST && statesvar.state_robot14_ == REST && time_since_hit < max_recording_time){
+        recordObject();
+      }
+      else if(statesvar.state_robot7_ == REST && statesvar.state_robot14_ == REST && 
+              time_since_hit > max_recording_time && write_once_object){        
+        std::string fn_obj = recordingFolderPath_ + "object_hit_"+ std::to_string(hit_count)+".csv";
+        writeObjectStatesToFile(fn_obj);
+        write_once_object = 0;
+        hit_count += 1;
+        std::cout << "Writing hit " << hit_count << " for object!" << std::endl;
+      }
 
-      std::string fn_iiwa = recordingFolderPath_ + "iiwa_7_hit_"+ std::to_string(hit_count)+".csv";
-      std::string fn_obj = recordingFolderPath_ + "object_hit_"+ std::to_string(hit_count)+".csv";
-      writeRobotStatesToFile(IIWA_7, fn_iiwa);
-      writeObjectStatesToFile(fn_obj);
+      // Writing data logic
+      if(statesvar.state_robot7_ == REST && write_once_7){
 
-      write_once_7 = 0;
-      hit_count += 1;
+        std::string fn_iiwa = recordingFolderPath_ + "iiwa_7_hit_"+ std::to_string(hit_count)+".csv";
+        writeRobotStatesToFile(IIWA_7, fn_iiwa);
+        write_once_7 = 0;
 
-      std::cout << "Writing hit " << hit_count << " for iiwa 7!" << std::endl;
-    }
+        std::cout << "Writing hit " << hit_count << " for iiwa 7!" << std::endl;
+      }
 
-    if(statesvar.state_robot14_ == REST && write_once_14){
+      if(statesvar.state_robot14_ == REST && write_once_14){
 
-      std::string fn_iiwa = recordingFolderPath_ + "_iiwa_14_hit_"+ std::to_string(hit_count)+".csv";
-      std::string fn_obj = recordingFolderPath_ + "_object_hit_"+ std::to_string(hit_count)+".csv";
-      writeRobotStatesToFile(IIWA_14, fn_iiwa);
-      writeObjectStatesToFile(fn_obj);
-
-      write_once_14 = 0;
-      hit_count += 1;
-      
-      std::cout << "Writing hit " << hit_count << " for iiwa 14! " << std::endl;
+        std::string fn_iiwa = recordingFolderPath_ + "_iiwa_14_hit_"+ std::to_string(hit_count)+".csv";
+        writeRobotStatesToFile(IIWA_14, fn_iiwa);
+        write_once_14 = 0;
+        
+        std::cout << "Writing hit " << hit_count << " for iiwa 14! " << std::endl;
+      }
     }
 
     updateCurrentEEPosition(iiwaPositionFromSource_);

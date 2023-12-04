@@ -8,14 +8,16 @@ passive_control: {
 iiwa: {
   dir_flux: "/iiwa/dir_flux", # Publisher - type std_msgs::Float32 (REAL)
 
-  ee_info_7 : {
+  info_7 : {
     pose: "/iiwa1/ee_info/Pose", # Subscriber - iiwa ee pose + orientation - type geometry_msgs::Pose (REAL)
     vel: "/iiwa1/ee_info/Vel", # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
+    joint_state : "/iiwa1/joint_states", # Subscriber - iiwa joint state - type sensor_msgs::JointState (REAL)
   },
 
-  ee_info_14 : {
+  info_14 : {
     pose: "/iiwa2/ee_info/Pose", # Subscriber - iiwa ee pose + orientation - type geometry_msgs::Pose (REAL)
     vel: "/iiwa2/ee_info/Vel", # Subscriber - iiwa ee velocity - type geometry_msgs::Twist (REAL)
+    joint_state : "/iiwa2/joint_states", # Subscriber - iiwa joint state - type sensor_msgs::JointState (REAL)
   },
 
   inertia: {

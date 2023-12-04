@@ -6,6 +6,11 @@ bool AirHockey::init() {
   // Check if sim or real
   if (!nh_.getParam("simulation_referential",isSim_)) { ROS_ERROR("Param simulation not found"); }
 
+  // check if recording
+  if (!nh_.getParam("recording",isRecording_)) { ROS_ERROR("Param recording not found"); }
+  if (!nh_.getParam("recorder_path", recordingFolderPath_)) { ROS_ERROR("Param recorder_path not found"); }
+
+
   // Get topics names
   if (!nh_.getParam("/passive_control/vel_quat_7", pubVelQuatTopic_[IIWA_7])) {ROS_ERROR("Topic /passive_control iiwa 7 not found");}
   if (!nh_.getParam("/passive_control/vel_quat_14", pubVelQuatTopic_[IIWA_14])) {ROS_ERROR("Topic /passive_control iiwa 14 not found");}
@@ -19,10 +24,12 @@ bool AirHockey::init() {
   }
 
   else if (!isSim_){
-    if (!nh_.getParam("/iiwa/ee_info_7/pose", iiwaPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/ee_info/pose not found");}
-    if (!nh_.getParam("/iiwa/ee_info_14/pose", iiwaPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/pose not found");}
-    if (!nh_.getParam("/iiwa/ee_info_7/vel", iiwaVelocityTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/ee_info/vel not found");}
-    if (!nh_.getParam("/iiwa/ee_info_14/vel", iiwaVelocityTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/vel not found");}
+    if (!nh_.getParam("/iiwa/info_7/pose", iiwaPositionTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/ee_info/pose not found");}
+    if (!nh_.getParam("/iiwa/info_14/pose", iiwaPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/pose not found");}
+    if (!nh_.getParam("/iiwa/info_7/vel", iiwaVelocityTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/ee_info/vel not found");}
+    if (!nh_.getParam("/iiwa/info_14/vel", iiwaVelocityTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/vel not found");}
+    if (!nh_.getParam("/iiwa/info_7/joint_state", iiwaJointStateTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/ee_info/vel not found");}
+    if (!nh_.getParam("/iiwa/info_14/joint_state", iiwaJointStateTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/vel not found");}
     if (!nh_.getParam("/vrpn_client_node/object_1/pose", objectPositionTopic_)) {ROS_ERROR("Topic vrpn/object1 not found");}
     if (!nh_.getParam("/vrpn_client_node/iiwa_7_base/pose", iiwaBasePositionTopic_[IIWA_7])) {ROS_ERROR("Topic vrpn/iiwa7 not found");}
     if (!nh_.getParam("/vrpn_client_node/iiwa_14_base/pose", iiwaBasePositionTopic_[IIWA_14])) {ROS_ERROR("Topic vrpn/iiwa14 not found");}
@@ -94,6 +101,20 @@ bool AirHockey::init() {
                                                   boost::bind(&AirHockey::iiwaBasePositionCallbackReal, this, _1, IIWA_14),
                                                   ros::VoidPtr(),
                                                   ros::TransportHints().reliable().tcpNoDelay());
+
+    iiwaJointStateReal_[IIWA_7] = 
+        nh_.subscribe<sensor_msgs::JointState>(iiwaJointStateTopicReal_[IIWA_7],
+                                            1,
+                                            boost::bind(&AirHockey::iiwaJointStateCallbackReal, this, _1, IIWA_7),
+                                            ros::VoidPtr(),
+                                            ros::TransportHints().reliable().tcpNoDelay());    
+
+    iiwaJointStateReal_[IIWA_14] = 
+        nh_.subscribe<sensor_msgs::JointState>(iiwaJointStateTopicReal_[IIWA_14],
+                                            1,
+                                            boost::bind(&AirHockey::iiwaJointStateCallbackReal, this, _1, IIWA_14),
+                                            ros::VoidPtr(),
+                                            ros::TransportHints().reliable().tcpNoDelay());
   }
   
   iiwaInertia_[IIWA_7] =
@@ -202,6 +223,14 @@ void AirHockey::objectPositionCallbackReal(const geometry_msgs::PoseStamped::Con
 
 }
 
+void AirHockey::iiwaJointStateCallbackReal(const sensor_msgs::JointState::ConstPtr& msg, int k){
+  iiwaJointState_[k].name =  msg->name;
+  iiwaJointState_[k].position =  msg->position;
+  iiwaJointState_[k].velocity =  msg->velocity;
+  iiwaJointState_[k].effort =  msg->effort;
+
+}
+
 void AirHockey::objectPositionIiwaFrames() {
   rotationMat_ << 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0;
 
@@ -291,6 +320,114 @@ AirHockey::StatesVar AirHockey::getKeyboard(StatesVar statesvar ) {
 
   return statesvar;
 }
+
+void AirHockey::recordRobot(int robot_name){
+  // record robot data during HIT phase
+  // joint state, joint velocity, EEF position + velocity
+
+  RecordedRobotState newState;
+  newState.robot_name = robot_name;
+  // Get the current time
+  newState.absolute_time = std::chrono::system_clock::now();
+
+  newState.joint_pos.resize(7);
+  Eigen::Map<Eigen::VectorXd> tempVector(iiwaJointState_[robot_name].position.data(), iiwaJointState_[robot_name].position.size());
+  newState.joint_pos = tempVector;
+
+  newState.joint_vel.resize(7);
+  Eigen::Map<Eigen::VectorXd> tempVector2(iiwaJointState_[robot_name].velocity.data(), iiwaJointState_[robot_name].velocity.size());
+  newState.joint_vel =  tempVector2;
+
+  newState.eef_pos.resize(3);
+  newState.eef_pos = iiwaPositionFromSource_[robot_name];
+
+  newState.eef_vel.resize(3);
+  newState.eef_vel = iiwaVelocityFromSource_[robot_name];
+
+  // Add the new state to the vector
+  robotStatesVector_[robot_name].push_back(newState);
+
+}
+
+void AirHockey::recordObject(){
+  // record object position 
+  // Start when robot enters HIT phase, ends ?? (with a timer like after 3 seconds)
+  // ends when object has stopped moving 
+
+  RecordedObjectState newState;
+
+  // Get the current time
+  newState.absolute_time = std::chrono::system_clock::now();
+
+  // Get the current time
+  newState.position = objectPositionFromSource_;
+
+  // Add the new state to the vector
+  objectStatesVector_.push_back(newState);
+
+}
+
+// Function to write a vector of RobotState structures to a file
+void AirHockey::writeRobotStatesToFile(int robot_name, const std::string& filename) {
+    std::ofstream outFile(filename, std::ios::app); // Open file in append mode
+
+    if(!outFile){
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
+
+    // Write each RobotState structure to the file
+    for (const auto& state : robotStatesVector_[robot_name]) {
+        // Convert time point to a string representation
+        std::time_t t = std::chrono::system_clock::to_time_t(state.absolute_time);
+        std::string timeStr = std::ctime(&t);
+
+        outFile << "Robot Name: " << state.robot_name << "\n";
+        outFile <<", Time: " << timeStr << "\n";
+        outFile << "Joint Positions: " << state.joint_pos.transpose() << "\n";
+        outFile << "Joint Velocities: " << state.joint_vel.transpose() << "\n";
+        outFile << "End Effector Position: " << state.eef_pos.transpose() << "\n";
+        outFile << "End Effector Velocity: " << state.eef_vel.transpose() << "\n";
+        outFile << "-----------------\n"; // Separate entries with a line
+    }
+
+    outFile.close();
+}
+
+void AirHockey::writeObjectStatesToFile(const std::string& filename) {
+    std::ofstream outFile(filename, std::ios::app); // Open file in append mode
+
+    if(!outFile){
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
+
+    // Write each RobotState structure to the file
+    for (const auto& state : objectStatesVector_) {
+        // Convert time point to a string representation
+        std::time_t t = std::chrono::system_clock::to_time_t(state.absolute_time);
+        std::string timeStr = std::ctime(&t);
+
+        // outFile << "Object Name: " << state.robot_name << "\n";
+        outFile <<", Time: " << timeStr << "\n";
+        outFile << "Positions: " << state.position.transpose() << "\n";
+        outFile << "-----------------\n"; // Separate entries with a line
+    }
+
+    outFile.close();
+}
+
+void AirHockey::setUpRecordingDir(){
+  // figure out data structure here
+
+  // if(!std::filesystem::is_directory(recordingFolderPath_)){
+    
+  //   ROS_WARN("Recording folder does not exists, creating it");
+  //   std::filesystem::create_directory(recordingFolderPath_);
+  //   }
+
+}
+
 
 void AirHockey::run() {
 

@@ -31,9 +31,12 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Twist.h>
+#include <sensor_msgs/JointState.h>
 
 #include <Eigen/Dense>
 #include <iostream>
+#include <fstream>
+#include <filesystem>
 
 #include "dynamical_system.h"
 #include "keyboard_interaction.hpp"
@@ -43,57 +46,6 @@
 class AirHockey {
 private:
   enum Robot { IIWA_7 = 0, IIWA_14 = 1 };
-
-  bool isHit_ = 0;
-  bool isSim_;
-
-  Eigen::Vector3f hitDirection_[NB_ROBOTS];
-  Eigen::Vector3f refVelocity_[NB_ROBOTS];
-  Eigen::Vector4f refQuat_[NB_ROBOTS];
-  Eigen::Vector3f returnPos_[NB_ROBOTS];
-
-  std::string pubVelQuatTopic_[NB_ROBOTS];
-  std::string iiwaInertiaTopic_[NB_ROBOTS];
-  std::string iiwaPositionTopicSim_;
-  std::string objectPositionTopic_;
-  std::string iiwaPositionTopicReal_[NB_ROBOTS];
-  std::string iiwaVelocityTopicReal_[NB_ROBOTS];
-  std::string iiwaBasePositionTopic_[NB_ROBOTS];
-
-  ros::Rate rate_;
-  ros::NodeHandle nh_;
-  ros::Publisher pubVelQuat_[NB_ROBOTS];
-  ros::Subscriber objectPosition_;
-  ros::Subscriber iiwaPosition_;
-  ros::Subscriber iiwaInertia_[NB_ROBOTS];
-  ros::Subscriber iiwaPositionReal_[NB_ROBOTS];
-  ros::Subscriber iiwaVelocityReal_[NB_ROBOTS];
-  ros::Subscriber iiwaBasePosition_[NB_ROBOTS];
-
-  geometry_msgs::Pose boxPose_;
-  geometry_msgs::Pose iiwaPose_[NB_ROBOTS];
-  geometry_msgs::Twist iiwaVel_[NB_ROBOTS];
-
-  Eigen::Vector3f objectPositionFromSource_;
-  Eigen::Vector4d objectOrientationFromSource_;
-  Eigen::Vector3f objectPositionForIiwa_[NB_ROBOTS];
-  Eigen::Matrix3f rotationMat_;
-  Eigen::Vector3f iiwaPositionFromSource_[NB_ROBOTS];
-  Eigen::Vector4f iiwaOrientationFromSource_[NB_ROBOTS];
-  Eigen::Vector3f iiwaVelocityFromSource_[NB_ROBOTS];
-  Eigen::Vector3f iiwaBasePositionFromSource_[NB_ROBOTS];
-  Eigen::Matrix3f iiwaTaskInertiaPos_[NB_ROBOTS];
-
-  std::unique_ptr<hitting_DS> generateHitting7_ =
-      std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_7], objectPositionFromSource_);
-  std::unique_ptr<hitting_DS> generateHitting14_ =
-      std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_14], objectPositionFromSource_);
-
-  //   std::unique_ptr<hitting_DS> generateHitting_[NB_ROBOTS];
-  //   generateHitting_[IIWA_1] = std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_1], objectPositionFromSource_);
-  //   generateHitting_[IIWA_2] = std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_2], objectPositionFromSource_);
-
-public:
   enum robotState{REST, HIT};
   enum objectState{STOPPED_IN_1 = 0, MOVING_TO_2 = 1, STOPPED_IN_2 = 2, MOVING_TO_1 = 3};
 
@@ -110,6 +62,82 @@ public:
     bool isHit_;
   };
 
+  struct RecordedRobotState {
+    std::string robot_name;
+    std::chrono::system_clock::time_point absolute_time;
+    Eigen::VectorXd joint_pos = Eigen::VectorXd(7);
+    Eigen::VectorXd joint_vel = Eigen::VectorXd(7);
+    Eigen::Vector3f eef_pos;
+    Eigen::Vector3f eef_vel;
+  };
+
+  struct RecordedObjectState {
+    std::chrono::system_clock::time_point absolute_time;
+    Eigen::Vector3f position;
+  };
+
+  bool isHit_ = 0;
+  bool isSim_;
+  bool isRecording_;
+
+  std::string recordingFolderPath_;
+
+  Eigen::Vector3f hitDirection_[NB_ROBOTS];
+  Eigen::Vector3f refVelocity_[NB_ROBOTS];
+  Eigen::Vector4f refQuat_[NB_ROBOTS];
+  Eigen::Vector3f returnPos_[NB_ROBOTS];
+
+  std::string pubVelQuatTopic_[NB_ROBOTS];
+  std::string iiwaInertiaTopic_[NB_ROBOTS];
+  std::string iiwaPositionTopicSim_;
+  std::string objectPositionTopic_;
+  std::string iiwaPositionTopicReal_[NB_ROBOTS];
+  std::string iiwaVelocityTopicReal_[NB_ROBOTS];
+  std::string iiwaBasePositionTopic_[NB_ROBOTS];
+  std::string iiwaJointStateTopicReal_[NB_ROBOTS];
+
+  ros::Rate rate_;
+  ros::NodeHandle nh_;
+  ros::Publisher pubVelQuat_[NB_ROBOTS];
+  ros::Subscriber objectPosition_;
+  ros::Subscriber iiwaPosition_;
+  ros::Subscriber iiwaInertia_[NB_ROBOTS];
+  ros::Subscriber iiwaPositionReal_[NB_ROBOTS];
+  ros::Subscriber iiwaVelocityReal_[NB_ROBOTS];
+  ros::Subscriber iiwaBasePosition_[NB_ROBOTS];
+  ros::Subscriber iiwaJointStateReal_[NB_ROBOTS];
+
+  geometry_msgs::Pose boxPose_;
+  geometry_msgs::Pose iiwaPose_[NB_ROBOTS];
+  geometry_msgs::Twist iiwaVel_[NB_ROBOTS];
+  sensor_msgs::JointState iiwaJointState_[NB_ROBOTS];
+
+  Eigen::Vector3f objectPositionFromSource_;
+  Eigen::Vector4d objectOrientationFromSource_;
+  Eigen::Vector3f objectPositionForIiwa_[NB_ROBOTS];
+  Eigen::Matrix3f rotationMat_;
+  Eigen::Vector3f iiwaPositionFromSource_[NB_ROBOTS];
+  Eigen::Vector4f iiwaOrientationFromSource_[NB_ROBOTS];
+  Eigen::Vector3f iiwaVelocityFromSource_[NB_ROBOTS];
+  Eigen::Vector3f iiwaBasePositionFromSource_[NB_ROBOTS];
+  Eigen::Matrix3f iiwaTaskInertiaPos_[NB_ROBOTS];
+
+  std::unique_ptr<hitting_DS> generateHitting7_ =
+      std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_7], objectPositionFromSource_);
+  std::unique_ptr<hitting_DS> generateHitting14_ =
+      std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_14], objectPositionFromSource_);
+
+
+  std::vector<RecordedRobotState> robotStatesVector_[NB_ROBOTS];
+  std::vector<RecordedObjectState> objectStatesVector_;
+
+
+  //   std::unique_ptr<hitting_DS> generateHitting_[NB_ROBOTS];
+  //   generateHitting_[IIWA_1] = std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_1], objectPositionFromSource_);
+  //   generateHitting_[IIWA_2] = std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_2], objectPositionFromSource_);
+
+public:
+
   explicit AirHockey(ros::NodeHandle& nh, float frequency) : nh_(nh), rate_(frequency){};
 
   bool init();
@@ -123,12 +151,19 @@ public:
   void iiwaInertiaCallbackGazebo(const geometry_msgs::Inertia::ConstPtr& msg, int k);
   void iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkStates);
   void objectPositionCallbackGazebo(const gazebo_msgs::ModelStates& modelStates);
+  void iiwaJointStateCallbackReal(const sensor_msgs::JointState::ConstPtr& msg, int k);
 
   void iiwaPoseCallbackReal(const geometry_msgs::Pose::ConstPtr& msg, int k);
   void iiwaVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& msg, int k);
   void iiwaBasePositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
   void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg);
   void objectPositionIiwaFrames();
+
+  void recordRobot(int robot_name);
+  void recordObject();
+  void writeRobotStatesToFile(int robot_name, const std::string& filename);
+  void writeObjectStatesToFile(const std::string& filename);
+  void setUpRecordingDir();
 
   StatesVar getKeyboard(StatesVar statesvar );
 };

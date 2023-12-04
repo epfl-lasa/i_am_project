@@ -1,0 +1,4 @@
+
+recording : True
+
+recorder_folder : "~/ros_ws/src/i_am_project/data/airhockey/"

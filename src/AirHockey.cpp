@@ -446,7 +446,7 @@ void AirHockey::setUpRecordingDir(){
       perror("Error");
   }
 
-  // // giving writing authorization to recording directory -- NOT needed 
+  // giving writing authorization to recording directory -- NOT needed 
   // if (chmod(recordingFolderPath_.c_str(), S_IRWXU | S_IRWXG | S_IRWXO) == 0) {
   //     std::cout << "Write permissions set successfully for the directory." << std::endl;
   // } else {

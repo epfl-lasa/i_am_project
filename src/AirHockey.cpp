@@ -330,7 +330,6 @@ AirHockey::StatesVar AirHockey::getKeyboard(StatesVar statesvar ) {
   return statesvar;
 }
 
-// Stringify Robot ENUM
 std::string AirHockey::robotToString(Robot robot_name) {
   switch (robot_name) {
       case IIWA_7:

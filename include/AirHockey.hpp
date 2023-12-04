@@ -23,6 +23,7 @@
 #pragma once
 
 #include "ros/ros.h"
+#include "ros/package.h"
 #include <ros/console.h>
 
 #include <gazebo_msgs/LinkStates.h>
@@ -37,6 +38,7 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include <sys/stat.h>
 
 #include "dynamical_system.h"
 #include "keyboard_interaction.hpp"
@@ -49,17 +51,12 @@ private:
   enum robotState{REST, HIT};
   enum objectState{STOPPED_IN_1 = 0, MOVING_TO_2 = 1, STOPPED_IN_2 = 2, MOVING_TO_1 = 3};
 
-  robotState state_robot7_ = REST;
-  robotState state_robot14_ = REST;
-  objectState state_object_ = STOPPED_IN_1;
-  objectState prev_object_state_;
-
   struct StatesVar{
-    robotState state_robot7_;
-    robotState state_robot14_;
-    objectState state_object_;
-    objectState prev_object_state_;
-    bool isHit_;
+    robotState state_robot7_ = REST;
+    robotState state_robot14_ = REST;
+    objectState state_object_ = STOPPED_IN_1;
+    objectState prev_object_state_ = STOPPED_IN_1;
+    bool isHit_ = 0;
   };
 
   struct RecordedRobotState {
@@ -81,6 +78,8 @@ private:
   bool isRecording_;
 
   std::string recordingFolderPath_;
+
+  StatesVar statesvar;
 
   Eigen::Vector3f hitDirection_[NB_ROBOTS];
   Eigen::Vector3f refVelocity_[NB_ROBOTS];

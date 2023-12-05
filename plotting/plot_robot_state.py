@@ -11,17 +11,18 @@ def parse_list(cell):
     # Split the space-separated values and parse them as a list of floats
     return [float(value) for value in cell.split()]
 
-def plot_robot_data(csv_file):
+def plot_robot_data(csv_file, show_plot=True):
 
     # Read CSV file into a Pandas DataFrame
     df = pd.read_csv(csv_file, 
                      converters={'JointPosition': parse_list, 'JointVelocity': parse_list, 'EEF_Position': parse_list, 'EEF_Velocity': parse_list},
                      dtype={'RosTime': 'float64'})
 
-    print(df.head())
-
     # Get the 'Time' column as datetime
-    # df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
+    df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
+
+    # Labels for the coordinates
+    coordinate_labels = ['x', 'y', 'z']
 
     # Create subplots
     fig, axs = plt.subplots(4, 1, figsize=(12, 16), sharex=True)
@@ -36,11 +37,11 @@ def plot_robot_data(csv_file):
 
     # Plot each element of 'EEF_Position'
     for i in range(3):
-        axs[2].plot(df['RosTime'], df['EEF_Position'].apply(lambda x: x[i]), label=f'Coordinate {i+1}')
+        axs[2].plot(df['RosTime'], df['EEF_Position'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]}')
 
     # Plot each element of 'EEF_Velocity'
     for i in range(3):
-        axs[3].plot(df['RosTime'], df['EEF_Velocity'].apply(lambda x: x[i]), label=f'Coordinate {i+1}')
+        axs[3].plot(df['RosTime'], df['EEF_Velocity'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]}')
 
     # Customize the plots
     axs[0].set_title('Joint Positions Over Time')
@@ -48,26 +49,36 @@ def plot_robot_data(csv_file):
     axs[2].set_title('EEF Position Over Time')
     axs[3].set_title('EEF Velocity Over Time')
 
-    axs[3].set_xlabel('Time')
+    axs[3].set_xlabel('Time [s]')
+
+    axs[0].set_ylabel('Joint angle [rad]')
+    axs[1].set_ylabel('Joint velocity [rad/s]')
+    axs[2].set_ylabel('Position[m]')
+    axs[3].set_ylabel('Speed [m/s]')
     
     for ax in axs:
-        ax.set_ylabel('Values')
-        ax.legend()
+        ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
         ax.grid(True)
 
-    plt.show()
+    if show_plot : plt.show()
 
 
-def plot_object_data(csv_file):
+def plot_object_data(csv_file, show_plot=True):
     # Read CSV file into a Pandas DataFrame
-    df = pd.read_csv(csv_file)
+    df = pd.read_csv(csv_file,
+                     converters={'Position': parse_list},
+                     dtype={'RosTime': 'float64'})
 
     # Convert the 'Time' column to datetime format
-    df['RosTime'] = pd.to_datetime(df['RosRosTime'])
+    df['RosTime'] = pd.to_datetime(df['RosTime'])
+
+    # Labels for the coordinates
+    coordinate_labels = ['x', 'y', 'z']
 
     # Plot the data
     plt.figure(figsize=(12, 6))
-    plt.plot(df['RosTime'], df['Position'], label='Position')
+    for i in range(3):
+        plt.plot(df['RosTime'], df['Position'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]}')
 
     # Customize the plot
     plt.title('Robot Data Over Time')
@@ -75,7 +86,7 @@ def plot_object_data(csv_file):
     plt.ylabel('Values')
     plt.legend()
     plt.grid(True)
-    plt.show()
+    if show_plot : plt.show()
 
 def process_timestamped_folders(root_folder):
     for folder in os.listdir(root_folder):
@@ -106,6 +117,7 @@ if __name__== "__main__" :
     # process_timestamped_folders('/path/to/timestamped_folders')
 
     # test one plot
-    path_to_file = path_to_data_airhockey + "2023-12-05_09:55:21/iiwa_7_hit_1.csv"
-    print(path_to_file)
-    plot_robot_data(path_to_file)
+    path_to_robot_hit = path_to_data_airhockey + "2023-12-05_16:04:03/iiwa_7_hit_1.csv"
+    path_to_object_hit = path_to_data_airhockey + "2023-12-05_16:04:03/object_hit_1.csv"
+    plot_robot_data(path_to_robot_hit, show_plot=False)
+    plot_object_data(path_to_object_hit)

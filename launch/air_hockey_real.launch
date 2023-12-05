@@ -14,7 +14,7 @@
   <param name="simulation_referential" type="bool" value="False"/>
 
   <!-- vrpn Optitrack -->
-  <arg name="server" default="128.178.145.172"/>
+  <!-- <arg name="server" default="128.178.145.172"/>
   <node pkg="vrpn_client_ros" type="vrpn_client_node" name="vrpn_client_node" output="screen">
       <rosparam subst_value="true">
       server: $(arg server)
@@ -27,7 +27,7 @@
       #- FirstTracker
       #- SecondTracker
       </rosparam>
-  </node>
+  </node> -->
 
   <!-- All ROS topics names -->
   <rosparam file="$(find i_am_project)/config/ros_topics_air_hockey.yaml" />

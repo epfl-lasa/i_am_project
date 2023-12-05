@@ -403,7 +403,7 @@ void AirHockey::writeRobotStatesToFile(Robot robot_name, const std::string& file
     for (const auto& state : robotStatesVector_[robot_name]) {
         // Write CSV row
         outFile << state.robot_name << ","
-                << state.time.toSec() << "," // Remove trailing newline
+                << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec() << "," // add precision
                 << state.joint_pos.transpose() << ","
                 << state.joint_vel.transpose() << ","
                 << state.eef_pos.transpose() << ","

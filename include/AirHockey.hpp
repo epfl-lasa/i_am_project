@@ -40,6 +40,8 @@
 #include <filesystem>
 #include <sys/stat.h>
 #include <string>
+#include <iomanip>
+#include <limits>
 
 #include "dynamical_system.h"
 #include "keyboard_interaction.hpp"

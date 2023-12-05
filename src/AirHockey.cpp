@@ -508,6 +508,10 @@ void AirHockey::run() {
       // std::cout << "iiwa7_vel : " << iiwaVel_[IIWA_7] << std::endl;
       // std::cout << "iiwaPos_ 7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
       // std::cout << "returnPos_ 7  " << returnPos_[IIWA_7]<< std::endl;
+      auto current_time = ros::Time::now();
+
+      std::cout << "current RosTime  " << current_time << std::endl;
+
     }
     print_count +=1 ;
 

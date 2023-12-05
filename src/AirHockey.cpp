@@ -476,7 +476,6 @@ void AirHockey::setUpRecordingDir(){
       perror("Error");
       directoryPath.clear(); // Return an empty string on error
   }
-
 }
 
 
@@ -509,14 +508,6 @@ void AirHockey::run() {
       // std::cout << "iiwa7_vel : " << iiwaVel_[IIWA_7] << std::endl;
       // std::cout << "iiwaPos_ 7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
       // std::cout << "returnPos_ 7  " << returnPos_[IIWA_7]<< std::endl;
-      std::cout << "write_once_7  " << write_once_7 << std::endl;
-      std::cout << "write_once_14  " << write_once_14 << std::endl;
-      std::cout << "write_once_object  " << write_once_object << std::endl;
-       // Get current time
-      ros::Time currentTime = ros::Time::now();
-
-      // Print the current time in seconds
-      ROS_INFO("Current time: %.2f seconds", currentTime.toSec());
     }
     print_count +=1 ;
 
@@ -602,7 +593,7 @@ void AirHockey::run() {
 
       if(statesvar.state_robot14_ == REST && write_once_14){
 
-        std::string fn_iiwa = recordingFolderPath_ + "_iiwa_14_hit_"+ std::to_string(hit_count)+".csv";
+        std::string fn_iiwa = recordingFolderPath_ + "iiwa_14_hit_"+ std::to_string(hit_count)+".csv";
         writeRobotStatesToFile(IIWA_14, fn_iiwa);
         write_once_14 = 0;
         

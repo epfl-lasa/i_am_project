@@ -89,6 +89,7 @@ private:
   Eigen::Vector3f refVelocity_[NB_ROBOTS];
   Eigen::Vector4f refQuat_[NB_ROBOTS];
   Eigen::Vector3f returnPos_[NB_ROBOTS];
+  float hitting_flux_[NB_ROBOTS];
 
   std::string pubVelQuatTopic_[NB_ROBOTS];
   std::string iiwaInertiaTopic_[NB_ROBOTS];
@@ -152,7 +153,7 @@ public:
 
   int getIndex(std::vector<std::string> v, std::string value);
   void updateCurrentObjectPosition();
-  void iiwaInertiaCallbackGazebo(const geometry_msgs::Inertia::ConstPtr& msg, int k);
+  void iiwaInertiaCallback(const geometry_msgs::Inertia::ConstPtr& msg, int k);
   void iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkStates);
   void objectPositionCallbackGazebo(const gazebo_msgs::ModelStates& modelStates);
   void iiwaJointStateCallbackReal(const sensor_msgs::JointState::ConstPtr& msg, int k);

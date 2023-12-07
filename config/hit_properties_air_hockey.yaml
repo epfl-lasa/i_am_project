@@ -18,6 +18,8 @@ iiwa7:
 
   hit_momentum: 3
 
+  hitting_flux : 1.2
+
   return_position:
     x: 0.55
     y: -0.3 # -0.6 offset here IF using gazebo callabck (=gazebo refenrential frame => simulation_referential==True)
@@ -43,6 +45,8 @@ iiwa14:
     z: 0
 
   hit_momentum: 3
+
+  hitting_flux : 1.2
     
   return_position:
     x: 0.55 

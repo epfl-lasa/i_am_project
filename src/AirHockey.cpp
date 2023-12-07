@@ -120,13 +120,13 @@ bool AirHockey::init() {
   iiwaInertia_[IIWA_7] =
       nh_.subscribe<geometry_msgs::Inertia>(iiwaInertiaTopic_[IIWA_7],
                                             1,
-                                            boost::bind(&AirHockey::iiwaInertiaCallbackGazebo, this, _1, IIWA_7),
+                                            boost::bind(&AirHockey::iiwaInertiaCallback, this, _1, IIWA_7),
                                             ros::VoidPtr(),
                                             ros::TransportHints().reliable().tcpNoDelay());
   iiwaInertia_[IIWA_14] =
       nh_.subscribe<geometry_msgs::Inertia>(iiwaInertiaTopic_[IIWA_14],
                                             1,
-                                            boost::bind(&AirHockey::iiwaInertiaCallbackGazebo, this, _1, IIWA_14),
+                                            boost::bind(&AirHockey::iiwaInertiaCallback, this, _1, IIWA_14),
                                             ros::VoidPtr(),
                                             ros::TransportHints().reliable().tcpNoDelay());
 
@@ -149,25 +149,27 @@ bool AirHockey::init() {
   generateHitting14_->set_current_position(iiwaPositionFromSource_[IIWA_14]);
   this->updateCurrentObjectPosition(); //update attracotr position
 
- 
-  if (!nh_.getParam("iiwa7/ref_velocity/y", refVelocity_[IIWA_7][1])) { ROS_ERROR("Topic ref_velocity/y not found"); }
-  if (!nh_.getParam("iiwa14/ref_velocity/y", refVelocity_[IIWA_14][1])) { ROS_ERROR("Topic ref_velocity/y not found"); }
-  if (!nh_.getParam("iiwa7/ref_velocity/x", refVelocity_[IIWA_7][0])) { ROS_ERROR("Topic ref_velocity/x not found"); }
-  if (!nh_.getParam("iiwa14/ref_velocity/x", refVelocity_[IIWA_14][0])) { ROS_ERROR("Topic ref_velocity/x not found"); }
-  if (!nh_.getParam("iiwa7/ref_velocity/z", refVelocity_[IIWA_7][2])) { ROS_ERROR("Topic ref_velocity/z not found"); }
-  if (!nh_.getParam("iiwa14/ref_velocity/z", refVelocity_[IIWA_14][2])) { ROS_ERROR("Topic ref_velocity/z not found"); }
-  if (!nh_.getParam("iiwa7/return_position/x", returnPos_[IIWA_7][0])) { ROS_ERROR("Topic ref_quat/x not found"); }
-  if (!nh_.getParam("iiwa14/return_position/x", returnPos_[IIWA_14][0])) { ROS_ERROR("Topic return_position/x not found"); }
-  if (!nh_.getParam("iiwa7/return_position/y", returnPos_[IIWA_7][1])) { ROS_ERROR("Topic return_position/y not found"); }
-  if (!nh_.getParam("iiwa14/return_position/y", returnPos_[IIWA_14][1])) { ROS_ERROR("Topic return_position/y not found"); }
-  if (!nh_.getParam("iiwa7/return_position/z", returnPos_[IIWA_7][2])) { ROS_ERROR("Topic return_position/z not found"); }
-  if (!nh_.getParam("iiwa14/return_position/z", returnPos_[IIWA_14][2])) { ROS_ERROR("Topic return_position/z not found"); }
-  if (!nh_.getParam("iiwa7/hit_direction/x", hitDirection_[IIWA_7][0])) {ROS_ERROR("Topic hit_direction/x not found");}
-  if (!nh_.getParam("iiwa14/hit_direction/x", hitDirection_[IIWA_14][0])) {ROS_ERROR("Topic hit_direction/x not found");}
-  if (!nh_.getParam("iiwa7/hit_direction/y", hitDirection_[IIWA_7][1])) {ROS_ERROR("Topic hit_direction/y not found");}
-  if (!nh_.getParam("iiwa14/hit_direction/y", hitDirection_[IIWA_14][1])) {ROS_ERROR("Topic hit_direction/y not found");}
-  if (!nh_.getParam("iiwa7/hit_direction/z", hitDirection_[IIWA_7][2])) {ROS_ERROR("Topic hit_direction/z not found");}
-  if (!nh_.getParam("iiwa14/hit_direction/z", hitDirection_[IIWA_14][2])) {ROS_ERROR("Topic hit_direction/z not found");}
+  // Get hitting parameters
+  if (!nh_.getParam("iiwa7/ref_velocity/y", refVelocity_[IIWA_7][1])) { ROS_ERROR("Param ref_velocity/y not found"); }
+  if (!nh_.getParam("iiwa14/ref_velocity/y", refVelocity_[IIWA_14][1])) { ROS_ERROR("Param ref_velocity/y not found"); }
+  if (!nh_.getParam("iiwa7/ref_velocity/x", refVelocity_[IIWA_7][0])) { ROS_ERROR("Param ref_velocity/x not found"); }
+  if (!nh_.getParam("iiwa14/ref_velocity/x", refVelocity_[IIWA_14][0])) { ROS_ERROR("Param ref_velocity/x not found"); }
+  if (!nh_.getParam("iiwa7/ref_velocity/z", refVelocity_[IIWA_7][2])) { ROS_ERROR("Param ref_velocity/z not found"); }
+  if (!nh_.getParam("iiwa14/ref_velocity/z", refVelocity_[IIWA_14][2])) { ROS_ERROR("Param ref_velocity/z not found"); }
+  if (!nh_.getParam("iiwa7/return_position/x", returnPos_[IIWA_7][0])) { ROS_ERROR("Param ref_quat/x not found"); }
+  if (!nh_.getParam("iiwa14/return_position/x", returnPos_[IIWA_14][0])) { ROS_ERROR("Param return_position/x not found"); }
+  if (!nh_.getParam("iiwa7/return_position/y", returnPos_[IIWA_7][1])) { ROS_ERROR("Param return_position/y not found"); }
+  if (!nh_.getParam("iiwa14/return_position/y", returnPos_[IIWA_14][1])) { ROS_ERROR("Param return_position/y not found"); }
+  if (!nh_.getParam("iiwa7/return_position/z", returnPos_[IIWA_7][2])) { ROS_ERROR("Param return_position/z not found"); }
+  if (!nh_.getParam("iiwa14/return_position/z", returnPos_[IIWA_14][2])) { ROS_ERROR("Param return_position/z not found"); }
+  if (!nh_.getParam("iiwa7/hit_direction/x", hitDirection_[IIWA_7][0])) {ROS_ERROR("Param hit_direction/x not found");}
+  if (!nh_.getParam("iiwa14/hit_direction/x", hitDirection_[IIWA_14][0])) {ROS_ERROR("Param hit_direction/x not found");}
+  if (!nh_.getParam("iiwa7/hit_direction/y", hitDirection_[IIWA_7][1])) {ROS_ERROR("Param hit_direction/y not found");}
+  if (!nh_.getParam("iiwa14/hit_direction/y", hitDirection_[IIWA_14][1])) {ROS_ERROR("Param hit_direction/y not found");}
+  if (!nh_.getParam("iiwa7/hit_direction/z", hitDirection_[IIWA_7][2])) {ROS_ERROR("Param hit_direction/z not found");}
+  if (!nh_.getParam("iiwa14/hit_direction/z", hitDirection_[IIWA_14][2])) {ROS_ERROR("Param hit_direction/z not found");}
+  if (!nh_.getParam("iiwa7/hitting_flux", hitting_flux_[IIWA_7])) {ROS_ERROR("Param iiwa7/hitting_flux not found");}
+  if (!nh_.getParam("iiwa14/hitting_flux", hitting_flux_[IIWA_14])) {ROS_ERROR("Param iiwa14/hitting_flux not found");}
 
   generateHitting7_->set_des_direction(hitDirection_[IIWA_7]);
   generateHitting14_->set_des_direction(hitDirection_[IIWA_14]);
@@ -200,7 +202,7 @@ void AirHockey::iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkSt
   iiwaVel_[IIWA_14] = linkStates.twist[indexIiwa2];
 }
 
-void AirHockey::iiwaInertiaCallbackGazebo(const geometry_msgs::Inertia::ConstPtr& msg, int k) {
+void AirHockey::iiwaInertiaCallback(const geometry_msgs::Inertia::ConstPtr& msg, int k) {
   iiwaTaskInertiaPos_[k](0, 0) = msg->ixx;
   iiwaTaskInertiaPos_[k](2, 2) = msg->izz;
   iiwaTaskInertiaPos_[k](1, 1) = msg->iyy;
@@ -524,7 +526,7 @@ void AirHockey::run() {
 
     // UPDATE robot state
     if(statesvar.state_robot7_ == HIT){
-      refVelocity_[IIWA_7] = generateHitting7_->flux_DS(1.2, iiwaTaskInertiaPos_[IIWA_7]);
+      refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hitting_flux_[IIWA_7], iiwaTaskInertiaPos_[IIWA_7]);
       
       if(isRecording_){
         recordRobot(IIWA_7);
@@ -535,7 +537,7 @@ void AirHockey::run() {
     }
 
     if(statesvar.state_robot14_ == HIT){
-      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(1.2, iiwaTaskInertiaPos_[IIWA_14]);
+      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hitting_flux_[IIWA_7], iiwaTaskInertiaPos_[IIWA_14]);
       
       if(isRecording_){
         recordRobot(IIWA_14);

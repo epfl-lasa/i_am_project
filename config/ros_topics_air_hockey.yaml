@@ -39,8 +39,6 @@ vrpn_client_node: {
   }
 }
 
-
-
 # SIMULATION TOPICS
 gazebo: {
   model_states: "/gazebo/model_states", # Subscriber - Object position and orientation - type gazebo_msgs::ModelStates (SIM)

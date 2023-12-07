@@ -68,7 +68,10 @@ private:
     Eigen::VectorXd joint_pos = Eigen::VectorXd(7);
     Eigen::VectorXd joint_vel = Eigen::VectorXd(7);
     Eigen::Vector3f eef_pos;
+    Eigen::Vector4f eef_orientation;
     Eigen::Vector3f eef_vel;
+    Eigen::Matrix3f inertia;
+    float hitting_flux;
   };
 
   struct RecordedObjectState {
@@ -89,7 +92,8 @@ private:
   Eigen::Vector3f refVelocity_[NB_ROBOTS];
   Eigen::Vector4f refQuat_[NB_ROBOTS];
   Eigen::Vector3f returnPos_[NB_ROBOTS];
-  float hitting_flux_[NB_ROBOTS];
+  float hittingFlux_[NB_ROBOTS];
+  float objectMass_;
 
   std::string pubVelQuatTopic_[NB_ROBOTS];
   std::string iiwaInertiaTopic_[NB_ROBOTS];
@@ -117,7 +121,7 @@ private:
   sensor_msgs::JointState iiwaJointState_[NB_ROBOTS];
 
   Eigen::Vector3f objectPositionFromSource_;
-  Eigen::Vector4d objectOrientationFromSource_;
+  Eigen::Vector4f objectOrientationFromSource_;
   Eigen::Vector3f objectPositionForIiwa_[NB_ROBOTS];
   Eigen::Matrix3f rotationMat_;
   Eigen::Vector3f iiwaPositionFromSource_[NB_ROBOTS];
@@ -168,8 +172,10 @@ public:
   void recordObject();
   void writeRobotStatesToFile(Robot robot_name, const std::string& filename);
   void writeObjectStatesToFile(const std::string& filename);
+  void copyYamlFile(std::string inFilePath, std::string outFilePath);
   void setUpRecordingDir();
   std::string robotToString(Robot robot_name);
+  float calculateDirFlux(Robot robot_name);
 
   StatesVar getKeyboard(StatesVar statesvar );
 };

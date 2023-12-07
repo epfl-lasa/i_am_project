@@ -18,7 +18,7 @@ bool AirHockey::init() {
   if (!nh_.getParam("/iiwa/inertia/taskPos_7", iiwaInertiaTopic_[IIWA_7])) {ROS_ERROR("Topic /iiwa/inertia/taskPos not found");}
   if (!nh_.getParam("/iiwa/inertia/taskPos_14", iiwaInertiaTopic_[IIWA_14])) {ROS_ERROR("Topic /iiwa/inertia/taskPos not found");}
 
-  if( isSim_){
+  if(isSim_){
     if (!nh_.getParam("/gazebo/link_states", iiwaPositionTopicSim_)) {ROS_ERROR("Topic /gazebo/link_states not found");}
     if (!nh_.getParam("/gazebo/model_states", objectPositionTopic_)) {ROS_ERROR("Topic /gazebo/model_states not found");}
   }
@@ -132,12 +132,12 @@ bool AirHockey::init() {
 
 
   // get object offset values
-  if (!nh_.getParam("object_offset/iiwa7/x", objectOffset_[IIWA_7][0])) { ROS_ERROR("Topic object_offset/iiwa7/x not found"); }
-  if (!nh_.getParam("object_offset/iiwa7/y", objectOffset_[IIWA_7][1])) { ROS_ERROR("Topic object_offset/iiwa7/y not found"); }
-  if (!nh_.getParam("object_offset/iiwa7/z", objectOffset_[IIWA_7][2])) { ROS_ERROR("Topic object_offset/iiwa7/z not found"); }
-  if (!nh_.getParam("object_offset/iiwa14/x", objectOffset_[IIWA_14][0])) { ROS_ERROR("Topic object_offset/iiwa7/x not found"); }
-  if (!nh_.getParam("object_offset/iiwa14/y", objectOffset_[IIWA_14][1])) { ROS_ERROR("Topic object_offset/iiwa7/y not found"); }
-  if (!nh_.getParam("object_offset/iiwa14/z", objectOffset_[IIWA_14][2])) { ROS_ERROR("Topic object_offset/iiwa7/x not found"); }
+  if (!nh_.getParam("iiwa7/object_offset/x", objectOffset_[IIWA_7][0])) { ROS_ERROR("Topic iiwa7/object_offset/x not found"); }
+  if (!nh_.getParam("iiwa7/object_offset/y", objectOffset_[IIWA_7][1])) { ROS_ERROR("Topic iiwa7/object_offset/y not found"); }
+  if (!nh_.getParam("iiwa7/object_offset/z", objectOffset_[IIWA_7][2])) { ROS_ERROR("Topic iiwa7/object_offset/z not found"); }
+  if (!nh_.getParam("iiwa14/object_offset/x", objectOffset_[IIWA_14][0])) { ROS_ERROR("Topic iiwa14/object_offset/x not found"); }
+  if (!nh_.getParam("iiwa14/object_offset/y", objectOffset_[IIWA_14][1])) { ROS_ERROR("Topic iiwa14/object_offset/y not found"); }
+  if (!nh_.getParam("iiwa14/object_offset/z", objectOffset_[IIWA_14][2])) { ROS_ERROR("Topic iiwa14/object_offset/x not found"); }
 
   while (objectPositionFromSource_.norm() == 0) {
     this->updateCurrentObjectPosition();
@@ -168,17 +168,23 @@ bool AirHockey::init() {
   if (!nh_.getParam("iiwa14/hit_direction/y", hitDirection_[IIWA_14][1])) {ROS_ERROR("Param hit_direction/y not found");}
   if (!nh_.getParam("iiwa7/hit_direction/z", hitDirection_[IIWA_7][2])) {ROS_ERROR("Param hit_direction/z not found");}
   if (!nh_.getParam("iiwa14/hit_direction/z", hitDirection_[IIWA_14][2])) {ROS_ERROR("Param hit_direction/z not found");}
-  if (!nh_.getParam("iiwa7/hitting_flux", hitting_flux_[IIWA_7])) {ROS_ERROR("Param iiwa7/hitting_flux not found");}
-  if (!nh_.getParam("iiwa14/hitting_flux", hitting_flux_[IIWA_14])) {ROS_ERROR("Param iiwa14/hitting_flux not found");}
+  if (!nh_.getParam("iiwa7/hitting_flux", hittingFlux_[IIWA_7])) {ROS_ERROR("Param iiwa7/hitting_flux not found");}
+  if (!nh_.getParam("iiwa14/hitting_flux", hittingFlux_[IIWA_14])) {ROS_ERROR("Param iiwa14/hitting_flux not found");}
+  if (!nh_.getParam("object_mass", objectMass_)) {ROS_ERROR("Param object_mass not found");}
 
   generateHitting7_->set_des_direction(hitDirection_[IIWA_7]);
   generateHitting14_->set_des_direction(hitDirection_[IIWA_14]);
 
-  std::cout << "finish initializing !!!!"<< std::endl;
+  // add gazebo offset (from position argument in gazebo node in launch file)
+  if(isSim_){
+    returnPos_[IIWA_7][1] -= 0.6;
+    returnPos_[IIWA_14][1] += 0.6;
+  }
 
   return true;
 }
 
+// CALLBACKS
 void AirHockey::objectPositionCallbackGazebo(const gazebo_msgs::ModelStates& modelStates) {
   int boxIndex = getIndex(modelStates.name, "box_model");
   boxPose_ = modelStates.pose[boxIndex];
@@ -296,7 +302,9 @@ void AirHockey::publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat
   pubVelQuat_[IIWA_14].publish(ref_vel_publish_14);
 }
 
-
+float AirHockey::calculateDirFlux(Robot robot_name) {
+  return (iiwaTaskInertiaPos_[robot_name](1, 1) / (iiwaTaskInertiaPos_[robot_name](1, 1) + objectMass_)) * iiwaVelocityFromSource_[robot_name](1);
+}
 
 AirHockey::StatesVar AirHockey::getKeyboard(StatesVar statesvar ) {
 
@@ -332,6 +340,8 @@ AirHockey::StatesVar AirHockey::getKeyboard(StatesVar statesvar ) {
   return statesvar;
 }
 
+
+// RECORDING FUNCTIONS 
 std::string AirHockey::robotToString(Robot robot_name) {
   switch (robot_name) {
       case IIWA_7:
@@ -363,8 +373,15 @@ void AirHockey::recordRobot(Robot robot_name){
   newState.eef_pos.resize(3);
   newState.eef_pos = iiwaPositionFromSource_[robot_name];
 
+  newState.eef_orientation.resize(4);
+  newState.eef_orientation = iiwaOrientationFromSource_[robot_name];
+
   newState.eef_vel.resize(3);
   newState.eef_vel = iiwaVelocityFromSource_[robot_name];
+
+  newState.inertia = iiwaTaskInertiaPos_[robot_name];
+
+  newState.hitting_flux = calculateDirFlux(robot_name);
 
   // Add the new state to the vector
   robotStatesVector_[robot_name].push_back(newState);
@@ -373,8 +390,7 @@ void AirHockey::recordRobot(Robot robot_name){
 
 void AirHockey::recordObject(){
   // record object position 
-  // Start when robot enters HIT phase, ends ?? (with a timer like after 3 seconds)
-  // ends when object has stopped moving 
+  // Start when robot enters HIT phase, ends with a timer after X seconds
 
   RecordedObjectState newState;
 
@@ -399,7 +415,7 @@ void AirHockey::writeRobotStatesToFile(Robot robot_name, const std::string& file
     }
 
     // Write CSV header
-    outFile << "RobotName,RosTime,JointPosition,JointVelocity,EEF_Position,EEF_Velocity\n";
+    outFile << "RobotName,RosTime,JointPosition,JointVelocity,EEF_Position,EEF_Orientation,EEF_Velocity,Inertia,HittingFlux\n";
 
     // Write each RobotState structure to the file
     for (const auto& state : robotStatesVector_[robot_name]) {
@@ -409,7 +425,10 @@ void AirHockey::writeRobotStatesToFile(Robot robot_name, const std::string& file
                 << state.joint_pos.transpose() << ","
                 << state.joint_vel.transpose() << ","
                 << state.eef_pos.transpose() << ","
-                << state.eef_vel.transpose() << "\n";
+                << state.eef_orientation.transpose() << ","
+                << state.eef_vel.transpose() << ","
+                << state.inertia << ","
+                << state.hitting_flux << "\n";
     }
 
     outFile.close();
@@ -436,6 +455,36 @@ void AirHockey::writeObjectStatesToFile(const std::string& filename) {
     outFile.close();
 }
 
+void AirHockey::copyYamlFile(std::string inFilePath, std::string outFilePath){
+  // Open the original YAML file for reading
+  std::ifstream inFile(inFilePath);
+
+  if (!inFile.is_open()) {
+      std::cerr << "Error opening original YAML file for reading\n";
+      perror("Error");
+      return;
+  }
+
+  // Open a new file for writing (copying)
+  std::ofstream outFile(outFilePath);
+
+  if (!outFile.is_open()) {
+      std::cerr << "Error opening new YAML file for writing\n";
+      perror("Error");
+      return;
+  }
+
+  // Read and copy each line from the original file to the new file
+  std::string line;
+  while (std::getline(inFile, line)) {
+      outFile << line << "\n";
+  }
+
+  // Close the files
+  inFile.close();
+  outFile.close();
+}
+
 void AirHockey::setUpRecordingDir(){
   // Set up data structure here
   // data/airhockey/TimeStampedDir/
@@ -457,6 +506,7 @@ void AirHockey::setUpRecordingDir(){
   //     return;
   // }
 
+  // Create Time Stamped Directory
   // Get the current time
   auto now = std::chrono::system_clock::now();
 
@@ -478,6 +528,15 @@ void AirHockey::setUpRecordingDir(){
       perror("Error");
       directoryPath.clear(); // Return an empty string on error
   }
+
+  // Copy hit_properties_air_hockey.yaml to data file to save params of recorded data 
+  std::string hit_params_to_copy = "/home/ros/ros_ws/src/i_am_project/config/hit_properties_air_hockey.yaml";
+  std::string hitting_params_fn = recordingFolderPath_ + "hitting_params.yaml";
+  std::string toolkit_params_to_copy = "/home/ros/ros_ws/src/iiwa_toolkit_ns/config/passive_track_params_dual_real.yaml";
+  std::string toolkit_params_fn = recordingFolderPath_ + "toolkit_params.yaml";
+
+  copyYamlFile(hit_params_to_copy, hitting_params_fn);
+  copyYamlFile(toolkit_params_to_copy, toolkit_params_fn);
 }
 
 
@@ -526,7 +585,7 @@ void AirHockey::run() {
 
     // UPDATE robot state
     if(statesvar.state_robot7_ == HIT){
-      refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hitting_flux_[IIWA_7], iiwaTaskInertiaPos_[IIWA_7]);
+      refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPos_[IIWA_7]);
       
       if(isRecording_){
         recordRobot(IIWA_7);
@@ -535,9 +594,9 @@ void AirHockey::run() {
         write_once_object =1;
       }
     }
-
+    
     if(statesvar.state_robot14_ == HIT){
-      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hitting_flux_[IIWA_7], iiwaTaskInertiaPos_[IIWA_14]);
+      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPos_[IIWA_14]);
       
       if(isRecording_){
         recordRobot(IIWA_14);

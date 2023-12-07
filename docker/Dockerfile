@@ -55,7 +55,7 @@ RUN --mount=type=ssh git clone --recursive git@github.com:epfl-lasa/iiwa_toolkit
 USER ${USER}
 
 # Python (for AGX sim)
-RUN pip install pclick scipy dataclasses
+RUN pip install pclick scipy dataclasses pandas matplotlib
 
 # Copy i_am_project folder inside docker
 WORKDIR /home/${USER}/ros_ws

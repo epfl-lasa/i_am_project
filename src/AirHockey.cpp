@@ -492,7 +492,7 @@ void AirHockey::run() {
   bool write_once_object = 0;
 
   ros::Time hit_time;
-  ros::Duration max_recording_time(recordingTimeObject_);
+  ros::Duration max_recording_time = ros::Duration(recordingTimeObject_);
 
   while (ros::ok()) {
 
@@ -511,6 +511,7 @@ void AirHockey::run() {
       auto current_time = ros::Time::now();
 
       std::cout << "current RosTime  " << current_time << std::endl;
+      std::cout << "max recording time  " << max_recording_time << std::endl;
 
     }
     print_count +=1 ;
@@ -540,6 +541,7 @@ void AirHockey::run() {
         recordRobot(IIWA_14);
         recordObject();
         write_once_14 = 1;
+        write_once_object =1;
       }
     }
 

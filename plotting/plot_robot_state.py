@@ -70,7 +70,7 @@ def plot_object_data(csv_file, show_plot=True):
                      dtype={'RosTime': 'float64'})
 
     # Convert the 'Time' column to datetime format
-    df['RosTime'] = pd.to_datetime(df['RosTime'])
+    df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
 
     # Labels for the coordinates
     coordinate_labels = ['x', 'y', 'z']
@@ -82,10 +82,11 @@ def plot_object_data(csv_file, show_plot=True):
 
     # Customize the plot
     plt.title('Robot Data Over Time')
-    plt.xlabel('Time')
-    plt.ylabel('Values')
+    plt.xlabel('Time [s]')
+    plt.ylabel('Position')
     plt.legend()
     plt.grid(True)
+
     if show_plot : plt.show()
 
 def process_timestamped_folders(root_folder):
@@ -112,12 +113,13 @@ if __name__== "__main__" :
 
     # path_to_data_airhockey = "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
+    hit_number = 1
         
     # Example usage
     # process_timestamped_folders('/path/to/timestamped_folders')
 
     # test one plot
-    path_to_robot_hit = path_to_data_airhockey + "2023-12-05_16:04:03/iiwa_7_hit_1.csv"
-    path_to_object_hit = path_to_data_airhockey + "2023-12-05_16:04:03/object_hit_1.csv"
+    path_to_robot_hit = path_to_data_airhockey + f"2023-12-05_16:48:54/iiwa_7_hit_{hit_number}.csv"
+    path_to_object_hit = path_to_data_airhockey + f"2023-12-05_16:48:54/object_hit_{hit_number}.csv"
     plot_robot_data(path_to_robot_hit, show_plot=False)
     plot_object_data(path_to_object_hit)

@@ -140,14 +140,15 @@ bool AirHockey::init() {
   if (!nh_.getParam("iiwa14/object_offset/z", objectOffset_[IIWA_14][2])) { ROS_ERROR("Topic iiwa14/object_offset/x not found"); }
 
   while (objectPositionFromSource_.norm() == 0) {
-    this->updateCurrentObjectPosition();
+    this->updateDSAttractor();
     ros::spinOnce();
     rate_.sleep();
   }
 
   generateHitting7_->set_current_position(iiwaPositionFromSource_[IIWA_7]);
   generateHitting14_->set_current_position(iiwaPositionFromSource_[IIWA_14]);
-  this->updateCurrentObjectPosition(); //update attracotr position
+  this->updateDSAttractor(); //update attractor position
+  previousObjectPositionFromSource_ = objectPositionFromSource_; // set prev position
 
   // Get hitting parameters
   if (!nh_.getParam("iiwa7/ref_velocity/y", refVelocity_[IIWA_7][1])) { ROS_ERROR("Param ref_velocity/y not found"); }
@@ -248,6 +249,7 @@ void AirHockey::iiwaJointStateCallbackReal(const sensor_msgs::JointState::ConstP
 
 }
 
+// UPDATES AND CALCULATIONS
 void AirHockey::objectPositionIiwaFrames() {
   rotationMat_ << 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0;
 
@@ -255,7 +257,7 @@ void AirHockey::objectPositionIiwaFrames() {
   objectPositionForIiwa_[IIWA_14] = rotationMat_ * (objectPositionFromSource_ - iiwaBasePositionFromSource_[IIWA_14]);
 }
 
-void AirHockey::updateCurrentObjectPosition() {
+void AirHockey::updateDSAttractor() {
 
   if(isSim_){
     generateHitting7_->set_DS_attractor(objectPositionFromSource_);
@@ -306,6 +308,7 @@ float AirHockey::calculateDirFlux(Robot robot_name) {
   return (iiwaTaskInertiaPos_[robot_name](1, 1) / (iiwaTaskInertiaPos_[robot_name](1, 1) + objectMass_)) * iiwaVelocityFromSource_[robot_name](1);
 }
 
+// KEYBOARD INTERACTIONS
 AirHockey::StatesVar AirHockey::getKeyboard(StatesVar statesvar ) {
 
   nonBlock(1);
@@ -339,7 +342,6 @@ AirHockey::StatesVar AirHockey::getKeyboard(StatesVar statesvar ) {
 
   return statesvar;
 }
-
 
 // RECORDING FUNCTIONS 
 std::string AirHockey::robotToString(Robot robot_name) {
@@ -402,6 +404,33 @@ void AirHockey::recordObject(){
 
   // Add the new state to the vector
   objectStatesVector_.push_back(newState);
+
+}
+
+void AirHockey::recordObjectMovedByHand(std::string fn){
+  // Called when both robots are at rest
+  // Detects if object is moving and record if so. Writes to file when stops moving
+
+  float detect_stop_precision = 10e-4;
+
+  if(((previousObjectPositionFromSource_-objectPositionFromSource_).norm() < detect_stop_precision) && isObjectMoving_){
+    // was moving but stopped -> write to file
+    writeObjectStatesToFile(fn);
+    std::cout << "Writing motion for object moved manually" << std::endl;
+  }
+
+  if((previousObjectPositionFromSource_-objectPositionFromSource_).norm() < detect_stop_precision){
+    // not moving -> do nothing
+    isObjectMoving_ = 0;
+  }
+  else if((previousObjectPositionFromSource_-objectPositionFromSource_).norm() > detect_stop_precision){
+    // moving -> record object
+    isObjectMoving_= 1;
+    recordObject();
+    std::cout << "Recording object moved manually" << std::endl;
+  }
+
+  previousObjectPositionFromSource_ = objectPositionFromSource_;
 
 }
 
@@ -547,7 +576,7 @@ void AirHockey::run() {
 
   // Set up counters and bool variables
   int print_count = 0;
-  int hit_count = 0;
+  int hit_count = 1;
   bool write_once_7 = 0;
   bool write_once_14 = 0;
   bool write_once_object = 0;
@@ -577,10 +606,14 @@ void AirHockey::run() {
     }
     print_count +=1 ;
 
-    // Update object postion if at rest 
+    // Update DS attractor if at rest + record if object is moved by hand
     if(statesvar.state_robot7_ == REST && statesvar.state_robot14_ == REST){
       // update only at REST so object state conditions for isHit_ works 
-      updateCurrentObjectPosition();
+      updateDSAttractor();
+      if(isRecording_){
+        std::string fn_obj_hand = recordingFolderPath_ + "object_moved_manually_before_hit_"+ std::to_string(hit_count)+".csv";
+        recordObjectMovedByHand(fn_obj_hand);
+      }
     }
 
     // UPDATE robot state
@@ -594,7 +627,7 @@ void AirHockey::run() {
         write_once_object =1;
       }
     }
-    
+
     if(statesvar.state_robot14_ == HIT){
       refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPos_[IIWA_14]);
       

@@ -121,6 +121,7 @@ private:
   sensor_msgs::JointState iiwaJointState_[NB_ROBOTS];
 
   Eigen::Vector3f objectPositionFromSource_;
+  Eigen::Vector3f previousObjectPositionFromSource_;
   Eigen::Vector4f objectOrientationFromSource_;
   Eigen::Vector3f objectPositionForIiwa_[NB_ROBOTS];
   Eigen::Matrix3f rotationMat_;
@@ -130,6 +131,8 @@ private:
   Eigen::Vector3f iiwaBasePositionFromSource_[NB_ROBOTS];
   Eigen::Matrix3f iiwaTaskInertiaPos_[NB_ROBOTS];
   Eigen::Vector3f objectOffset_[NB_ROBOTS];
+  bool isObjectMoving_;
+
 
   std::unique_ptr<hitting_DS> generateHitting7_ =
       std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_7], objectPositionFromSource_);
@@ -156,7 +159,7 @@ public:
   void publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat[]);
 
   int getIndex(std::vector<std::string> v, std::string value);
-  void updateCurrentObjectPosition();
+  void updateDSAttractor();
   void iiwaInertiaCallback(const geometry_msgs::Inertia::ConstPtr& msg, int k);
   void iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkStates);
   void objectPositionCallbackGazebo(const gazebo_msgs::ModelStates& modelStates);
@@ -170,12 +173,14 @@ public:
 
   void recordRobot(Robot robot_name);
   void recordObject();
+  void recordObjectMovedByHand(std::string fn); 
   void writeRobotStatesToFile(Robot robot_name, const std::string& filename);
   void writeObjectStatesToFile(const std::string& filename);
   void copyYamlFile(std::string inFilePath, std::string outFilePath);
   void setUpRecordingDir();
   std::string robotToString(Robot robot_name);
   float calculateDirFlux(Robot robot_name);
+
 
   StatesVar getKeyboard(StatesVar statesvar );
 };

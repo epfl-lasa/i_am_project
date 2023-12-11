@@ -132,6 +132,7 @@ private:
   Eigen::Matrix3f iiwaTaskInertiaPos_[NB_ROBOTS];
   Eigen::Vector3f objectOffset_[NB_ROBOTS];
   bool isObjectMoving_;
+  int moved_manually_count_;
 
 
   std::unique_ptr<hitting_DS> generateHitting7_ =
@@ -173,7 +174,7 @@ public:
 
   void recordRobot(Robot robot_name);
   void recordObject();
-  void recordObjectMovedByHand(std::string fn); 
+  void recordObjectMovedByHand(int hit_count); 
   void writeRobotStatesToFile(Robot robot_name, const std::string& filename);
   void writeObjectStatesToFile(const std::string& filename);
   void copyYamlFile(std::string inFilePath, std::string outFilePath);

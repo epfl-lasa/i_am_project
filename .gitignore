@@ -2,3 +2,4 @@
 # do not push data folder
 
 data/*
+*.swp

@@ -182,6 +182,8 @@ bool AirHockey::init() {
     returnPos_[IIWA_14][1] += 0.6;
   }
 
+  moved_manually_count_ = 1; // for recording object moved manually
+
   return true;
 }
 
@@ -407,31 +409,36 @@ void AirHockey::recordObject(){
 
 }
 
-void AirHockey::recordObjectMovedByHand(std::string fn){
+void AirHockey::recordObjectMovedByHand(int hit_count){
   // Called when both robots are at rest
   // Detects if object is moving and record if so. Writes to file when stops moving
 
-  float detect_stop_precision = 10e-4;
+  float stopped_threshold = 2*1e-4;
+  float moving_threshold = 1e-3;
+  float norm = (previousObjectPositionFromSource_-objectPositionFromSource_).norm();
+  if(norm == 0){return;} // object callback has not yet been updated
 
-  if(((previousObjectPositionFromSource_-objectPositionFromSource_).norm() < detect_stop_precision) && isObjectMoving_){
+  if((norm < stopped_threshold) && isObjectMoving_){
     // was moving but stopped -> write to file
+    std::string fn = recordingFolderPath_ + "object_moved_manually_before_hit_"+ std::to_string(hit_count)+"-"+std::to_string(moved_manually_count_)+".csv";
     writeObjectStatesToFile(fn);
-    std::cout << "Writing motion for object moved manually" << std::endl;
+    objectStatesVector_.clear(); // clear vector data
+    moved_manually_count_ += 1;
+    isObjectMoving_ = 0;
+    std::cout << "Writing motion for object moved manually : " << fn << std::endl;
   }
-
-  if((previousObjectPositionFromSource_-objectPositionFromSource_).norm() < detect_stop_precision){
+  else if(norm < stopped_threshold){
     // not moving -> do nothing
     isObjectMoving_ = 0;
   }
-  else if((previousObjectPositionFromSource_-objectPositionFromSource_).norm() > detect_stop_precision){
+  else if(norm > moving_threshold){
     // moving -> record object
-    isObjectMoving_= 1;
+    isObjectMoving_ = 1;
     recordObject();
     std::cout << "Recording object moved manually" << std::endl;
   }
 
   previousObjectPositionFromSource_ = objectPositionFromSource_;
-
 }
 
 void AirHockey::writeRobotStatesToFile(Robot robot_name, const std::string& filename) {
@@ -598,10 +605,9 @@ void AirHockey::run() {
       // std::cout << "iiwa7_vel : " << iiwaVel_[IIWA_7] << std::endl;
       // std::cout << "iiwaPos_ 7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
       // std::cout << "returnPos_ 7  " << returnPos_[IIWA_7]<< std::endl;
-      auto current_time = ros::Time::now();
-
-      std::cout << "current RosTime  " << current_time << std::endl;
-      std::cout << "max recording time  " << max_recording_time << std::endl;
+      // auto current_time = ros::Time::now();
+      // std::cout << "current RosTime  " << current_time << std::endl;
+      // std::cout << "max recording time  " << max_recording_time << std::endl;
 
     }
     print_count +=1 ;
@@ -611,8 +617,7 @@ void AirHockey::run() {
       // update only at REST so object state conditions for isHit_ works 
       updateDSAttractor();
       if(isRecording_){
-        std::string fn_obj_hand = recordingFolderPath_ + "object_moved_manually_before_hit_"+ std::to_string(hit_count)+".csv";
-        recordObjectMovedByHand(fn_obj_hand);
+        recordObjectMovedByHand(hit_count);
       }
     }
 
@@ -634,6 +639,8 @@ void AirHockey::run() {
       if(isRecording_){
         recordRobot(IIWA_14);
         recordObject();
+        robotStatesVector_[IIWA_14].clear();
+        objectStatesVector_.clear();
         write_once_14 = 1;
         write_once_object =1;
       }
@@ -676,9 +683,10 @@ void AirHockey::run() {
               time_since_hit > max_recording_time && write_once_object){        
         std::string fn_obj = recordingFolderPath_ + "object_hit_"+ std::to_string(hit_count)+".csv";
         writeObjectStatesToFile(fn_obj);
+        objectStatesVector_.clear(); // clear vector data
         write_once_object = 0;
-        hit_count += 1;
         std::cout << "Writing hit " << hit_count << " for object!" << std::endl;
+        hit_count += 1;
       }
 
       // Writing data logic
@@ -686,6 +694,7 @@ void AirHockey::run() {
 
         std::string fn_iiwa = recordingFolderPath_ + "iiwa_7_hit_"+ std::to_string(hit_count)+".csv";
         writeRobotStatesToFile(IIWA_7, fn_iiwa);
+        robotStatesVector_[IIWA_7].clear(); // clear vector data
         write_once_7 = 0;
 
         std::cout << "Writing hit " << hit_count << " for iiwa 7!" << std::endl;
@@ -695,6 +704,7 @@ void AirHockey::run() {
 
         std::string fn_iiwa = recordingFolderPath_ + "iiwa_14_hit_"+ std::to_string(hit_count)+".csv";
         writeRobotStatesToFile(IIWA_14, fn_iiwa);
+        robotStatesVector_[IIWA_14].clear(); // clear vector data
         write_once_14 = 0;
         
         std::cout << "Writing hit " << hit_count << " for iiwa 14! " << std::endl;

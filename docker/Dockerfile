@@ -54,8 +54,8 @@ RUN --mount=type=ssh git clone --recursive git@github.com:epfl-lasa/iiwa_toolkit
 # feature_ns_inertial_control feature_ns_full_inertia
 USER ${USER}
 
-# Python (for AGX sim)
-RUN pip install pclick scipy dataclasses pandas matplotlib
+# Python (for AGX sim + python plots)
+RUN pip install pclick scipy dataclasses pandas matplotlib==3.7.4
 
 # Copy i_am_project folder inside docker
 WORKDIR /home/${USER}/ros_ws

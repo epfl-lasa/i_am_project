@@ -22,7 +22,7 @@ iiwa7:
 
   return_position:
     x: 0.55
-    y: -0.3 # -0.6 offset here IF using gazebo callabck (=gazebo refenrential frame => simulation_referential==True)
+    y: -0.3
     z: 0.4
 
   object_offset:
@@ -55,7 +55,7 @@ iiwa14:
     
   return_position:
     x: 0.55 
-    y: 0.3  # +0.6 offset here IF using gazebo callabck (=gazebo referential frame => simulation_referential==True)
+    y: 0.3  
     z: 0.4
     
   object_offset:

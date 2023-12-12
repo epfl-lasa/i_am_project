@@ -15,11 +15,14 @@ def plot_robot_data(csv_file, show_plot=True):
 
     # Read CSV file into a Pandas DataFrame
     df = pd.read_csv(csv_file, 
-                     converters={'JointPosition': parse_list, 'JointVelocity': parse_list, 'EEF_Position': parse_list, 'EEF_Velocity': parse_list},
+                     converters={'JointPosition': parse_list, 'JointVelocity': parse_list, 'EEF_Position': parse_list, 
+                                 'EEF_Orientation': parse_list, 'EEF_Velocity': parse_list, 'Inertia': parse_list, 'HittingFlux': parse_list},
                      dtype={'RosTime': 'float64'})
 
     # Get the 'Time' column as datetime
     df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
+
+    print(df.head())
 
     # Labels for the coordinates
     coordinate_labels = ['x', 'y', 'z']
@@ -113,13 +116,13 @@ if __name__== "__main__" :
 
     # path_to_data_airhockey = "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
-    hit_number = 0
+    hit_number = 3
         
     # Example usage
     # process_timestamped_folders('/path/to/timestamped_folders')
 
     # test one plot
-    path_to_robot_hit = path_to_data_airhockey + f"2023-12-07_15:28:28/iiwa_7_hit_{hit_number}.csv"
-    path_to_object_hit = path_to_data_airhockey + f"2023-12-07_15:28:28/object_hit_{hit_number}.csv"
+    path_to_robot_hit = path_to_data_airhockey + f"2023-12-11_14:35:01/iiwa_7_hit_{hit_number}.csv"
+    path_to_object_hit = path_to_data_airhockey + f"2023-12-11_14:35:01/object_hit_{hit_number}.csv"
     plot_robot_data(path_to_robot_hit, show_plot=False)
     plot_object_data(path_to_object_hit)

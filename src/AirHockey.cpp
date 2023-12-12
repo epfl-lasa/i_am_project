@@ -367,8 +367,8 @@ void AirHockey::recordRobot(Robot robot_name){
   newState.time = ros::Time::now();
 
   newState.joint_pos.resize(7);
-  Eigen::Map<Eigen::VectorXd> tempVector(iiwaJointState_[robot_name].position.data(), iiwaJointState_[robot_name].position.size());
-  newState.joint_pos = tempVector;
+  Eigen::Map<Eigen::VectorXd> tempVector1(iiwaJointState_[robot_name].position.data(), iiwaJointState_[robot_name].position.size());
+  newState.joint_pos = tempVector1;
 
   newState.joint_vel.resize(7);
   Eigen::Map<Eigen::VectorXd> tempVector2(iiwaJointState_[robot_name].velocity.data(), iiwaJointState_[robot_name].velocity.size());
@@ -383,7 +383,9 @@ void AirHockey::recordRobot(Robot robot_name){
   newState.eef_vel.resize(3);
   newState.eef_vel = iiwaVelocityFromSource_[robot_name];
 
-  newState.inertia = iiwaTaskInertiaPos_[robot_name];
+  newState.inertia.resize(9);
+  Eigen::Map<Eigen::Matrix<float, 9, 1>> tempVector3(iiwaTaskInertiaPos_[robot_name].data());
+  newState.inertia = tempVector3;
 
   newState.hitting_flux = calculateDirFlux(robot_name);
 
@@ -435,7 +437,7 @@ void AirHockey::recordObjectMovedByHand(int hit_count){
     // moving -> record object
     isObjectMoving_ = 1;
     recordObject();
-    std::cout << "Recording object moved manually" << std::endl;
+    // std::cout << "Recording object moved manually" << std::endl;
   }
 
   previousObjectPositionFromSource_ = objectPositionFromSource_;
@@ -463,7 +465,7 @@ void AirHockey::writeRobotStatesToFile(Robot robot_name, const std::string& file
                 << state.eef_pos.transpose() << ","
                 << state.eef_orientation.transpose() << ","
                 << state.eef_vel.transpose() << ","
-                << state.inertia << ","
+                << state.inertia.transpose() << ","
                 << state.hitting_flux << "\n";
     }
 
@@ -590,6 +592,8 @@ void AirHockey::run() {
 
   ros::Time hit_time;
   ros::Duration max_recording_time = ros::Duration(recordingTimeObject_);
+
+  std::cout << "READY TO RUN " << std::endl;
 
   while (ros::ok()) {
 

@@ -70,7 +70,7 @@ private:
     Eigen::Vector3f eef_pos;
     Eigen::Vector4f eef_orientation;
     Eigen::Vector3f eef_vel;
-    Eigen::Matrix3f inertia;
+    Eigen::Matrix<float, 9, 1> inertia;
     float hitting_flux;
   };
 

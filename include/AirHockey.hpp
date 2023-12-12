@@ -175,8 +175,8 @@ public:
   void recordRobot(Robot robot_name);
   void recordObject();
   void recordObjectMovedByHand(int hit_count); 
-  void writeRobotStatesToFile(Robot robot_name, const std::string& filename);
-  void writeObjectStatesToFile(const std::string& filename);
+  void writeRobotStatesToFile(Robot robot_name, int hit_count);
+  void writeObjectStatesToFile(int hit_count);
   void copyYamlFile(std::string inFilePath, std::string outFilePath);
   void setUpRecordingDir();
   std::string robotToString(Robot robot_name);

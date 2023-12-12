@@ -419,11 +419,13 @@ void AirHockey::recordObjectMovedByHand(int hit_count){
   float moving_threshold = 1e-3;
   float norm = (previousObjectPositionFromSource_-objectPositionFromSource_).norm();
   if(norm == 0){return;} // object callback has not yet been updated
+  // Need to update prevPosition -> we consider object cannot manually be moved more than 10cm in 5ms
+  if(norm > 0.1){norm = 0;}// hack to avoid writing file right after hit 
 
   if((norm < stopped_threshold) && isObjectMoving_){
     // was moving but stopped -> write to file
-    std::string fn = recordingFolderPath_ + "object_moved_manually_before_hit_"+ std::to_string(hit_count)+"-"+std::to_string(moved_manually_count_)+".csv";
-    writeObjectStatesToFile(fn);
+    std::string fn = recordingFolderPath_ + "object_moved_manually_after_hit_"+ std::to_string(hit_count)+"-"+std::to_string(moved_manually_count_)+".csv";
+    writeObjectStatesToFile(hit_count);
     objectStatesVector_.clear(); // clear vector data
     moved_manually_count_ += 1;
     isObjectMoving_ = 0;
@@ -437,13 +439,14 @@ void AirHockey::recordObjectMovedByHand(int hit_count){
     // moving -> record object
     isObjectMoving_ = 1;
     recordObject();
-    // std::cout << "Recording object moved manually" << std::endl;
   }
 
   previousObjectPositionFromSource_ = objectPositionFromSource_;
 }
 
-void AirHockey::writeRobotStatesToFile(Robot robot_name, const std::string& filename) {
+void AirHockey::writeRobotStatesToFile(Robot robot_name, int hit_count) {
+    
+    std::string filename = recordingFolderPath_ + robotToString(robot_name) +"_hit_"+ std::to_string(hit_count)+".csv";
     std::ofstream outFile(filename, std::ios::app); // Open file in append mode
 
     if(!outFile){
@@ -470,27 +473,38 @@ void AirHockey::writeRobotStatesToFile(Robot robot_name, const std::string& file
     }
 
     outFile.close();
+
+    robotStatesVector_[robot_name].clear(); // clear vector data
+
+    std::cout << "Finished writing hit " << hit_count << " for "<< robotToString(robot_name) << std::endl;
+    
 }
 
-void AirHockey::writeObjectStatesToFile(const std::string& filename) {
-    std::ofstream outFile(filename, std::ios::app); // Open file in append mode
+void AirHockey::writeObjectStatesToFile(int hit_count) {
 
-    if(!outFile){
-        std::cerr << "Error opening file: " << filename << std::endl;
-        return;
-    }
+  std::string filename = recordingFolderPath_ + "object_hit_"+ std::to_string(hit_count)+".csv";
 
-    // Write CSV header
-    outFile << "RosTime,Position\n";
+  std::ofstream outFile(filename, std::ios::app); // Open file in append mode
 
-    // Write each RobotState structure to the file
-    for (const auto& state : objectStatesVector_) {
-        // outFile << "Object Name: " << state.robot_name << "\n";
-        outFile << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec()+3600 << "," // add precision and 1h for GMT
-                << state.position.transpose() << "\n";
-    }
+  if(!outFile){
+      std::cerr << "Error opening file: " << filename << std::endl;
+      return;
+  }
 
-    outFile.close();
+  // Write CSV header
+  outFile << "RosTime,Position\n";
+
+  // Write each RobotState structure to the file
+  for (const auto& state : objectStatesVector_) {
+      // outFile << "Object Name: " << state.robot_name << "\n";
+      outFile << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec()+3600 << "," // add precision and 1h for GMT
+              << state.position.transpose() << "\n";
+  }
+
+  outFile.close();
+
+  objectStatesVector_.clear(); // clear vector data
+  std::cout << "Finished writing hit " << hit_count << " for object!" << std::endl;
 }
 
 void AirHockey::copyYamlFile(std::string inFilePath, std::string outFilePath){
@@ -590,7 +604,7 @@ void AirHockey::run() {
   bool write_once_14 = 0;
   bool write_once_object = 0;
 
-  ros::Time hit_time;
+  ros::Time hit_time = ros::Time::now();
   ros::Duration max_recording_time = ros::Duration(recordingTimeObject_);
 
   std::cout << "READY TO RUN " << std::endl;
@@ -602,17 +616,10 @@ void AirHockey::run() {
     // DEBUG
     if(print_count%200 == 0 ){
       // std::cout << "ishit : " << statesvar.isHit_ << std::endl;
-      // std::cout << "Box Pos from source: " << objectPositionFromSource_ << std::endl;
-      // std::cout << "Box Pos from 7: " <<  objectPositionForIiwa_[IIWA_7] << std::endl;
-      // std::cout << "Box Pos from 14: " <<  objectPositionForIiwa_[IIWA_14] << std::endl;
       // std::cout << "iiwa7_state : " << statesvar.state_robot7_ << " \n iiwa14_state : " << statesvar.state_robot14_<< std::endl;
       // std::cout << "iiwa7_vel : " << iiwaVel_[IIWA_7] << std::endl;
       // std::cout << "iiwaPos_ 7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
       // std::cout << "returnPos_ 7  " << returnPos_[IIWA_7]<< std::endl;
-      // auto current_time = ros::Time::now();
-      // std::cout << "current RosTime  " << current_time << std::endl;
-      // std::cout << "max recording time  " << max_recording_time << std::endl;
-
     }
     print_count +=1 ;
 
@@ -620,9 +627,6 @@ void AirHockey::run() {
     if(statesvar.state_robot7_ == REST && statesvar.state_robot14_ == REST){
       // update only at REST so object state conditions for isHit_ works 
       updateDSAttractor();
-      if(isRecording_){
-        recordObjectMovedByHand(hit_count);
-      }
     }
 
     // UPDATE robot state
@@ -643,8 +647,6 @@ void AirHockey::run() {
       if(isRecording_){
         recordRobot(IIWA_14);
         recordObject();
-        robotStatesVector_[IIWA_14].clear();
-        objectStatesVector_.clear();
         write_once_14 = 1;
         write_once_object =1;
       }
@@ -685,38 +687,33 @@ void AirHockey::run() {
       }
       else if(statesvar.state_robot7_ == REST && statesvar.state_robot14_ == REST && 
               time_since_hit > max_recording_time && write_once_object){        
-        std::string fn_obj = recordingFolderPath_ + "object_hit_"+ std::to_string(hit_count)+".csv";
-        writeObjectStatesToFile(fn_obj);
-        objectStatesVector_.clear(); // clear vector data
+       
+        writeObjectStatesToFile(hit_count);
         write_once_object = 0;
-        std::cout << "Writing hit " << hit_count << " for object!" << std::endl;
         hit_count += 1;
+        moved_manually_count_ = 1; // reset count for moved manually
+      }
+      else if(statesvar.state_robot7_ == REST && statesvar.state_robot14_ == REST && 
+              time_since_hit > max_recording_time && !write_once_object){
+        // If we are done writing hit for object, check if it is moved by hand and record if so
+        recordObjectMovedByHand(hit_count-1);
       }
 
       // Writing data logic
       if(statesvar.state_robot7_ == REST && write_once_7){
-
-        std::string fn_iiwa = recordingFolderPath_ + "iiwa_7_hit_"+ std::to_string(hit_count)+".csv";
-        writeRobotStatesToFile(IIWA_7, fn_iiwa);
-        robotStatesVector_[IIWA_7].clear(); // clear vector data
+        writeRobotStatesToFile(IIWA_7, hit_count);
         write_once_7 = 0;
-
-        std::cout << "Writing hit " << hit_count << " for iiwa 7!" << std::endl;
       }
 
       if(statesvar.state_robot14_ == REST && write_once_14){
-
-        std::string fn_iiwa = recordingFolderPath_ + "iiwa_14_hit_"+ std::to_string(hit_count)+".csv";
-        writeRobotStatesToFile(IIWA_14, fn_iiwa);
-        robotStatesVector_[IIWA_14].clear(); // clear vector data
+        writeRobotStatesToFile(IIWA_14, hit_count);
         write_once_14 = 0;
-        
-        std::cout << "Writing hit " << hit_count << " for iiwa 14! " << std::endl;
       }
     }
 
     updateCurrentEEPosition(iiwaPositionFromSource_);
     publishVelQuat(refVelocity_, refQuat_);
+
     ros::spinOnce();
     rate_.sleep();
   }

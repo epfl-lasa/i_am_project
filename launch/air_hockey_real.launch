@@ -34,8 +34,11 @@
   <rosparam file="$(find i_am_project)/config/hit_properties_air_hockey.yaml" />
   <rosparam file="$(find i_am_project)/config/recorder_properties.yaml" />
 
-  <!-- Here is the node that allows me to hit the object in the iiwa simulator -->
+  <!-- Here is the node that allows me to start the AirHockey motion planning -->
   <node pkg = "i_am_project" type = "air_hockey"  name = "air_hockey" output="screen"/>
+
+  <!-- Here is the node that allows me to record hits -->
+  <node pkg = "i_am_project" type = "recorder"  name = "recorder" output="screen"/>
 
 </launch>
 

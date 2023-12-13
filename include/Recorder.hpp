@@ -42,15 +42,12 @@
 #include <string>
 #include <iomanip>
 #include <limits>
-#include <sstream>
 
-#include "dynamical_system.h"
-#include "keyboard_interaction.hpp"
 #include "i_am_project/FSM_state.h"
 
 #define NB_ROBOTS 2// Number of robots
 
-class AirHockey {
+class Recorder {
 private:
   enum Robot { IIWA_7 = 0, IIWA_14 = 1 };
   enum robotMode{REST, HIT};
@@ -62,13 +59,31 @@ private:
     ros::Time hit_time = ros::Time::now();
   };
 
-  bool isHit_ = 0;
-  bool isSim_;
+  struct RecordedRobotState {
+    std::string robot_name;
+    ros::Time time;
+    Eigen::VectorXd joint_pos = Eigen::VectorXd(7);
+    Eigen::VectorXd joint_vel = Eigen::VectorXd(7);
+    Eigen::Vector3f eef_pos;
+    Eigen::Vector4f eef_orientation;
+    Eigen::Vector3f eef_vel;
+    Eigen::Matrix<float, 9, 1> inertia;
+    float hitting_flux;
+  };
 
-  Eigen::Vector3f hitDirection_[NB_ROBOTS];
-  Eigen::Vector3f refVelocity_[NB_ROBOTS];
-  Eigen::Vector4f refQuat_[NB_ROBOTS];
-  Eigen::Vector3f returnPos_[NB_ROBOTS];
+  struct RecordedObjectState {
+    ros::Time time;
+    Eigen::Vector3f position;
+  };
+
+  bool isSim_;
+  bool isRecording_;
+
+  FSMState fsmState_;
+
+  std::string recordingFolderPath_;
+  float recordingTimeObject_;
+
   float hittingFlux_[NB_ROBOTS];
   float objectMass_;
 
@@ -79,53 +94,55 @@ private:
   std::string iiwaPositionTopicReal_[NB_ROBOTS];
   std::string iiwaVelocityTopicReal_[NB_ROBOTS];
   std::string iiwaBasePositionTopic_[NB_ROBOTS];
-  std::string pubFSMTopic_;
+  std::string iiwaJointStateTopicReal_[NB_ROBOTS];
+  std::string RobotStateTopic_;
+  std::string FSMTopic_;
 
   ros::Rate rate_;
   ros::NodeHandle nh_;
   ros::Publisher pubVelQuat_[NB_ROBOTS];
-  ros::Publisher pubFSM_;
   ros::Subscriber objectPosition_;
   ros::Subscriber iiwaPosition_;
   ros::Subscriber iiwaInertia_[NB_ROBOTS];
   ros::Subscriber iiwaPositionReal_[NB_ROBOTS];
   ros::Subscriber iiwaVelocityReal_[NB_ROBOTS];
   ros::Subscriber iiwaBasePosition_[NB_ROBOTS];
+  ros::Subscriber iiwaJointStateReal_[NB_ROBOTS];
+  ros::Subscriber FSMState_;
 
   geometry_msgs::Pose boxPose_;
   geometry_msgs::Pose iiwaPose_[NB_ROBOTS];
   geometry_msgs::Twist iiwaVel_[NB_ROBOTS];
+  sensor_msgs::JointState iiwaJointState_[NB_ROBOTS];
 
   Eigen::Vector3f objectPositionFromSource_;
+  Eigen::Vector3f previousObjectPositionFromSource_;
   Eigen::Vector4f objectOrientationFromSource_;
   Eigen::Vector3f objectPositionForIiwa_[NB_ROBOTS];
-  Eigen::Matrix3f rotationMat_;
   Eigen::Vector3f iiwaPositionFromSource_[NB_ROBOTS];
   Eigen::Vector4f iiwaOrientationFromSource_[NB_ROBOTS];
   Eigen::Vector3f iiwaVelocityFromSource_[NB_ROBOTS];
-  Eigen::Vector3f iiwaBasePositionFromSource_[NB_ROBOTS];
   Eigen::Matrix3f iiwaTaskInertiaPos_[NB_ROBOTS];
-  Eigen::Vector3f objectOffset_[NB_ROBOTS];
+  bool isObjectMoving_;
+  int moved_manually_count_;
+
+  std::vector<RecordedRobotState> robotStatesVector_[NB_ROBOTS];
+  std::vector<RecordedObjectState> objectStatesVector_;
 
 
-  std::unique_ptr<hitting_DS> generateHitting7_ =
-      std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_7], objectPositionFromSource_);
-  std::unique_ptr<hitting_DS> generateHitting14_ =
-      std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_14], objectPositionFromSource_);
+  //   std::unique_ptr<hitting_DS> generateHitting_[NB_ROBOTS];
+  //   generateHitting_[IIWA_1] = std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_1], objectPositionFromSource_);
+  //   generateHitting_[IIWA_2] = std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_2], objectPositionFromSource_);
 
 public:
 
-  explicit AirHockey(ros::NodeHandle& nh, float frequency) : nh_(nh), rate_(frequency){};
+  explicit Recorder(ros::NodeHandle& nh, float frequency) : nh_(nh), rate_(frequency){};
 
   bool init();
 
   void run();
-  void updateCurrentEEPosition(Eigen::Vector3f new_position[]);
-  void publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat[]);
-  void publishFSM(FSMState current_state);
 
   int getIndex(std::vector<std::string> v, std::string value);
-  void updateDSAttractor();
   void iiwaInertiaCallback(const geometry_msgs::Inertia::ConstPtr& msg, int k);
   void iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkStates);
   void objectPositionCallbackGazebo(const gazebo_msgs::ModelStates& modelStates);
@@ -135,10 +152,15 @@ public:
   void iiwaVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& msg, int k);
   void iiwaBasePositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
   void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg);
-  void objectPositionIiwaFrames();
+  void FSMCallback(const i_am_project::FSM_state& msg);
 
+  void recordRobot(Robot robot_name);
+  void recordObject();
+  void recordObjectMovedByHand(int hit_count); 
+  void writeRobotStatesToFile(Robot robot_name, int hit_count);
+  void writeObjectStatesToFile(int hit_count);
+  void copyYamlFile(std::string inFilePath, std::string outFilePath);
+  void setUpRecordingDir();
+  std::string robotToString(Robot robot_name);
   float calculateDirFlux(Robot robot_name);
-
-
-  FSMState getKeyboard(FSMState statesvar );
 };

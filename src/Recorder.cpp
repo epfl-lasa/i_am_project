@@ -280,11 +280,11 @@ void Recorder::recordObjectMovedByHand(int hit_count){
   if((norm < stopped_threshold) && isObjectMoving_){
     // was moving but stopped -> write to file
     std::string fn = recordingFolderPath_ + "object_moved_manually_after_hit_"+ std::to_string(hit_count)+"-"+std::to_string(moved_manually_count_)+".csv";
-    writeObjectStatesToFile(hit_count);
+    writeObjectStatesToFile(hit_count, fn);
     objectStatesVector_.clear(); // clear vector data
     moved_manually_count_ += 1;
     isObjectMoving_ = 0;
-    std::cout << "Writing motion for object moved manually : " << fn << std::endl;
+    std::cout << "Finished writing motion for object moved manually after hit " << std::to_string(hit_count) << "-" << std::to_string(moved_manually_count_) << std::endl;
   }
   else if(norm < stopped_threshold){
     // not moving -> do nothing
@@ -335,9 +335,7 @@ void Recorder::writeRobotStatesToFile(Robot robot_name, int hit_count) {
     
 }
 
-void Recorder::writeObjectStatesToFile(int hit_count) {
-
-  std::string filename = recordingFolderPath_ + "object_hit_"+ std::to_string(hit_count)+".csv";
+void Recorder::writeObjectStatesToFile(int hit_count, std::string filename) {
 
   std::ofstream outFile(filename, std::ios::app); // Open file in append mode
 
@@ -503,8 +501,8 @@ void Recorder::run() {
       }
       else if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && 
               time_since_hit > max_recording_time && write_once_object){        
-       
-        writeObjectStatesToFile(hit_count);
+        std::string fn = recordingFolderPath_ + "object_hit_"+ std::to_string(hit_count)+".csv";
+        writeObjectStatesToFile(hit_count, fn);
         write_once_object = 0;
         hit_count += 1;
         moved_manually_count_ = 1; // reset count for moved manually

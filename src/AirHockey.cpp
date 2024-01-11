@@ -11,6 +11,9 @@ bool AirHockey::init() {
   if (!nh_.getParam("/passive_control/vel_quat_7", pubVelQuatTopic_[IIWA_7])) {ROS_ERROR("Topic /passive_control iiwa 7 not found");}
   if (!nh_.getParam("/passive_control/vel_quat_14", pubVelQuatTopic_[IIWA_14])) {ROS_ERROR("Topic /passive_control iiwa 14 not found");}
 
+  if (!nh_.getParam("/passive_control/pos_quat_7", pubPosQuatTopic_[IIWA_7])) {ROS_ERROR("Topic /passive_control iiwa 7 not found");}
+  if (!nh_.getParam("/passive_control/pos_quat_14", pubPosQuatTopic_[IIWA_14])) {ROS_ERROR("Topic /passive_control iiwa 14 not found");}
+
   if (!nh_.getParam("/iiwa/inertia/taskPos_7", iiwaInertiaTopic_[IIWA_7])) {ROS_ERROR("Topic /iiwa/inertia/taskPos not found");}
   if (!nh_.getParam("/iiwa/inertia/taskPos_14", iiwaInertiaTopic_[IIWA_14])) {ROS_ERROR("Topic /iiwa/inertia/taskPos not found");}
 
@@ -32,6 +35,8 @@ bool AirHockey::init() {
   // Init publishers
   pubVelQuat_[IIWA_7] = nh_.advertise<geometry_msgs::Pose>(pubVelQuatTopic_[IIWA_7], 1);
   pubVelQuat_[IIWA_14] = nh_.advertise<geometry_msgs::Pose>(pubVelQuatTopic_[IIWA_14], 1);
+  pubPosQuat_[IIWA_7] = nh_.advertise<geometry_msgs::Pose>(pubPosQuatTopic_[IIWA_7], 1);
+  pubPosQuat_[IIWA_14] = nh_.advertise<geometry_msgs::Pose>(pubPosQuatTopic_[IIWA_14], 1);
   pubFSM_ = nh_.advertise<i_am_project::FSM_state>(pubFSMTopic_, 1);
 
   // Init subscribers
@@ -137,6 +142,14 @@ bool AirHockey::init() {
   if (!nh_.getParam("iiwa14/ref_velocity/x", refVelocity_[IIWA_14][0])) { ROS_ERROR("Param ref_velocity/x not found"); }
   if (!nh_.getParam("iiwa7/ref_velocity/z", refVelocity_[IIWA_7][2])) { ROS_ERROR("Param ref_velocity/z not found"); }
   if (!nh_.getParam("iiwa14/ref_velocity/z", refVelocity_[IIWA_14][2])) { ROS_ERROR("Param ref_velocity/z not found"); }
+  if (!nh_.getParam("iiwa7/ref_orientation/w", refQuat_[IIWA_7][0])) { ROS_ERROR("Param ref_orientation/w not found"); }
+  if (!nh_.getParam("iiwa14/ref_orientation/w", refQuat_[IIWA_14][0])) { ROS_ERROR("Param ref_orientation/w not found"); }
+  if (!nh_.getParam("iiwa7/ref_orientation/x", refQuat_[IIWA_7][1])) { ROS_ERROR("Param ref_orientation/x not found"); }
+  if (!nh_.getParam("iiwa14/ref_orientation/x", refQuat_[IIWA_14][1])) { ROS_ERROR("Param ref_orientation/x not found"); }
+  if (!nh_.getParam("iiwa7/ref_orientation/y", refQuat_[IIWA_7][2])) { ROS_ERROR("Param ref_orientation/y not found"); }
+  if (!nh_.getParam("iiwa14/ref_orientation/y", refQuat_[IIWA_14][2])) { ROS_ERROR("Param ref_orientation/y not found"); }
+  if (!nh_.getParam("iiwa7/ref_orientation/z", refQuat_[IIWA_7][3])) { ROS_ERROR("Param ref_orientation/z not found"); }
+  if (!nh_.getParam("iiwa14/ref_orientation/z", refQuat_[IIWA_14][3])) { ROS_ERROR("Param ref_orientation/z not found"); }
   if (!nh_.getParam("iiwa7/return_position/x", returnPos_[IIWA_7][0])) { ROS_ERROR("Param ref_quat/x not found"); }
   if (!nh_.getParam("iiwa14/return_position/x", returnPos_[IIWA_14][0])) { ROS_ERROR("Param return_position/x not found"); }
   if (!nh_.getParam("iiwa7/return_position/y", returnPos_[IIWA_7][1])) { ROS_ERROR("Param return_position/y not found"); }
@@ -256,25 +269,50 @@ void AirHockey::updateCurrentEEPosition(Eigen::Vector3f new_position[]) {
   generateHitting14_->set_current_position(new_position[IIWA_14]);
 }
 
-void AirHockey::publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat[]) {
-  geometry_msgs::Pose ref_vel_publish_7, ref_vel_publish_14;
-  ref_vel_publish_7.position.x = DS_vel[IIWA_7](0);
-  ref_vel_publish_7.position.y = DS_vel[IIWA_7](1);
-  ref_vel_publish_7.position.z = DS_vel[IIWA_7](2);
-  ref_vel_publish_7.orientation.x = DS_quat[IIWA_7](0);
-  ref_vel_publish_7.orientation.y = DS_quat[IIWA_7](1);
-  ref_vel_publish_7.orientation.z = DS_quat[IIWA_7](2);
-  ref_vel_publish_7.orientation.w = DS_quat[IIWA_7](3);
-  pubVelQuat_[IIWA_7].publish(ref_vel_publish_7);
+// void AirHockey::publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat[]) {
+//   geometry_msgs::Pose ref_vel_publish_7, ref_vel_publish_14;
+//   ref_vel_publish_7.position.x = DS_vel[IIWA_7](0);
+//   ref_vel_publish_7.position.y = DS_vel[IIWA_7](1);
+//   ref_vel_publish_7.position.z = DS_vel[IIWA_7](2);
+//   ref_vel_publish_7.orientation.x = DS_quat[IIWA_7](0);
+//   ref_vel_publish_7.orientation.y = DS_quat[IIWA_7](1);
+//   ref_vel_publish_7.orientation.z = DS_quat[IIWA_7](2);
+//   ref_vel_publish_7.orientation.w = DS_quat[IIWA_7](3);
+//   pubVelQuat_[IIWA_7].publish(ref_vel_publish_7);
 
-  ref_vel_publish_14.position.x = DS_vel[IIWA_14](0);
-  ref_vel_publish_14.position.y = DS_vel[IIWA_14](1);
-  ref_vel_publish_14.position.z = DS_vel[IIWA_14](2);
-  ref_vel_publish_14.orientation.x = DS_quat[IIWA_14](0);
-  ref_vel_publish_14.orientation.y = DS_quat[IIWA_14](1);
-  ref_vel_publish_14.orientation.z = DS_quat[IIWA_14](2);
-  ref_vel_publish_14.orientation.w = DS_quat[IIWA_14](3);
-  pubVelQuat_[IIWA_14].publish(ref_vel_publish_14);
+//   ref_vel_publish_14.position.x = DS_vel[IIWA_14](0);
+//   ref_vel_publish_14.position.y = DS_vel[IIWA_14](1);
+//   ref_vel_publish_14.position.z = DS_vel[IIWA_14](2);
+//   ref_vel_publish_14.orientation.x = DS_quat[IIWA_14](0);
+//   ref_vel_publish_14.orientation.y = DS_quat[IIWA_14](1);
+//   ref_vel_publish_14.orientation.z = DS_quat[IIWA_14](2);
+//   ref_vel_publish_14.orientation.w = DS_quat[IIWA_14](3);
+//   pubVelQuat_[IIWA_14].publish(ref_vel_publish_14);
+// }
+
+void AirHockey::publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat[], Robot robot_name) {
+  geometry_msgs::Pose ref_vel_publish;
+  ref_vel_publish.position.x = DS_vel[robot_name](0);
+  ref_vel_publish.position.y = DS_vel[robot_name](1);
+  ref_vel_publish.position.z = DS_vel[robot_name](2);
+  ref_vel_publish.orientation.x = DS_quat[robot_name](0);
+  ref_vel_publish.orientation.y = DS_quat[robot_name](1);
+  ref_vel_publish.orientation.z = DS_quat[robot_name](2);
+  ref_vel_publish.orientation.w = DS_quat[robot_name](3);
+  pubVelQuat_[robot_name].publish(ref_vel_publish);
+}
+
+// used only for return position, publishes return position for one robot
+void AirHockey::publishPosQuat(Eigen::Vector3f pos[], Eigen::Vector4f quat[], Robot robot_name) {
+  geometry_msgs::Pose ref_pose_publish;
+  ref_pose_publish.position.x = pos[robot_name](0);
+  ref_pose_publish.position.y = pos[robot_name](1);
+  ref_pose_publish.position.z = pos[robot_name](2);
+  ref_pose_publish.orientation.x = quat[robot_name](0);
+  ref_pose_publish.orientation.y = quat[robot_name](1);
+  ref_pose_publish.orientation.z = quat[robot_name](2);
+  ref_pose_publish.orientation.w = quat[robot_name](3);
+  pubPosQuat_[robot_name].publish(ref_pose_publish);
 }
 
 void AirHockey::publishFSM(FSMState current_state){
@@ -395,13 +433,22 @@ void AirHockey::run() {
     }
 
     updateCurrentEEPosition(iiwaPositionFromSource_);
-    publishVelQuat(refVelocity_, refQuat_);
+    // publishVelQuat(refVelocity_, refQuat_);
 
+    // Publisher logic to use publish position when returning (avoids inertia in iiwa_toolkit)
+    if(fsm_state.mode_iiwa7 == HIT){ publishVelQuat(refVelocity_, refQuat_, IIWA_7); }
+    else if(fsm_state.mode_iiwa7 == REST){publishPosQuat(returnPos_, refQuat_, IIWA_7);}
+    
+    if(fsm_state.mode_iiwa14 == HIT){ publishVelQuat(refVelocity_, refQuat_, IIWA_14); }
+    else if(fsm_state.mode_iiwa14 == REST){publishPosQuat(returnPos_, refQuat_, IIWA_14);}
+    
     ros::spinOnce();
     rate_.sleep();
   }
 
-  publishVelQuat(refVelocity_, refQuat_);
+  // publishVelQuat(refVelocity_, refQuat_);
+  publishPosQuat(returnPos_, refQuat_, IIWA_7);
+  publishPosQuat(returnPos_, refQuat_, IIWA_14);
   ros::spinOnce();
   rate_.sleep();
   ros::shutdown();

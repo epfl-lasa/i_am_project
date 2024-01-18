@@ -73,6 +73,7 @@ private:
   float objectMass_;
 
   std::string pubVelQuatTopic_[NB_ROBOTS];
+  std::string pubPosQuatTopic_[NB_ROBOTS];
   std::string iiwaInertiaTopic_[NB_ROBOTS];
   std::string iiwaPositionTopicSim_;
   std::string objectPositionTopic_;
@@ -84,6 +85,7 @@ private:
   ros::Rate rate_;
   ros::NodeHandle nh_;
   ros::Publisher pubVelQuat_[NB_ROBOTS];
+  ros::Publisher pubPosQuat_[NB_ROBOTS];
   ros::Publisher pubFSM_;
   ros::Subscriber objectPosition_;
   ros::Subscriber iiwaPosition_;
@@ -121,7 +123,8 @@ public:
 
   void run();
   void updateCurrentEEPosition(Eigen::Vector3f new_position[]);
-  void publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat[]);
+  void publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat[], Robot robot_name);
+  void publishPosQuat(Eigen::Vector3f pos[], Eigen::Vector4f quat[], Robot robot_name);
   void publishFSM(FSMState current_state);
 
   int getIndex(std::vector<std::string> v, std::string value);

@@ -44,7 +44,7 @@ RUN cd waf-tools && sudo pip3 install .
 RUN sudo apt-get install libnlopt-dev -y
 WORKDIR /source
 RUN git clone https://github.com/nash169/optimization-lib.git
-RUN cd optimization-lib && sudo waf distclean configure build --shared install
+#RUN cd optimization-lib && sudo waf distclean configure build --shared install
 
 # iiwa_toolkit
 USER root

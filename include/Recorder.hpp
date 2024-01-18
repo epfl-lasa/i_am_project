@@ -129,11 +129,6 @@ private:
   std::vector<RecordedRobotState> robotStatesVector_[NB_ROBOTS];
   std::vector<RecordedObjectState> objectStatesVector_;
 
-
-  //   std::unique_ptr<hitting_DS> generateHitting_[NB_ROBOTS];
-  //   generateHitting_[IIWA_1] = std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_1], objectPositionFromSource_);
-  //   generateHitting_[IIWA_2] = std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_2], objectPositionFromSource_);
-
 public:
 
   explicit Recorder(ros::NodeHandle& nh, float frequency) : nh_(nh), rate_(frequency){};

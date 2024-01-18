@@ -467,40 +467,35 @@ void Recorder::run() {
 
     // DEBUG
     if(print_count%200 == 0 ){
-      // std::cout << "ishit : " << fsmState_.isHit << std::endl;
       // std::cout << "iiwa7_state : " << fsmState_.mode_iiwa7 << " \n iiwa14_state : " << fsmState_.mode_iiwa14<< std::endl;
-      // std::cout << "iiwa7_vel : " << iiwaVel_[IIWA_7] << std::endl;
-      // std::cout << "iiwaPos_ 7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
-      // std::cout << "returnPos_ 7  " << returnPos_[IIWA_7]<< std::endl;
     }
     print_count +=1 ;
 
-    // UPDATE robot state
-    if(fsmState_.mode_iiwa7 == HIT){
-      if(isRecording_){
+    // RECORD during hits
+    if(isRecording_){
+      
+      // Record data logic
+      if(fsmState_.mode_iiwa7 == HIT){
         recordRobot(IIWA_7);
         recordObject();
         write_once_7 = 1;
         write_once_object =1;
       }
-    }
 
-    if(fsmState_.mode_iiwa14 == HIT){
-      
-      if(isRecording_){
+      if(fsmState_.mode_iiwa14 == HIT){
         recordRobot(IIWA_14);
         recordObject();
         write_once_14 = 1;
         write_once_object =1;
       }
-    }
 
-    if(isRecording_){
+      // Record object when robots are not in HIT mode logic
       // Keep recording object for X seconds after hit (only when robots are at rest to avoid overlap)
       auto time_since_hit = ros::Time::now() - fsmState_.hit_time;
       if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && time_since_hit < max_recording_time){
         recordObject();
       }
+      // Stop recording object and write to file
       else if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && 
               time_since_hit > max_recording_time && write_once_object){        
        
@@ -509,9 +504,9 @@ void Recorder::run() {
         hit_count += 1;
         moved_manually_count_ = 1; // reset count for moved manually
       }
+      // If not during hit, check if we are moving the object manually, record if so
       else if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && 
               time_since_hit > max_recording_time && !write_once_object){
-        // If we are done writing hit for object, check if it is moved by hand and record if so
         recordObjectMovedByHand(hit_count-1);
       }
 

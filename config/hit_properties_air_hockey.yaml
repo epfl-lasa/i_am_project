@@ -56,6 +56,6 @@ iiwa14:
     
   object_offset:
     x : 0.0
-    y : 0.15
+    y : 0.18
     z : -0.05
 

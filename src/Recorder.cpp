@@ -281,7 +281,6 @@ void Recorder::recordObjectMovedByHand(int hit_count){
     // was moving but stopped -> write to file
     std::string fn = recordingFolderPath_ + "object_moved_manually_after_hit_"+ std::to_string(hit_count)+"-"+std::to_string(moved_manually_count_)+".csv";
     writeObjectStatesToFile(hit_count, fn);
-    objectStatesVector_.clear(); // clear vector data
     moved_manually_count_ += 1;
     isObjectMoving_ = 0;
     std::cout << "Finished writing motion for object moved manually after hit " << std::to_string(hit_count) << "-" << std::to_string(moved_manually_count_) << std::endl;
@@ -398,7 +397,7 @@ void Recorder::setUpRecordingDir(){
   if (mkdir(recordingFolderPath_.c_str(), S_IRWXU | S_IRWXG | S_IRWXO) == 0) {
       std::cout << "Directory created successfully: " << recordingFolderPath_ << std::endl;
   } else {
-      std::cerr << "Error creating directory." << std::endl;
+      std::cerr << "Error creating airhockey directory." << std::endl;
       perror("Error");
   }
 

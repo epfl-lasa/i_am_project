@@ -63,13 +63,13 @@ def plot_robot_data(csv_file, show_plot=True):
     axs[3].set_title('EEF Velocity Over Time')
     axs[3].set_title('Hitting Flux Over Time')
 
-    axs[3].set_xlabel('Time [s]')
+    axs[4].set_xlabel('Time [s]')
 
     axs[0].set_ylabel('Joint angle [rad]')
     axs[1].set_ylabel('Joint velocity [rad/s]')
     axs[2].set_ylabel('Position[m]')
     axs[3].set_ylabel('Speed [m/s]')
-    axs[3].set_ylabel('Hitting Flux [m/s]')
+    axs[4].set_ylabel('Hitting Flux [m/s]')
     
     for ax in axs:
         ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
@@ -128,13 +128,13 @@ if __name__== "__main__" :
 
     # path_to_data_airhockey = "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
-    hit_number = 2
+    hit_number = 3
         
     # Example usage
     # process_timestamped_folders('/path/to/timestamped_folders')
 
     # test one plot
-    path_to_robot_hit = path_to_data_airhockey + f"2023-12-13_14:09:21/IIWA_14_hit_{hit_number}.csv"
-    path_to_object_hit = path_to_data_airhockey + f"2023-12-13_14:09:21/object_hit_{hit_number}.csv"
+    path_to_robot_hit = path_to_data_airhockey + f"2024-01-11_15:57:49/IIWA_14_hit_{hit_number}.csv"
+    path_to_object_hit = path_to_data_airhockey + f"2024-01-11_15:57:49/object_hit_{hit_number}.csv"
     plot_robot_data(path_to_robot_hit, show_plot=False)
     plot_object_data(path_to_object_hit)

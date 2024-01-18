@@ -11,7 +11,7 @@ def parse_list(cell):
     # Split the space-separated values and parse them as a list of floats
     return [float(value) for value in cell.split()]
 
-def parse_time(cell):
+def parse_value(cell):
     # convert string to float 
     return float(cell)
 
@@ -20,8 +20,8 @@ def plot_robot_data(csv_file, show_plot=True):
 
     # Read CSV file into a Pandas DataFrame
     df = pd.read_csv(csv_file, 
-                     converters={'RosTime' : parse_time, 'JointPosition': parse_list, 'JointVelocity': parse_list, 'EEF_Position': parse_list, 
-                                 'EEF_Orientation': parse_list, 'EEF_Velocity': parse_list, 'Inertia': parse_list, 'HittingFlux': parse_list})
+                     converters={'RosTime' : parse_value, 'JointPosition': parse_list, 'JointVelocity': parse_list, 'EEF_Position': parse_list, 
+                                 'EEF_Orientation': parse_list, 'EEF_Velocity': parse_list, 'Inertia': parse_list, 'HittingFlux': parse_value})
                     #  dtype={'RosTime': 'float64'})
 
     # Get the 'Time' column as datetime
@@ -33,7 +33,7 @@ def plot_robot_data(csv_file, show_plot=True):
     coordinate_labels = ['x', 'y', 'z']
 
     # Create subplots
-    fig, axs = plt.subplots(4, 1, figsize=(12, 16), sharex=True)
+    fig, axs = plt.subplots(5, 1, figsize=(12, 16), sharex=True)
 
     # Plot each element of 'JointPositions'
     for i in range(7):
@@ -51,11 +51,17 @@ def plot_robot_data(csv_file, show_plot=True):
     for i in range(3):
         axs[3].plot(df['RosTime'], df['EEF_Velocity'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]}')
 
+    # Plot hitting flux
+    axs[4].plot(df['RosTime'], df['HittingFlux'])
+
+
     # Customize the plots
+    plt.title('Robot Data Over Time')
     axs[0].set_title('Joint Positions Over Time')
     axs[1].set_title('Joint Velocities Over Time')
     axs[2].set_title('EEF Position Over Time')
     axs[3].set_title('EEF Velocity Over Time')
+    axs[3].set_title('Hitting Flux Over Time')
 
     axs[3].set_xlabel('Time [s]')
 
@@ -63,6 +69,7 @@ def plot_robot_data(csv_file, show_plot=True):
     axs[1].set_ylabel('Joint velocity [rad/s]')
     axs[2].set_ylabel('Position[m]')
     axs[3].set_ylabel('Speed [m/s]')
+    axs[3].set_ylabel('Hitting Flux [m/s]')
     
     for ax in axs:
         ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
@@ -74,7 +81,7 @@ def plot_robot_data(csv_file, show_plot=True):
 def plot_object_data(csv_file, show_plot=True):
     # Read CSV file into a Pandas DataFrame
     df = pd.read_csv(csv_file,
-                     converters={'RosTime' : parse_time, 'Position': parse_list})
+                     converters={'RosTime' : parse_value, 'Position': parse_list})
                     #  dtype={'RosTime': 'float64'})
 
     # Convert the 'Time' column to datetime format
@@ -89,7 +96,7 @@ def plot_object_data(csv_file, show_plot=True):
         plt.plot(df['RosTime'], df['Position'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]}')
 
     # Customize the plot
-    plt.title('Robot Data Over Time')
+    plt.title('Object Data Over Time')
     plt.xlabel('Time [s]')
     plt.ylabel('Position')
     plt.legend()
@@ -121,13 +128,13 @@ if __name__== "__main__" :
 
     # path_to_data_airhockey = "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
-    hit_number = 1
+    hit_number = 2
         
     # Example usage
     # process_timestamped_folders('/path/to/timestamped_folders')
 
     # test one plot
-    path_to_robot_hit = path_to_data_airhockey + f"2024-01-11_15:18:43/IIWA_14_hit_{hit_number}.csv"
-    path_to_object_hit = path_to_data_airhockey + f"2024-01-11_15:18:43/object_hit_{hit_number}.csv"
+    path_to_robot_hit = path_to_data_airhockey + f"2023-12-13_14:09:21/IIWA_14_hit_{hit_number}.csv"
+    path_to_object_hit = path_to_data_airhockey + f"2023-12-13_14:09:21/object_hit_{hit_number}.csv"
     plot_robot_data(path_to_robot_hit, show_plot=False)
     plot_object_data(path_to_object_hit)

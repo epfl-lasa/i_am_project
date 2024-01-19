@@ -3,7 +3,8 @@
 bool AirHockey::init() {
 
   // Check if sim or real
-  if (!nh_.getParam("simulation_referential",isSim_)) { ROS_ERROR("Param simulation not found"); }
+  if (!nh_.getParam("simulation_referential",isSim_)) { ROS_ERROR("Param simulation_referential not found"); }
+  if (!nh_.getParam("automatic",isAuto_)) { ROS_ERROR("Param automatic not found"); }
 
   // Get topics names
   if (!nh_.getParam("recorder_topic", pubFSMTopic_)) {ROS_ERROR("Topic /recorder/robot_states not found");}
@@ -169,10 +170,16 @@ bool AirHockey::init() {
   generateHitting7_->set_des_direction(hitDirection_[IIWA_7]);
   generateHitting14_->set_des_direction(hitDirection_[IIWA_14]);
 
-  // add gazebo offset (from position argument in gazebo node in launch file)
+  // Initialize PAUSE state
+  isPaused_ = true;
+  next_hit_ = IIWA_7;
+
+  // add gazebo offset to calculate norm correctly in Sim
   if(isSim_){
-    returnPos_[IIWA_7][1] -= 0.6;
-    returnPos_[IIWA_14][1] += 0.6;
+    returnPosGazebo_[IIWA_7] = returnPos_[IIWA_7];
+    returnPosGazebo_[IIWA_14] = returnPos_[IIWA_14];
+    returnPosGazebo_[IIWA_7][1] = returnPos_[IIWA_7][1] - 0.6;
+    returnPosGazebo_[IIWA_14][1] = returnPos_[IIWA_14][1] + 0.6;
   }
 
   return true;
@@ -269,27 +276,6 @@ void AirHockey::updateCurrentEEPosition(Eigen::Vector3f new_position[]) {
   generateHitting14_->set_current_position(new_position[IIWA_14]);
 }
 
-// void AirHockey::publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat[]) {
-//   geometry_msgs::Pose ref_vel_publish_7, ref_vel_publish_14;
-//   ref_vel_publish_7.position.x = DS_vel[IIWA_7](0);
-//   ref_vel_publish_7.position.y = DS_vel[IIWA_7](1);
-//   ref_vel_publish_7.position.z = DS_vel[IIWA_7](2);
-//   ref_vel_publish_7.orientation.x = DS_quat[IIWA_7](0);
-//   ref_vel_publish_7.orientation.y = DS_quat[IIWA_7](1);
-//   ref_vel_publish_7.orientation.z = DS_quat[IIWA_7](2);
-//   ref_vel_publish_7.orientation.w = DS_quat[IIWA_7](3);
-//   pubVelQuat_[IIWA_7].publish(ref_vel_publish_7);
-
-//   ref_vel_publish_14.position.x = DS_vel[IIWA_14](0);
-//   ref_vel_publish_14.position.y = DS_vel[IIWA_14](1);
-//   ref_vel_publish_14.position.z = DS_vel[IIWA_14](2);
-//   ref_vel_publish_14.orientation.x = DS_quat[IIWA_14](0);
-//   ref_vel_publish_14.orientation.y = DS_quat[IIWA_14](1);
-//   ref_vel_publish_14.orientation.z = DS_quat[IIWA_14](2);
-//   ref_vel_publish_14.orientation.w = DS_quat[IIWA_14](3);
-//   pubVelQuat_[IIWA_14].publish(ref_vel_publish_14);
-// }
-
 void AirHockey::publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat[], Robot robot_name) {
   geometry_msgs::Pose ref_vel_publish;
   ref_vel_publish.position.x = DS_vel[robot_name](0);
@@ -330,7 +316,7 @@ float AirHockey::calculateDirFlux(Robot robot_name) {
 }
 
 // KEYBOARD INTERACTIONS
-AirHockey::FSMState AirHockey::getKeyboard(FSMState current_state ) {
+AirHockey::FSMState AirHockey::updateKeyboardControl(FSMState current_state ) {
 
   nonBlock(1);
 
@@ -364,29 +350,125 @@ AirHockey::FSMState AirHockey::getKeyboard(FSMState current_state ) {
   return current_state;
 }
 
+void AirHockey::updateisPaused() {
+
+  nonBlock(1);
+
+  if (khBit() != 0) {
+    char keyboardCommand = fgetc(stdin);
+    fflush(stdin);
+
+    if (keyboardCommand == ' ') {
+        std::cout << "You pressed the space bar." << std::endl;
+
+        // Switch Pause state
+        if(isPaused_){isPaused_= false;}
+        else if (!isPaused_){isPaused_ = true;}
+
+    } else {
+        printf("You pressed a different key.\n");
+    }
+  }
+  nonBlock(0);
+}
+
+// AUTONOMOUS FSM
+AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
+
+  // if PAUSED -> both robots to REST and wait for further input (return immediately)
+  if(isPaused_)
+  {
+    current_state.mode_iiwa7 = REST;
+    current_state.mode_iiwa14 = REST;
+    return current_state;
+  }
+
+  // if AUTO -> check robots are ready to hit then set to hit
+  float object_stopped_threshold = 2*1e-4;
+  float iiwa_at_rest_threshold = 5*1e-2;
+  float norm_object = (previousObjectPositionFromSource_-objectPositionFromSource_).norm();
+
+  // Only set to HIt if both robots are at rest!
+  if(current_state.mode_iiwa7 == REST && current_state.mode_iiwa14 == REST){
+
+    // is object stopped?
+    if(norm_object < object_stopped_threshold){
+        
+        if(next_hit_ == IIWA_7){
+          float norm_iiwa7 = (iiwaPositionFromSource_[IIWA_7]-returnPosGazebo_[IIWA_7]).norm();
+
+          // is robot at REST position ?
+          if(norm_iiwa7 < iiwa_at_rest_threshold){
+            // Then set to HIT and update next_hit
+            current_state.mode_iiwa7 = HIT;
+            next_hit_ = IIWA_14;
+          }
+        }
+        else if(next_hit_ == IIWA_14){
+          float norm_iiwa14 = (iiwaPositionFromSource_[IIWA_14]-returnPosGazebo_[IIWA_14]).norm();
+          
+          // is robot at REST position ?
+          if(norm_iiwa14 < iiwa_at_rest_threshold){
+            // Then set to HIT and update next_hit
+            current_state.mode_iiwa14 = HIT;
+            next_hit_ = IIWA_7;
+          }
+        }
+      }
+    }
+
+  // Update previous object pos
+  previousObjectPositionFromSource_ = objectPositionFromSource_;
+
+  return current_state;
+}
+
 void AirHockey::run() {
 
   // Set up counters and bool variables
   int print_count = 0;
+  int display_pause_count = 0;
   
   FSMState fsm_state;
 
   std::cout << "READY TO RUN " << std::endl;
 
+  if(isAuto_){ // DISPLAY warnings
+    std::cout << "RUNNING AUTOMATICALLY!! " << std::endl;
+    std::cout << "Starting with iiwa7, press Space to Start/Pause system" << std::endl;
+  }
+
   while (ros::ok()) {
 
-    fsm_state = getKeyboard(fsm_state);
+    // Use keyboard control if is not automatic (set in yaml file)
+    if(!isAuto_) { fsm_state = updateKeyboardControl(fsm_state); }
+    // Otherwise update FSM automatically
+    else if (isAuto_)
+    {
+      // function call to check keyboard, see if it is paused
+      updateisPaused();
 
+      // Display Pause State every second
+      if(display_pause_count%200 == 0 ){
+        if(isPaused_){std::cout << "System is PAUSED ! (Press Space to start)" << std::endl;}
+        if(!isPaused_){std::cout << "System is RUNNING autonomously. Watch out! (Press Space to pause)" << std::endl;}
+      }
+      display_pause_count +=1 ;
+
+      // function call to update FSM auto
+      fsm_state = updateFSMAutomatic(fsm_state);
+    }
+    
     // Publish for Recorder
     publishFSM(fsm_state);
 
     // DEBUG
     if(print_count%200 == 0 ){
-      // std::cout << "ishit : " << fsm_state.isHit << std::endl;
       // std::cout << "iiwa7_state : " << fsm_state.mode_iiwa7 << " \n iiwa14_state : " << fsm_state.mode_iiwa14<< std::endl;
-      // std::cout << "iiwa7_vel : " << iiwaVel_[IIWA_7] << std::endl;
-      // std::cout << "iiwaPos_ 7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
-      // std::cout << "returnPos_ 7  " << returnPos_[IIWA_7]<< std::endl;
+      // std::cout << "iiwaPos_7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
+      // std::cout << "iiwaPos_14  " << iiwaPositionFromSource_[IIWA_14]<< std::endl;
+      // std::cout << "returnPos_7  " << returnPos_[IIWA_7]<< std::endl;
+      // std::cout << "returnPos_14  " << returnPos_[IIWA_14]<< std::endl;
     }
     print_count +=1 ;
 
@@ -433,8 +515,7 @@ void AirHockey::run() {
     }
 
     updateCurrentEEPosition(iiwaPositionFromSource_);
-    // publishVelQuat(refVelocity_, refQuat_);
-
+    
     // Publisher logic to use publish position when returning (avoids inertia in iiwa_toolkit)
     if(fsm_state.mode_iiwa7 == HIT){ publishVelQuat(refVelocity_, refQuat_, IIWA_7); }
     else if(fsm_state.mode_iiwa7 == REST){publishPosQuat(returnPos_, refQuat_, IIWA_7);}

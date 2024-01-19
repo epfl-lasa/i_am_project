@@ -1,3 +1,5 @@
+automatic: True
+
 iiwa7:
 
   ref_velocity:

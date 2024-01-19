@@ -64,6 +64,8 @@ private:
 
   bool isHit_ = 0;
   bool isSim_;
+  bool isAuto_;
+  bool isPaused_;
 
   Eigen::Vector3f hitDirection_[NB_ROBOTS];
   Eigen::Vector3f refVelocity_[NB_ROBOTS];
@@ -109,6 +111,9 @@ private:
   Eigen::Matrix3f iiwaTaskInertiaPos_[NB_ROBOTS];
   Eigen::Vector3f objectOffset_[NB_ROBOTS];
 
+  Robot next_hit_;
+  Eigen::Vector3f previousObjectPositionFromSource_;
+  Eigen::Vector3f returnPosGazebo_[NB_ROBOTS];
 
   std::unique_ptr<hitting_DS> generateHitting7_ =
       std::make_unique<hitting_DS>(iiwaPositionFromSource_[IIWA_7], objectPositionFromSource_);
@@ -127,6 +132,7 @@ public:
   void publishPosQuat(Eigen::Vector3f pos[], Eigen::Vector4f quat[], Robot robot_name);
   void publishFSM(FSMState current_state);
 
+
   int getIndex(std::vector<std::string> v, std::string value);
   void updateDSAttractor();
   void iiwaInertiaCallback(const geometry_msgs::Inertia::ConstPtr& msg, int k);
@@ -143,5 +149,8 @@ public:
   float calculateDirFlux(Robot robot_name);
 
 
-  FSMState getKeyboard(FSMState statesvar );
+  FSMState updateKeyboardControl(FSMState statesvar );
+  void updateisPaused();
+
+  FSMState updateFSMAutomatic(FSMState statesvar );
 };

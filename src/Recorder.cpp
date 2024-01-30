@@ -1,4 +1,3 @@
-
 #include "Recorder.hpp"
 
 bool Recorder::init() {

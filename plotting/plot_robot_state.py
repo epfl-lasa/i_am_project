@@ -54,14 +54,18 @@ def plot_robot_data(csv_file, show_plot=True):
     # Plot hitting flux
     axs[4].plot(df['RosTime'], df['HittingFlux'])
 
+    # Make title string
+    filename = os.path.basename(csv_file)
+    filename_without_extension = os.path.splitext(filename)[0]
+    title_str = filename_without_extension.replace('_', ' ')
 
     # Customize the plots
-    plt.title('Robot Data Over Time')
+    plt.title(title_str)
     axs[0].set_title('Joint Positions Over Time')
     axs[1].set_title('Joint Velocities Over Time')
     axs[2].set_title('EEF Position Over Time')
     axs[3].set_title('EEF Velocity Over Time')
-    axs[3].set_title('Hitting Flux Over Time')
+    axs[4].set_title('Hitting Flux Over Time')
 
     axs[4].set_xlabel('Time [s]')
 
@@ -95,8 +99,14 @@ def plot_object_data(csv_file, show_plot=True):
     for i in range(3):
         plt.plot(df['RosTime'], df['Position'].apply(lambda x: x[i]), label=f'Axis {coordinate_labels[i]}')
 
+    # Make title string
+    filename = os.path.basename(csv_file)
+    filename_without_extension = os.path.splitext(filename)[0]
+    parts = filename_without_extension.split('_')
+    title_str = f"Object data for hit{parts[2]}"
+
     # Customize the plot
-    plt.title('Object Data Over Time')
+    plt.title(title_str)
     plt.xlabel('Time [s]')
     plt.ylabel('Position')
     plt.legend()
@@ -129,12 +139,14 @@ if __name__== "__main__" :
     # path_to_data_airhockey = "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
     hit_number = 3
-        
+    iiwa_number = 7  
     # Example usage
     # process_timestamped_folders('/path/to/timestamped_folders')
 
     # test one plot
-    path_to_robot_hit = path_to_data_airhockey + f"2024-01-11_15:57:49/IIWA_14_hit_{hit_number}.csv"
-    path_to_object_hit = path_to_data_airhockey + f"2024-01-11_15:57:49/object_hit_{hit_number}.csv"
+    path_to_robot_hit = path_to_data_airhockey + f"2024-01-26_17:08:43/IIWA_{iiwa_number}_hit_{hit_number}.csv"
+    path_to_object_hit = path_to_data_airhockey + f"2024-01-26_17:08:43/object_hit_{hit_number}.csv"
+
+
     plot_robot_data(path_to_robot_hit, show_plot=False)
     plot_object_data(path_to_object_hit)

@@ -153,4 +153,6 @@ public:
   void updateisPaused();
 
   FSMState updateFSMAutomatic(FSMState statesvar );
+
+  void checkObjectIsSafeToHit();
 };

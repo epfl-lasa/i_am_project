@@ -139,8 +139,8 @@ if __name__== "__main__" :
 
     # path_to_data_airhockey = "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
-    hit_number = 3
-    iiwa_number = 7  
+    hit_number = 7
+    iiwa_number = 14 
     # Example usage
     # process_timestamped_folders('/path/to/timestamped_folders')
 

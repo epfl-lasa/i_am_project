@@ -271,6 +271,26 @@ int AirHockey::getIndex(std::vector<std::string> v, std::string value) {
   return -1;
 }
 
+void AirHockey::checkObjectIsSafeToHit() {
+  
+  if(isSim_){
+    float object_safety_threshold = 2.0;
+
+    if(objectPositionFromSource_.norm() > object_safety_threshold){
+      isPaused_ = true;
+    }
+    // need condition to unPause if object enters zone 
+    // TODO : save old norm and compare?
+  }
+  else if(!isSim_){
+    float object_safety_threshold = 1.0;
+
+    if((objectPositionForIiwa_[IIWA_7].norm() > object_safety_threshold) && (objectPositionForIiwa_[IIWA_14].norm() > object_safety_threshold)){
+      isPaused_ = true;
+    }  
+  }
+}
+
 void AirHockey::updateCurrentEEPosition(Eigen::Vector3f new_position[]) {
   generateHitting7_->set_current_position(new_position[IIWA_7]);
   generateHitting14_->set_current_position(new_position[IIWA_14]);
@@ -393,15 +413,15 @@ AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
 
     // is object stopped?
     if(norm_object < object_stopped_threshold){
-        
+      
       // Get norms
       float norm_iiwa7 = (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm();
       float norm_iiwa14 = (iiwaPositionFromSource_[IIWA_14]-returnPos_[IIWA_14]).norm();
       // re-write if in simulation
       if(isSim_){
-        float norm_iiwa7 = (iiwaPositionFromSource_[IIWA_7]-returnPosGazebo_[IIWA_7]).norm();
-        float norm_iiwa14 = (iiwaPositionFromSource_[IIWA_14]-returnPosGazebo_[IIWA_14]).norm();}
-      
+        norm_iiwa7 = (iiwaPositionFromSource_[IIWA_7]-returnPosGazebo_[IIWA_7]).norm();
+        norm_iiwa14 = (iiwaPositionFromSource_[IIWA_14]-returnPosGazebo_[IIWA_14]).norm();}
+
       // are robots at rest positions ?
       if(norm_iiwa7 < iiwa_at_rest_threshold && norm_iiwa14 < iiwa_at_rest_threshold){
         // Then set to HIT and update next_hit
@@ -448,6 +468,9 @@ void AirHockey::run() {
       // function call to check keyboard, see if it is paused
       updateisPaused();
 
+      // check if object is within range (for safety)
+      checkObjectIsSafeToHit();
+
       // Display Pause State every second
       if(display_pause_count%200 == 0 ){
         if(isPaused_){
@@ -471,8 +494,8 @@ void AirHockey::run() {
       // std::cout << "iiwa7_state : " << fsm_state.mode_iiwa7 << " \n iiwa14_state : " << fsm_state.mode_iiwa14<< std::endl;
       // std::cout << "iiwaPos_7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
       // std::cout << "iiwaPos_14  " << iiwaPositionFromSource_[IIWA_14]<< std::endl;
-      // std::cout << "returnPos_7  " << returnPos_[IIWA_7]<< std::endl;
-      // std::cout << "returnPos_14  " << returnPos_[IIWA_14]<< std::endl; objectPositionForIiwa_[IIWA_7]
+      // std::cout << "returnPos_7  " << returnPosGazebo_[IIWA_7]<< std::endl;
+      // std::cout << "returnPos_14  " << returnPosGazebo_[IIWA_14]<< std::endl; //objectPositionForIiwa_[IIWA_7]
     }
     print_count +=1 ;
 
@@ -519,7 +542,7 @@ void AirHockey::run() {
     }
 
     updateCurrentEEPosition(iiwaPositionFromSource_);
-    
+
     // Publisher logic to use publish position when returning (avoids inertia in iiwa_toolkit)
     if(fsm_state.mode_iiwa7 == HIT){ publishVelQuat(refVelocity_, refQuat_, IIWA_7); }
     else if(fsm_state.mode_iiwa7 == REST){publishPosQuat(returnPos_, refQuat_, IIWA_7);}

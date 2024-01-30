@@ -281,10 +281,10 @@ void AirHockey::publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat
   ref_vel_publish.position.x = DS_vel[robot_name](0);
   ref_vel_publish.position.y = DS_vel[robot_name](1);
   ref_vel_publish.position.z = DS_vel[robot_name](2);
-  ref_vel_publish.orientation.x = DS_quat[robot_name](0);
-  ref_vel_publish.orientation.y = DS_quat[robot_name](1);
-  ref_vel_publish.orientation.z = DS_quat[robot_name](2);
-  ref_vel_publish.orientation.w = DS_quat[robot_name](3);
+  ref_vel_publish.orientation.w = DS_quat[robot_name](0);
+  ref_vel_publish.orientation.x = DS_quat[robot_name](1);
+  ref_vel_publish.orientation.y = DS_quat[robot_name](2);
+  ref_vel_publish.orientation.z = DS_quat[robot_name](3);
   pubVelQuat_[robot_name].publish(ref_vel_publish);
 }
 
@@ -294,10 +294,10 @@ void AirHockey::publishPosQuat(Eigen::Vector3f pos[], Eigen::Vector4f quat[], Ro
   ref_pose_publish.position.x = pos[robot_name](0);
   ref_pose_publish.position.y = pos[robot_name](1);
   ref_pose_publish.position.z = pos[robot_name](2);
-  ref_pose_publish.orientation.x = quat[robot_name](0);
-  ref_pose_publish.orientation.y = quat[robot_name](1);
-  ref_pose_publish.orientation.z = quat[robot_name](2);
-  ref_pose_publish.orientation.w = quat[robot_name](3);
+  ref_pose_publish.orientation.w = quat[robot_name](0);
+  ref_pose_publish.orientation.x = quat[robot_name](1);
+  ref_pose_publish.orientation.y = quat[robot_name](2);
+  ref_pose_publish.orientation.z = quat[robot_name](3);
   pubPosQuat_[robot_name].publish(ref_pose_publish);
 }
 
@@ -394,28 +394,28 @@ AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
     // is object stopped?
     if(norm_object < object_stopped_threshold){
         
+      // Get norms
+      float norm_iiwa7 = (iiwaPositionFromSource_[IIWA_7]-returnPos_[IIWA_7]).norm();
+      float norm_iiwa14 = (iiwaPositionFromSource_[IIWA_14]-returnPos_[IIWA_14]).norm();
+      // re-write if in simulation
+      if(isSim_){
+        float norm_iiwa7 = (iiwaPositionFromSource_[IIWA_7]-returnPosGazebo_[IIWA_7]).norm();
+        float norm_iiwa14 = (iiwaPositionFromSource_[IIWA_14]-returnPosGazebo_[IIWA_14]).norm();}
+      
+      // are robots at rest positions ?
+      if(norm_iiwa7 < iiwa_at_rest_threshold && norm_iiwa14 < iiwa_at_rest_threshold){
+        // Then set to HIT and update next_hit
         if(next_hit_ == IIWA_7){
-          float norm_iiwa7 = (iiwaPositionFromSource_[IIWA_7]-returnPosGazebo_[IIWA_7]).norm();
-
-          // is robot at REST position ?
-          if(norm_iiwa7 < iiwa_at_rest_threshold){
-            // Then set to HIT and update next_hit
-            current_state.mode_iiwa7 = HIT;
-            next_hit_ = IIWA_14;
-          }
+          current_state.mode_iiwa7 = HIT;
+          next_hit_ = IIWA_14;
         }
         else if(next_hit_ == IIWA_14){
-          float norm_iiwa14 = (iiwaPositionFromSource_[IIWA_14]-returnPosGazebo_[IIWA_14]).norm();
-          
-          // is robot at REST position ?
-          if(norm_iiwa14 < iiwa_at_rest_threshold){
-            // Then set to HIT and update next_hit
-            current_state.mode_iiwa14 = HIT;
-            next_hit_ = IIWA_7;
-          }
+          current_state.mode_iiwa14 = HIT;
+          next_hit_ = IIWA_7;
         }
       }
     }
+  }
 
   // Update previous object pos
   previousObjectPositionFromSource_ = objectPositionFromSource_;
@@ -450,7 +450,11 @@ void AirHockey::run() {
 
       // Display Pause State every second
       if(display_pause_count%200 == 0 ){
-        if(isPaused_){std::cout << "System is PAUSED ! (Press Space to start)" << std::endl;}
+        if(isPaused_){
+          std::cout << "System is PAUSED ! (Press Space to start)" << std::endl;
+          if(next_hit_ == IIWA_7){std::cout << "Next hit is from IIWA 7" << std::endl;}
+          else if(next_hit_ == IIWA_14){std::cout << "Next hit is from IIWA 14" << std::endl;}
+          }
         if(!isPaused_){std::cout << "System is RUNNING autonomously. Watch out! (Press Space to pause)" << std::endl;}
       }
       display_pause_count +=1 ;
@@ -468,7 +472,7 @@ void AirHockey::run() {
       // std::cout << "iiwaPos_7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
       // std::cout << "iiwaPos_14  " << iiwaPositionFromSource_[IIWA_14]<< std::endl;
       // std::cout << "returnPos_7  " << returnPos_[IIWA_7]<< std::endl;
-      // std::cout << "returnPos_14  " << returnPos_[IIWA_14]<< std::endl;
+      // std::cout << "returnPos_14  " << returnPos_[IIWA_14]<< std::endl; objectPositionForIiwa_[IIWA_7]
     }
     print_count +=1 ;
 

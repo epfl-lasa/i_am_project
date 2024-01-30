@@ -23,7 +23,7 @@ iiwa7:
   return_position:
     x: 0.55
     y: -0.3
-    z: 0.4
+    z: 0.25
 
   object_offset:
     x : 0.02
@@ -38,7 +38,7 @@ iiwa14:
     y: 0.0
     z: 0.0
 
-  ref_orientation:
+  ref_orientation: #[0.734, 0.012, 0.028, 0.0678]
     w: -0.707
     x: -0.707
     y: 0
@@ -52,12 +52,12 @@ iiwa14:
   hitting_flux : 4.0
     
   return_position:
-    x: 0.55 
+    x: 0.6 
     y: 0.3  
-    z: 0.4
+    z: 0.20
     
   object_offset:
-    x : 0.0
-    y : 0.18
+    x : 0.05
+    y : 0.15
     z : -0.05
 

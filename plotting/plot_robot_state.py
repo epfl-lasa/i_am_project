@@ -57,10 +57,11 @@ def plot_robot_data(csv_file, show_plot=True):
     # Make title string
     filename = os.path.basename(csv_file)
     filename_without_extension = os.path.splitext(filename)[0]
-    title_str = filename_without_extension.replace('_', ' ')
+    parts = filename_without_extension.split('_')
+    title_str = f"Robot data for iiwa {parts[1]}, hit #{parts[3]}" #filename_without_extension.replace('_', ' ')
 
     # Customize the plots
-    plt.title(title_str)
+    plt.suptitle(title_str)
     axs[0].set_title('Joint Positions Over Time')
     axs[1].set_title('Joint Velocities Over Time')
     axs[2].set_title('EEF Position Over Time')
@@ -103,7 +104,7 @@ def plot_object_data(csv_file, show_plot=True):
     filename = os.path.basename(csv_file)
     filename_without_extension = os.path.splitext(filename)[0]
     parts = filename_without_extension.split('_')
-    title_str = f"Object data for hit{parts[2]}"
+    title_str = f"Object data for hit #{parts[2]}"
 
     # Customize the plot
     plt.title(title_str)
@@ -138,25 +139,15 @@ if __name__== "__main__" :
 
     # path_to_data_airhockey = "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
-<<<<<<< HEAD
     hit_number = 3
     iiwa_number = 7  
-=======
-    hit_number = 19
-        
->>>>>>> 7b4e847145c51e2f6e7c0d5e4e94529db899586f
     # Example usage
     # process_timestamped_folders('/path/to/timestamped_folders')
 
     # test one plot
-<<<<<<< HEAD
     path_to_robot_hit = path_to_data_airhockey + f"2024-01-26_17:08:43/IIWA_{iiwa_number}_hit_{hit_number}.csv"
     path_to_object_hit = path_to_data_airhockey + f"2024-01-26_17:08:43/object_hit_{hit_number}.csv"
 
 
-=======
-    path_to_robot_hit = path_to_data_airhockey + f"2024-01-26_16:03:41/IIWA_7_hit_{hit_number}.csv"
-    path_to_object_hit = path_to_data_airhockey + f"2024-01-26_16:03:41/object_hit_{hit_number}.csv"
->>>>>>> 7b4e847145c51e2f6e7c0d5e4e94529db899586f
     plot_robot_data(path_to_robot_hit, show_plot=False)
     plot_object_data(path_to_object_hit)

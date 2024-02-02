@@ -4,7 +4,10 @@ bool AirHockey::init() {
 
   // Check if sim or real
   if (!nh_.getParam("simulation_referential",isSim_)) { ROS_ERROR("Param simulation_referential not found"); }
+  // Check if automatic
   if (!nh_.getParam("automatic",isAuto_)) { ROS_ERROR("Param automatic not found"); }
+  // Check if using fixed flux
+  if (!nh_.getParam("fixed_flux",isFluxFixed_)) { ROS_ERROR("Param automatic not found"); }
 
   // Get topics names
   if (!nh_.getParam("recorder_topic", pubFSMTopic_)) {ROS_ERROR("Topic /recorder/robot_states not found");}
@@ -182,7 +185,52 @@ bool AirHockey::init() {
     returnPosGazebo_[IIWA_14][1] = returnPos_[IIWA_14][1] + 0.6;
   }
 
+  // get desired hitting fluxes from file in config folder
+  if(!isFluxFixed_){
+    std::string flux_fn;
+    if (!nh_.getParam("desired_fluxes_filename",flux_fn)) { ROS_ERROR("Param desired_fluxes_filename not found"); }
+
+    flux_fn = "/home/ros/ros_ws/src/i_am_project/desired_hitting_fluxes/" + flux_fn;
+    this->getDesiredFluxes(flux_fn);
+
+    hittingFlux_[IIWA_7] = hittingFluxArr_[0];
+    hittingFlux_[IIWA_14] = hittingFluxArr_[0];
+  }
+
   return true;
+}
+
+// GET DESIRED FLUX FILE
+void AirHockey::getDesiredFluxes(std::string filename){
+    
+    std::ifstream inputFile(filename);
+
+    // Check if the file is opened successfully
+    if (!inputFile.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
+    // Read file line by line
+    std::string line;
+    while (std::getline(inputFile, line)) {
+        // Create a stringstream to parse the line
+        std::istringstream iss(line);
+
+        // Variables to store float values
+        float value;
+        char delimiter; // Assuming values are separated by some delimiter like space or comma
+
+        // Read each value from the line
+        while (iss >> value) {
+            hittingFluxArr_.push_back(value);
+            // Check for missing values
+            if (!(iss >> delimiter)) {
+                break; // Missing value detected, break out of the loop
+            }
+        }
+    }
+
+    inputFile.close();
 }
 
 // CALLBACKS
@@ -448,20 +496,31 @@ void AirHockey::run() {
   // Set up counters and bool variables
   int print_count = 0;
   int display_pause_count = 0;
+  int hit_count = 1;
+  int update_flux_once = 0;
   
   FSMState fsm_state;
 
   std::cout << "READY TO RUN " << std::endl;
+  std::cout << "Hitting Flux for next 2 hits : " << hittingFlux_[IIWA_7] << std::endl; 
 
   if(isAuto_){ // DISPLAY warnings
     std::cout << "RUNNING AUTOMATICALLY!! " << std::endl;
     std::cout << "Starting with iiwa7, press Space to Start/Pause system" << std::endl;
   }
 
+  if(!isFluxFixed_){ // display desired hitting flux 
+      std::cout << "Hitting Fluxes : [ ";
+      for (float val :hittingFluxArr_) {
+          std::cout << val << " ";
+      }
+      std::cout << "]" << std::endl;
+  }
+
   while (ros::ok()) {
 
     // Use keyboard control if is not automatic (set in yaml file)
-    if(!isAuto_) { fsm_state = updateKeyboardControl(fsm_state); }
+    if(!isAuto_) {fsm_state = updateKeyboardControl(fsm_state); }
     // Otherwise update FSM automatically
     else if (isAuto_)
     {
@@ -499,7 +558,7 @@ void AirHockey::run() {
     }
     print_count +=1 ;
 
-    // Update DS attractor if at rest + record if object is moved by hand
+    // Update DS attractor if at rest
     if(fsm_state.mode_iiwa7 == REST && fsm_state.mode_iiwa14 == REST){
       // update only at REST so object state conditions for isHit works 
       updateDSAttractor();
@@ -511,7 +570,8 @@ void AirHockey::run() {
     }
 
     if(fsm_state.mode_iiwa14 == HIT){
-      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPos_[IIWA_14]);
+      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_14], iiwaTaskInertiaPos_[IIWA_14]);
+      update_flux_once = 1; // only update after 1 hit from each robot
     }
 
     if(fsm_state.mode_iiwa7 == REST || fsm_state.isHit == 1){
@@ -538,7 +598,19 @@ void AirHockey::run() {
     if (!fsm_state.isHit && generateHitting14_->get_des_direction().dot(generateHitting14_->get_DS_attractor()
                                                       - generateHitting14_->get_current_position())  < 0) {
       fsm_state.isHit = 1;
-      fsm_state.hit_time = ros::Time::now();
+      fsm_state.hit_time = ros::Time::now();     
+    }
+
+    // Update hitting flux if needed
+    if(!isFluxFixed_ && fsm_state.mode_iiwa7 == REST && fsm_state.mode_iiwa14 == REST && update_flux_once){
+        hittingFlux_[IIWA_7] = hittingFluxArr_[hit_count];
+        hittingFlux_[IIWA_14] = hittingFluxArr_[hit_count];
+        
+        update_flux_once = 0;
+        hit_count += 1; 
+        if(hit_count >= hittingFluxArr_.size()){hit_count = 0;} // loop flux file 
+        
+        std::cout << "Hitting Flux for next 2 hits : " << hittingFlux_[IIWA_7] << std::endl; 
     }
 
     updateCurrentEEPosition(iiwaPositionFromSource_);

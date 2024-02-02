@@ -3,6 +3,6 @@ recording: True
 
 recorder_folder: "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
 
-time_object_record: 1.0 # seconds of recording object posistion after hitting
+time_object_record: 1.0 # seconds of recording object posistion after hitting (must be lower than time between hits)
 
 object_mass: 0.4 # used to calculate directional flux when recording

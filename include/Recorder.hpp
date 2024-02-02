@@ -82,6 +82,7 @@ private:
   FSMState fsmState_;
 
   std::string recordingFolderPath_;
+  std::string fluxFilename_;
   float recordingTimeObject_;
 
   float hittingFlux_[NB_ROBOTS];

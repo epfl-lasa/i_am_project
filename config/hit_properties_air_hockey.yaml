@@ -1,4 +1,7 @@
-automatic: True
+automatic: True # Autonoumous hitting
+
+fixed_flux: False # Wether to ues a fixed flux for each hit (otherwise uses file below in a loop)
+desired_fluxes_filename: "exp_test.txt" # This file MUSt be in 'desired_hitting_fluxes' folder
 
 iiwa7:
 
@@ -49,7 +52,7 @@ iiwa14:
     y: -1 
     z: 0
 
-  hitting_flux : 4.0
+  hitting_flux : 1.2
     
   return_position:
     x: 0.6 

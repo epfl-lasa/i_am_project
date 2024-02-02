@@ -12,6 +12,8 @@ bool Recorder::init() {
 
   if (!nh_.getParam("object_mass", objectMass_)) {ROS_ERROR("Param object_mass not found");}
 
+  if (!nh_.getParam("desired_fluxes_filename",fluxFilename_)) { ROS_ERROR("Param automatic not found"); }
+
   // Get topics names
   if (!nh_.getParam("recorder_topic", FSMTopic_)) {ROS_ERROR("Topic /recorder/robot_states not found");}
 
@@ -437,9 +439,12 @@ void Recorder::setUpRecordingDir(){
   std::string hitting_params_fn = recordingFolderPath_ + "hitting_params.yaml";
   std::string toolkit_params_to_copy = "/home/ros/ros_ws/src/iiwa_toolkit_ns/config/passive_track_params_dual_real.yaml";
   std::string toolkit_params_fn = recordingFolderPath_ + "toolkit_params.yaml";
+  std::string desired_fluxes_to_copy = "/home/ros/ros_ws/src/i_am_project/desired_hitting_fluxes/" + fluxFilename_;
+  std::string desired_fluxes_fn = recordingFolderPath_ + "desired_hitting_fluxes-" + fluxFilename_;
 
   copyYamlFile(hit_params_to_copy, hitting_params_fn);
   copyYamlFile(toolkit_params_to_copy, toolkit_params_fn);
+  copyYamlFile(desired_fluxes_to_copy, desired_fluxes_fn);
 }
 
 

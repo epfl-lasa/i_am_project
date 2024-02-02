@@ -66,6 +66,7 @@ private:
   bool isSim_;
   bool isAuto_;
   bool isPaused_;
+  bool isFluxFixed_;
 
   Eigen::Vector3f hitDirection_[NB_ROBOTS];
   Eigen::Vector3f refVelocity_[NB_ROBOTS];
@@ -73,6 +74,7 @@ private:
   Eigen::Vector3f returnPos_[NB_ROBOTS];
   float hittingFlux_[NB_ROBOTS];
   float objectMass_;
+  std::vector<float> hittingFluxArr_;
 
   std::string pubVelQuatTopic_[NB_ROBOTS];
   std::string pubPosQuatTopic_[NB_ROBOTS];
@@ -147,7 +149,7 @@ public:
   void objectPositionIiwaFrames();
 
   float calculateDirFlux(Robot robot_name);
-
+  void getDesiredFluxes(std::string filename);
 
   FSMState updateKeyboardControl(FSMState statesvar );
   void updateisPaused();

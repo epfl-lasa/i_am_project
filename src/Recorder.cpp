@@ -23,6 +23,11 @@ bool Recorder::init() {
   if (!nh_.getParam("/passive_control/vel_quat_7", pubVelQuatTopic_[IIWA_7])) {ROS_ERROR("Topic /passive_control iiwa 7 not found");}
   if (!nh_.getParam("/passive_control/vel_quat_14", pubVelQuatTopic_[IIWA_14])) {ROS_ERROR("Topic /passive_control iiwa 14 not found");}
 
+  if (!nh_.getParam("/iiwa/info_7/joint_state", iiwaJointStateTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/joint_state not found");}
+  if (!nh_.getParam("/iiwa/info_14/joint_state", iiwaJointStateTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/joint_state not found");}
+  if (!nh_.getParam("/iiwa/info_7/trq_cmd", iiwaTorqueCmdTopic_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/TorqueController/command not found");}
+  if (!nh_.getParam("/iiwa/info_14/trq_cmd", iiwaTorqueCmdTopic_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/TorqueController/command not found");}
+
   if(isSim_){
     if (!nh_.getParam("/gazebo/link_states", iiwaPositionTopicSim_)) {ROS_ERROR("Topic /gazebo/link_states not found");}
     if (!nh_.getParam("/gazebo/model_states", objectPositionTopic_)) {ROS_ERROR("Topic /gazebo/model_states not found");}
@@ -33,8 +38,6 @@ bool Recorder::init() {
     if (!nh_.getParam("/iiwa/info_14/pose", iiwaPositionTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/pose not found");}
     if (!nh_.getParam("/iiwa/info_7/vel", iiwaVelocityTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/ee_info/vel not found");}
     if (!nh_.getParam("/iiwa/info_14/vel", iiwaVelocityTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/vel not found");}
-    if (!nh_.getParam("/iiwa/info_7/joint_state", iiwaJointStateTopicReal_[IIWA_7])) {ROS_ERROR("Topic /iiwa1/ee_info/vel not found");}
-    if (!nh_.getParam("/iiwa/info_14/joint_state", iiwaJointStateTopicReal_[IIWA_14])) {ROS_ERROR("Topic /iiwa2/ee_info/vel not found");}
     if (!nh_.getParam("/vrpn_client_node/object_1/pose", objectPositionTopic_)) {ROS_ERROR("Topic vrpn/object1 not found");}
   }
 
@@ -116,18 +119,31 @@ bool Recorder::init() {
                                             ros::TransportHints().reliable().tcpNoDelay());
 
   iiwaDesiredVelocity_[IIWA_7] = 
-        nh_.subscribe<geometry_msgs::Pose>(iiwaDesiredVelocityTopic_[IIWA_7],
+        nh_.subscribe<geometry_msgs::Pose>(pubVelQuatTopic_[IIWA_7],
                                             1,
                                             boost::bind(&Recorder::iiwaDesiredVelocityCallback, this, _1, IIWA_7),
                                             ros::VoidPtr(),
                                             ros::TransportHints().reliable().tcpNoDelay());    
 
   iiwaDesiredVelocity_[IIWA_14] = 
-        nh_.subscribe<geometry_msgs::Pose>(iiwaDesiredVelocityTopic_[IIWA_14],
+        nh_.subscribe<geometry_msgs::Pose>(pubVelQuatTopic_[IIWA_14],
                                             1,
                                             boost::bind(&Recorder::iiwaDesiredVelocityCallback, this, _1, IIWA_14),
                                             ros::VoidPtr(),
                                             ros::TransportHints().reliable().tcpNoDelay());
+  iiwaTorqueCmd_[IIWA_7] = 
+      nh_.subscribe<std_msgs::Float64MultiArray>(iiwaTorqueCmdTopic_[IIWA_7],
+                                          1,
+                                          boost::bind(&Recorder::iiwaTorqueCmdCallback, this, _1, IIWA_7),
+                                          ros::VoidPtr(),
+                                          ros::TransportHints().reliable().tcpNoDelay());    
+
+  iiwaTorqueCmd_[IIWA_14] = 
+      nh_.subscribe<std_msgs::Float64MultiArray>(iiwaTorqueCmdTopic_[IIWA_14],
+                                          1,
+                                          boost::bind(&Recorder::iiwaTorqueCmdCallback, this, _1, IIWA_14),
+                                          ros::VoidPtr(),
+                                          ros::TransportHints().reliable().tcpNoDelay());
 
   FSMState_ = nh_.subscribe(FSMTopic_,
                             1,
@@ -137,6 +153,10 @@ bool Recorder::init() {
 
   previousObjectPositionFromSource_ = objectPositionFromSource_; // set prev position
   moved_manually_count_ = 1; // set count for moved manually
+
+  // resize once here to avoid doing it in subscriber 
+  iiwaTorqueCmdFromSource_[IIWA_7].resize(7);
+  iiwaTorqueCmdFromSource_[IIWA_14].resize(7);
 
   return true;
 }
@@ -206,11 +226,20 @@ void Recorder::iiwaJointStateCallbackReal(const sensor_msgs::JointState::ConstPt
   iiwaJointState_[k].name =  msg->name;
   iiwaJointState_[k].position =  msg->position;
   iiwaJointState_[k].velocity =  msg->velocity;
-  iiwaJointState_[k].effort =  msg->effort;
+  iiwaJointState_[k].effort =  msg->effort; 
 }
 
 void Recorder::iiwaDesiredVelocityCallback(const geometry_msgs::Pose::ConstPtr& msg, int k){
   iiwaDesiredVelocityFromSource_[k]  << msg->position.x, msg->position.y, msg->position.z;
+}
+
+void Recorder::iiwaTorqueCmdCallback(const std_msgs::Float64MultiArray::ConstPtr &msg, int k){
+  
+  size_t num_elements = msg->data.size();
+
+  for (size_t i = 0; i < num_elements; ++i) {
+      iiwaTorqueCmdFromSource_[k](i) = msg->data[i];
+  }
 }
 
 void Recorder::FSMCallback(const i_am_project::FSM_state::ConstPtr& msg){
@@ -250,7 +279,7 @@ std::string Recorder::robotToString(Robot robot_name) {
 
 void Recorder::recordRobot(Robot robot_name){
   // record robot data during HIT phase
-  // joint state, joint velocity, EEF position + velocity
+  // joint state (pos,vel,effort), torque command, EEF position + velocity, Desired pos+vel+flux, inertia, hitting flux
 
   RecordedRobotState newState;
   newState.robot_name = robotToString(robot_name);
@@ -265,6 +294,12 @@ void Recorder::recordRobot(Robot robot_name){
   Eigen::Map<Eigen::VectorXd> tempVector2(iiwaJointState_[robot_name].velocity.data(), iiwaJointState_[robot_name].velocity.size());
   newState.joint_vel =  tempVector2;
 
+  newState.joint_effort.resize(7);
+  Eigen::Map<Eigen::VectorXd> tempVector3(iiwaJointState_[robot_name].effort.data(), iiwaJointState_[robot_name].effort.size());
+  newState.joint_effort =  tempVector3;
+
+  newState.trq_cmd = iiwaTorqueCmdFromSource_[robot_name];
+
   newState.eef_pos.resize(3);
   newState.eef_pos = iiwaPositionFromSource_[robot_name];
 
@@ -278,8 +313,8 @@ void Recorder::recordRobot(Robot robot_name){
   newState.eef_vel_des = iiwaDesiredVelocityFromSource_[robot_name];
 
   newState.inertia.resize(9);
-  Eigen::Map<Eigen::Matrix<float, 9, 1>> tempVector3(iiwaTaskInertiaPos_[robot_name].data());
-  newState.inertia = tempVector3;
+  Eigen::Map<Eigen::Matrix<float, 9, 1>> tempVector4(iiwaTaskInertiaPos_[robot_name].data());
+  newState.inertia = tempVector4;
 
   newState.hitting_flux = calculateDirFlux(robot_name);
 
@@ -293,11 +328,8 @@ void Recorder::recordObject(){
   // Start when robot enters HIT phase, ends with a timer after X seconds
 
   RecordedObjectState newState;
-
   // Get the current time
   newState.time = ros::Time::now();
-
-  // Get the current time
   newState.position = objectPositionFromSource_;
 
   // Add the new state to the vector
@@ -354,7 +386,7 @@ void Recorder::writeRobotStatesToFile(Robot robot_name, int hit_count) {
             << "DesiredPos," << desiredPosition_[robot_name].transpose() << "\n";
 
     // Write CSV header
-    outFile << "RobotName,RosTime,JointPosition,JointVelocity,EEF_Position,EEF_Orientation,EEF_Velocity,EEF_DesiredVelocity,Inertia,HittingFlux\n";
+    outFile << "RobotName,RosTime,JointPosition,JointVelocity,JointEffort,TorqueCmd,EEF_Position,EEF_Orientation,EEF_Velocity,EEF_DesiredVelocity,Inertia,HittingFlux\n";
 
     // Write each RobotState structure to the file
     for (const auto& state : robotStatesVector_[robot_name]) {
@@ -363,6 +395,8 @@ void Recorder::writeRobotStatesToFile(Robot robot_name, int hit_count) {
                 << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec() + 3600 << "," // add precision and 1h for GMT
                 << state.joint_pos.transpose() << ","
                 << state.joint_vel.transpose() << ","
+                << state.joint_effort.transpose() << ","
+                << state.trq_cmd.transpose() << ","
                 << state.eef_pos.transpose() << ","
                 << state.eef_orientation.transpose() << ","
                 << state.eef_vel.transpose() << ","

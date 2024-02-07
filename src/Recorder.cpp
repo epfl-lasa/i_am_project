@@ -20,6 +20,9 @@ bool Recorder::init() {
   if (!nh_.getParam("/iiwa/inertia/taskPos_7", iiwaInertiaTopic_[IIWA_7])) {ROS_ERROR("Topic /iiwa/inertia/taskPos not found");}
   if (!nh_.getParam("/iiwa/inertia/taskPos_14", iiwaInertiaTopic_[IIWA_14])) {ROS_ERROR("Topic /iiwa/inertia/taskPos not found");}
 
+  if (!nh_.getParam("/passive_control/vel_quat_7", pubVelQuatTopic_[IIWA_7])) {ROS_ERROR("Topic /passive_control iiwa 7 not found");}
+  if (!nh_.getParam("/passive_control/vel_quat_14", pubVelQuatTopic_[IIWA_14])) {ROS_ERROR("Topic /passive_control iiwa 14 not found");}
+
   if(isSim_){
     if (!nh_.getParam("/gazebo/link_states", iiwaPositionTopicSim_)) {ROS_ERROR("Topic /gazebo/link_states not found");}
     if (!nh_.getParam("/gazebo/model_states", objectPositionTopic_)) {ROS_ERROR("Topic /gazebo/model_states not found");}
@@ -69,36 +72,36 @@ bool Recorder::init() {
                                             boost::bind(&Recorder::iiwaPoseCallbackReal, this, _1, IIWA_14),
                                             ros::VoidPtr(),
                                             ros::TransportHints().reliable().tcpNoDelay());
+ 
+  iiwaVelocityReal_[IIWA_7] = 
+      nh_.subscribe<geometry_msgs::Twist>(iiwaVelocityTopicReal_[IIWA_7],
+                                          1,
+                                          boost::bind(&Recorder::iiwaVelocityCallbackReal, this, _1, IIWA_7),
+                                          ros::VoidPtr(),
+                                          ros::TransportHints().reliable().tcpNoDelay());    
 
-    iiwaVelocityReal_[IIWA_7] = 
-        nh_.subscribe<geometry_msgs::Twist>(iiwaVelocityTopicReal_[IIWA_7],
-                                            1,
-                                            boost::bind(&Recorder::iiwaVelocityCallbackReal, this, _1, IIWA_7),
-                                            ros::VoidPtr(),
-                                            ros::TransportHints().reliable().tcpNoDelay());    
-
-    iiwaVelocityReal_[IIWA_14] = 
-        nh_.subscribe<geometry_msgs::Twist>(iiwaVelocityTopicReal_[IIWA_14],
-                                            1,
-                                            boost::bind(&Recorder::iiwaVelocityCallbackReal, this, _1, IIWA_14),
-                                            ros::VoidPtr(),
-                                            ros::TransportHints().reliable().tcpNoDelay());
-
-    iiwaJointStateReal_[IIWA_7] = 
-        nh_.subscribe<sensor_msgs::JointState>(iiwaJointStateTopicReal_[IIWA_7],
-                                            1,
-                                            boost::bind(&Recorder::iiwaJointStateCallbackReal, this, _1, IIWA_7),
-                                            ros::VoidPtr(),
-                                            ros::TransportHints().reliable().tcpNoDelay());    
-
-    iiwaJointStateReal_[IIWA_14] = 
-        nh_.subscribe<sensor_msgs::JointState>(iiwaJointStateTopicReal_[IIWA_14],
-                                            1,
-                                            boost::bind(&Recorder::iiwaJointStateCallbackReal, this, _1, IIWA_14),
-                                            ros::VoidPtr(),
-                                            ros::TransportHints().reliable().tcpNoDelay());
+  iiwaVelocityReal_[IIWA_14] = 
+      nh_.subscribe<geometry_msgs::Twist>(iiwaVelocityTopicReal_[IIWA_14],
+                                          1,
+                                          boost::bind(&Recorder::iiwaVelocityCallbackReal, this, _1, IIWA_14),
+                                          ros::VoidPtr(),
+                                          ros::TransportHints().reliable().tcpNoDelay());
   }
-  
+
+  iiwaJointStateReal_[IIWA_7] = 
+      nh_.subscribe<sensor_msgs::JointState>(iiwaJointStateTopicReal_[IIWA_7],
+                                          1,
+                                          boost::bind(&Recorder::iiwaJointStateCallbackReal, this, _1, IIWA_7),
+                                          ros::VoidPtr(),
+                                          ros::TransportHints().reliable().tcpNoDelay());    
+
+  iiwaJointStateReal_[IIWA_14] = 
+      nh_.subscribe<sensor_msgs::JointState>(iiwaJointStateTopicReal_[IIWA_14],
+                                          1,
+                                          boost::bind(&Recorder::iiwaJointStateCallbackReal, this, _1, IIWA_14),
+                                          ros::VoidPtr(),
+                                          ros::TransportHints().reliable().tcpNoDelay());
+
   iiwaInertia_[IIWA_7] =
       nh_.subscribe<geometry_msgs::Inertia>(iiwaInertiaTopic_[IIWA_7],
                                             1,
@@ -111,6 +114,21 @@ bool Recorder::init() {
                                             boost::bind(&Recorder::iiwaInertiaCallback, this, _1, IIWA_14),
                                             ros::VoidPtr(),
                                             ros::TransportHints().reliable().tcpNoDelay());
+
+  iiwaDesiredVelocity_[IIWA_7] = 
+        nh_.subscribe<geometry_msgs::Pose>(iiwaDesiredVelocityTopic_[IIWA_7],
+                                            1,
+                                            boost::bind(&Recorder::iiwaDesiredVelocityCallback, this, _1, IIWA_7),
+                                            ros::VoidPtr(),
+                                            ros::TransportHints().reliable().tcpNoDelay());    
+
+  iiwaDesiredVelocity_[IIWA_14] = 
+        nh_.subscribe<geometry_msgs::Pose>(iiwaDesiredVelocityTopic_[IIWA_14],
+                                            1,
+                                            boost::bind(&Recorder::iiwaDesiredVelocityCallback, this, _1, IIWA_14),
+                                            ros::VoidPtr(),
+                                            ros::TransportHints().reliable().tcpNoDelay());
+
   FSMState_ = nh_.subscribe(FSMTopic_,
                             1,
                             &Recorder::FSMCallback,
@@ -139,12 +157,22 @@ void Recorder::iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkSta
   iiwaPose_[IIWA_7] = linkStates.pose[indexIiwa1];
   iiwaPositionFromSource_[IIWA_7] << iiwaPose_[IIWA_7].position.x, iiwaPose_[IIWA_7].position.y,
       iiwaPose_[IIWA_7].position.z;
+  iiwaOrientationFromSource_[IIWA_7] << iiwaPose_[IIWA_7].orientation.w, iiwaPose_[IIWA_7].orientation.x, 
+      iiwaPose_[IIWA_7].orientation.y, iiwaPose_[IIWA_7].orientation.z;    
+
   iiwaVel_[IIWA_7] = linkStates.twist[indexIiwa1];
+  iiwaVelocityFromSource_[IIWA_7] << iiwaVel_[IIWA_7].linear.x, iiwaVel_[IIWA_7].linear.y,
+      iiwaVel_[IIWA_7].linear.z;
 
   iiwaPose_[IIWA_14] = linkStates.pose[indexIiwa2];
   iiwaPositionFromSource_[IIWA_14] << iiwaPose_[IIWA_14].position.x, iiwaPose_[IIWA_14].position.y,
       iiwaPose_[IIWA_14].position.z;
+  iiwaOrientationFromSource_[IIWA_14] << iiwaPose_[IIWA_14].orientation.w, iiwaPose_[IIWA_14].orientation.x, 
+      iiwaPose_[IIWA_14].orientation.y, iiwaPose_[IIWA_14].orientation.z; 
+
   iiwaVel_[IIWA_14] = linkStates.twist[indexIiwa2];
+  iiwaVelocityFromSource_[IIWA_14] << iiwaVel_[IIWA_14].linear.x, iiwaVel_[IIWA_14].linear.y,
+      iiwaVel_[IIWA_14].linear.z;
 }
 
 void Recorder::iiwaInertiaCallback(const geometry_msgs::Inertia::ConstPtr& msg, int k) {
@@ -181,11 +209,19 @@ void Recorder::iiwaJointStateCallbackReal(const sensor_msgs::JointState::ConstPt
   iiwaJointState_[k].effort =  msg->effort;
 }
 
-void Recorder::FSMCallback(const i_am_project::FSM_state& msg){
-  fsmState_.mode_iiwa7 = static_cast<robotMode>(msg.mode_iiwa7);
-  fsmState_.mode_iiwa14 = static_cast<robotMode>(msg.mode_iiwa14);
-  fsmState_.isHit = msg.isHit;
-  fsmState_.hit_time = msg.hit_time;
+void Recorder::iiwaDesiredVelocityCallback(const geometry_msgs::Pose::ConstPtr& msg, int k){
+  iiwaDesiredVelocityFromSource_[k]  << msg->position.x, msg->position.y, msg->position.z;
+}
+
+void Recorder::FSMCallback(const i_am_project::FSM_state::ConstPtr& msg){
+  fsmState_.mode_iiwa7 = static_cast<robotMode>(msg->mode_iiwa7);
+  fsmState_.mode_iiwa14 = static_cast<robotMode>(msg->mode_iiwa14);
+  fsmState_.isHit = msg->isHit;
+  fsmState_.hit_time = msg->hit_time;
+  fsmState_.des_flux = msg->des_flux;
+  fsmState_.des_pos(0) = msg->des_pos_x; 
+  fsmState_.des_pos(1) = msg->des_pos_y; 
+  fsmState_.des_pos(2) = msg->des_pos_z; 
 }
 
 // UPDATES AND CALCULATIONS
@@ -199,7 +235,6 @@ int Recorder::getIndex(std::vector<std::string> v, std::string value) {
 float Recorder::calculateDirFlux(Robot robot_name) {
   return (iiwaTaskInertiaPos_[robot_name](1, 1) / (iiwaTaskInertiaPos_[robot_name](1, 1) + objectMass_)) * iiwaVelocityFromSource_[robot_name](1);
 }
-
 
 // RECORDING FUNCTIONS 
 std::string Recorder::robotToString(Robot robot_name) {
@@ -238,6 +273,9 @@ void Recorder::recordRobot(Robot robot_name){
 
   newState.eef_vel.resize(3);
   newState.eef_vel = iiwaVelocityFromSource_[robot_name];
+
+  newState.eef_vel_des.resize(3);
+  newState.eef_vel_des = iiwaDesiredVelocityFromSource_[robot_name];
 
   newState.inertia.resize(9);
   Eigen::Map<Eigen::Matrix<float, 9, 1>> tempVector3(iiwaTaskInertiaPos_[robot_name].data());
@@ -310,8 +348,13 @@ void Recorder::writeRobotStatesToFile(Robot robot_name, int hit_count) {
         return;
     }
 
+    // Write single value info in first row
+    outFile << "DesiredFlux," << hittingFluxDes_[robot_name] << ","
+            << "HitTime," <<std::setprecision(std::numeric_limits<double>::max_digits10) << hittingTime_[robot_name].toSec() + 3600  << ","
+            << "DesiredPos," << desiredPosition_[robot_name].transpose() << "\n";
+
     // Write CSV header
-    outFile << "RobotName,RosTime,JointPosition,JointVelocity,EEF_Position,EEF_Orientation,EEF_Velocity,Inertia,HittingFlux\n";
+    outFile << "RobotName,RosTime,JointPosition,JointVelocity,EEF_Position,EEF_Orientation,EEF_Velocity,EEF_DesiredVelocity,Inertia,HittingFlux\n";
 
     // Write each RobotState structure to the file
     for (const auto& state : robotStatesVector_[robot_name]) {
@@ -323,6 +366,7 @@ void Recorder::writeRobotStatesToFile(Robot robot_name, int hit_count) {
                 << state.eef_pos.transpose() << ","
                 << state.eef_orientation.transpose() << ","
                 << state.eef_vel.transpose() << ","
+                << state.eef_vel_des.transpose() << ","
                 << state.inertia.transpose() << ","
                 << state.hitting_flux << "\n";
     }
@@ -475,6 +519,20 @@ void Recorder::run() {
     // RECORD during hits
     if(isRecording_){
       
+      // Update fixed values for data recording
+      if(fsmState_.isHit){
+        if(fsmState_.mode_iiwa7 == HIT){
+          hittingTime_[IIWA_7] = fsmState_.hit_time;
+          hittingFluxDes_[IIWA_7] = fsmState_.des_flux;
+          desiredPosition_[IIWA_7] = fsmState_.des_pos;
+        }
+        else if(fsmState_.mode_iiwa14 == HIT){
+          hittingTime_[IIWA_14] = fsmState_.hit_time;
+          hittingFluxDes_[IIWA_14] = fsmState_.des_flux;
+          desiredPosition_[IIWA_14] = fsmState_.des_pos;
+        }
+      }
+
       // Record data logic
       if(fsmState_.mode_iiwa7 == HIT){
         recordRobot(IIWA_7);
@@ -487,7 +545,7 @@ void Recorder::run() {
         recordRobot(IIWA_14);
         recordObject();
         write_once_14 = 1;
-        write_once_object =1;
+        write_once_object = 1;
       }
 
       // Record object when robots are not in HIT mode logic

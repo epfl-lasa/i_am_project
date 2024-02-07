@@ -19,10 +19,13 @@ def parse_value(cell):
 def plot_robot_data(csv_file, show_plot=True):
 
     # Read CSV file into a Pandas DataFrame
-    df = pd.read_csv(csv_file, 
+    df = pd.read_csv(csv_file, skiprows=1,
                      converters={'RosTime' : parse_value, 'JointPosition': parse_list, 'JointVelocity': parse_list, 'EEF_Position': parse_list, 
                                  'EEF_Orientation': parse_list, 'EEF_Velocity': parse_list, 'Inertia': parse_list, 'HittingFlux': parse_value})
                     #  dtype={'RosTime': 'float64'})
+    
+    df_top_row = pd.read_csv(csv_file, nrows=1)
+    print(df_top_row)
 
     # Get the 'Time' column as datetime
     df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')

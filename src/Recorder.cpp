@@ -435,7 +435,6 @@ void Recorder::writeObjectStatesToFile(int hit_count, std::string filename) {
   outFile.close();
 
   objectStatesVector_.clear(); // clear vector data
-  std::cout << "Finished writing hit " << hit_count << " for object!" << std::endl;
 }
 
 void Recorder::copyYamlFile(std::string inFilePath, std::string outFilePath){
@@ -596,6 +595,7 @@ void Recorder::run() {
         write_once_object = 0;
         hit_count += 1;
         moved_manually_count_ = 1; // reset count for moved manually
+        std::cout << "Finished writing hit " << hit_count << " for object!" << std::endl;
       }
       // If not during hit, check if we are moving the object manually, record if so
       else if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && 

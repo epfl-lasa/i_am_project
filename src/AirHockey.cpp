@@ -545,7 +545,7 @@ void AirHockey::run() {
       checkObjectIsSafeToHit();
 
       // Display Pause State every second
-      if(display_pause_count%200 == 0 ){
+      if(display_pause_count%600 == 0 ){
         if(isPaused_){
           std::cout << "System is PAUSED ! (Press Space to start)" << std::endl;
           if(next_hit_ == IIWA_7){std::cout << "Next hit is from IIWA 7" << std::endl;}

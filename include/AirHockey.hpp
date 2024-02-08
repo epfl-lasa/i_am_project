@@ -60,6 +60,8 @@ private:
     robotMode mode_iiwa14 = REST;
     bool isHit = 0;
     ros::Time hit_time = ros::Time::now();
+    float des_flux;
+    Eigen::Vector3f des_pos;
   };
 
   bool isHit_ = 0;
@@ -75,6 +77,7 @@ private:
   float hittingFlux_[NB_ROBOTS];
   float objectMass_;
   std::vector<float> hittingFluxArr_;
+  float objectSafetyDistance_;
 
   std::string pubVelQuatTopic_[NB_ROBOTS];
   std::string pubPosQuatTopic_[NB_ROBOTS];

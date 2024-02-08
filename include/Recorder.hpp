@@ -33,6 +33,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Twist.h>
 #include <sensor_msgs/JointState.h>
+#include <std_msgs/Float64MultiArray.h>
 
 #include <Eigen/Dense>
 #include <iostream>
@@ -57,6 +58,8 @@ private:
     robotMode mode_iiwa14 = REST;
     bool isHit = 0;
     ros::Time hit_time = ros::Time::now();
+    float des_flux;
+    Eigen::Vector3f des_pos;
   };
 
   struct RecordedRobotState {
@@ -64,9 +67,12 @@ private:
     ros::Time time;
     Eigen::VectorXd joint_pos = Eigen::VectorXd(7);
     Eigen::VectorXd joint_vel = Eigen::VectorXd(7);
+    Eigen::VectorXd joint_effort = Eigen::VectorXd(7);
+    Eigen::VectorXd trq_cmd = Eigen::VectorXd(7);
     Eigen::Vector3f eef_pos;
     Eigen::Vector4f eef_orientation;
     Eigen::Vector3f eef_vel;
+    Eigen::Vector3f eef_vel_des;
     Eigen::Matrix<float, 9, 1> inertia;
     float hitting_flux;
   };
@@ -78,6 +84,7 @@ private:
 
   bool isSim_;
   bool isRecording_;
+  bool isFluxFixed_;
 
   FSMState fsmState_;
 
@@ -85,8 +92,10 @@ private:
   std::string fluxFilename_;
   float recordingTimeObject_;
 
-  float hittingFlux_[NB_ROBOTS];
   float objectMass_;
+  float hittingFluxDes_[NB_ROBOTS];
+  ros::Time hittingTime_[NB_ROBOTS];
+  Eigen::Vector3f desiredPosition_[NB_ROBOTS];
 
   std::string pubVelQuatTopic_[NB_ROBOTS];
   std::string iiwaInertiaTopic_[NB_ROBOTS];
@@ -94,9 +103,8 @@ private:
   std::string objectPositionTopic_;
   std::string iiwaPositionTopicReal_[NB_ROBOTS];
   std::string iiwaVelocityTopicReal_[NB_ROBOTS];
-  std::string iiwaBasePositionTopic_[NB_ROBOTS];
   std::string iiwaJointStateTopicReal_[NB_ROBOTS];
-  std::string RobotStateTopic_;
+  std::string iiwaTorqueCmdTopic_[NB_ROBOTS];
   std::string FSMTopic_;
 
   ros::Rate rate_;
@@ -107,8 +115,9 @@ private:
   ros::Subscriber iiwaInertia_[NB_ROBOTS];
   ros::Subscriber iiwaPositionReal_[NB_ROBOTS];
   ros::Subscriber iiwaVelocityReal_[NB_ROBOTS];
-  ros::Subscriber iiwaBasePosition_[NB_ROBOTS];
   ros::Subscriber iiwaJointStateReal_[NB_ROBOTS];
+  ros::Subscriber iiwaDesiredVelocity_[NB_ROBOTS];
+  ros::Subscriber iiwaTorqueCmd_[NB_ROBOTS];
   ros::Subscriber FSMState_;
 
   geometry_msgs::Pose boxPose_;
@@ -119,11 +128,12 @@ private:
   Eigen::Vector3f objectPositionFromSource_;
   Eigen::Vector3f previousObjectPositionFromSource_;
   Eigen::Vector4f objectOrientationFromSource_;
-  Eigen::Vector3f objectPositionForIiwa_[NB_ROBOTS];
   Eigen::Vector3f iiwaPositionFromSource_[NB_ROBOTS];
   Eigen::Vector4f iiwaOrientationFromSource_[NB_ROBOTS];
   Eigen::Vector3f iiwaVelocityFromSource_[NB_ROBOTS];
-  Eigen::Matrix3f iiwaTaskInertiaPos_[NB_ROBOTS];
+  Eigen::Matrix3f iiwaTaskInertiaPos_[NB_ROBOTS];;
+  Eigen::Vector3f iiwaDesiredVelocityFromSource_[NB_ROBOTS];
+  Eigen::VectorXd iiwaTorqueCmdFromSource_[NB_ROBOTS];
   bool isObjectMoving_;
   int moved_manually_count_;
 
@@ -143,12 +153,14 @@ public:
   void iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkStates);
   void objectPositionCallbackGazebo(const gazebo_msgs::ModelStates& modelStates);
   void iiwaJointStateCallbackReal(const sensor_msgs::JointState::ConstPtr& msg, int k);
+  void iiwaDesiredVelocityCallback(const geometry_msgs::Pose::ConstPtr& msg, int k);
 
   void iiwaPoseCallbackReal(const geometry_msgs::Pose::ConstPtr& msg, int k);
   void iiwaVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& msg, int k);
   void iiwaBasePositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg, int k);
   void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg);
-  void FSMCallback(const i_am_project::FSM_state& msg);
+  void iiwaTorqueCmdCallback(const std_msgs::Float64MultiArray::ConstPtr &msg, int k);
+  void FSMCallback(const i_am_project::FSM_state::ConstPtr& msg);
 
   void recordRobot(Robot robot_name);
   void recordObject();

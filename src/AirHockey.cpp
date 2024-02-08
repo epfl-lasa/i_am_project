@@ -8,6 +8,8 @@ bool AirHockey::init() {
   if (!nh_.getParam("automatic",isAuto_)) { ROS_ERROR("Param automatic not found"); }
   // Check if using fixed flux
   if (!nh_.getParam("fixed_flux",isFluxFixed_)) { ROS_ERROR("Param automatic not found"); }
+  // Check safetz distance
+  if (!nh_.getParam("safety_distance", objectSafetyDistance_)) { ROS_ERROR("Param safety distance not found"); }
 
   // Get topics names
   if (!nh_.getParam("recorder_topic", pubFSMTopic_)) {ROS_ERROR("Topic /recorder/robot_states not found");}
@@ -200,39 +202,6 @@ bool AirHockey::init() {
   return true;
 }
 
-// GET DESIRED FLUX FILE
-void AirHockey::getDesiredFluxes(std::string filename){
-    
-    std::ifstream inputFile(filename);
-
-    // Check if the file is opened successfully
-    if (!inputFile.is_open()) {
-        std::cerr << "Error opening file: " << filename << std::endl;
-        return;
-    }
-    // Read file line by line
-    std::string line;
-    while (std::getline(inputFile, line)) {
-        // Create a stringstream to parse the line
-        std::istringstream iss(line);
-
-        // Variables to store float values
-        float value;
-        char delimiter; // Assuming values are separated by some delimiter like space or comma
-
-        // Read each value from the line
-        while (iss >> value) {
-            hittingFluxArr_.push_back(value);
-            // Check for missing values
-            if (!(iss >> delimiter)) {
-                break; // Missing value detected, break out of the loop
-            }
-        }
-    }
-
-    inputFile.close();
-}
-
 // CALLBACKS
 void AirHockey::objectPositionCallbackGazebo(const gazebo_msgs::ModelStates& modelStates) {
   int boxIndex = getIndex(modelStates.name, "box_model");
@@ -249,12 +218,22 @@ void AirHockey::iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkSt
   iiwaPose_[IIWA_7] = linkStates.pose[indexIiwa1];
   iiwaPositionFromSource_[IIWA_7] << iiwaPose_[IIWA_7].position.x, iiwaPose_[IIWA_7].position.y,
       iiwaPose_[IIWA_7].position.z;
+  iiwaOrientationFromSource_[IIWA_7] << iiwaPose_[IIWA_7].orientation.w, iiwaPose_[IIWA_7].orientation.x, 
+      iiwaPose_[IIWA_7].orientation.y, iiwaPose_[IIWA_7].orientation.z;    
+
   iiwaVel_[IIWA_7] = linkStates.twist[indexIiwa1];
+  iiwaVelocityFromSource_[IIWA_7] << iiwaVel_[IIWA_7].linear.x, iiwaVel_[IIWA_7].linear.y,
+      iiwaVel_[IIWA_7].linear.z;
 
   iiwaPose_[IIWA_14] = linkStates.pose[indexIiwa2];
   iiwaPositionFromSource_[IIWA_14] << iiwaPose_[IIWA_14].position.x, iiwaPose_[IIWA_14].position.y,
       iiwaPose_[IIWA_14].position.z;
+  iiwaOrientationFromSource_[IIWA_14] << iiwaPose_[IIWA_14].orientation.w, iiwaPose_[IIWA_14].orientation.x, 
+      iiwaPose_[IIWA_14].orientation.y, iiwaPose_[IIWA_14].orientation.z; 
+
   iiwaVel_[IIWA_14] = linkStates.twist[indexIiwa2];
+  iiwaVelocityFromSource_[IIWA_14] << iiwaVel_[IIWA_14].linear.x, iiwaVel_[IIWA_14].linear.y,
+      iiwaVel_[IIWA_14].linear.z;
 }
 
 void AirHockey::iiwaInertiaCallback(const geometry_msgs::Inertia::ConstPtr& msg, int k) {
@@ -291,6 +270,10 @@ void AirHockey::objectPositionCallbackReal(const geometry_msgs::PoseStamped::Con
 }
 
 // UPDATES AND CALCULATIONS
+float AirHockey::calculateDirFlux(Robot robot_name) {
+  return (iiwaTaskInertiaPos_[robot_name](1, 1) / (iiwaTaskInertiaPos_[robot_name](1, 1) + objectMass_)) * iiwaVelocityFromSource_[robot_name](1);
+}
+
 void AirHockey::objectPositionIiwaFrames() {
   rotationMat_ << 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0;
 
@@ -322,9 +305,7 @@ int AirHockey::getIndex(std::vector<std::string> v, std::string value) {
 void AirHockey::checkObjectIsSafeToHit() {
   
   if(isSim_){
-    float object_safety_threshold = 2.0;
-
-    if(objectPositionFromSource_.norm() > object_safety_threshold){
+    if(objectPositionFromSource_.norm() > objectSafetyDistance_){
       isPaused_ = true;
     }
     // need condition to unPause if object enters zone 
@@ -344,6 +325,40 @@ void AirHockey::updateCurrentEEPosition(Eigen::Vector3f new_position[]) {
   generateHitting14_->set_current_position(new_position[IIWA_14]);
 }
 
+// GET DESIRED FLUX FILE
+void AirHockey::getDesiredFluxes(std::string filename){
+    
+    std::ifstream inputFile(filename);
+
+    // Check if the file is opened successfully
+    if (!inputFile.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return;
+    }
+    // Read file line by line
+    std::string line;
+    while (std::getline(inputFile, line)) {
+        // Create a stringstream to parse the line
+        std::istringstream iss(line);
+
+        // Variables to store float values
+        float value;
+        char delimiter; // Assuming values are separated by some delimiter like space or comma
+
+        // Read each value from the line
+        while (iss >> value) {
+            hittingFluxArr_.push_back(value);
+            // Check for missing values
+            if (!(iss >> delimiter)) {
+                break; // Missing value detected, break out of the loop
+            }
+        }
+    }
+
+    inputFile.close();
+}
+
+// PUBLISHERS
 void AirHockey::publishVelQuat(Eigen::Vector3f DS_vel[], Eigen::Vector4f DS_quat[], Robot robot_name) {
   geometry_msgs::Pose ref_vel_publish;
   ref_vel_publish.position.x = DS_vel[robot_name](0);
@@ -375,12 +390,12 @@ void AirHockey::publishFSM(FSMState current_state){
   msg.mode_iiwa14 = static_cast<uint8_t>(current_state.mode_iiwa14);
   msg.isHit = current_state.isHit;
   msg.hit_time = current_state.hit_time;
+  msg.des_flux = current_state.des_flux;
+  msg.des_pos_x = current_state.des_pos(0);
+  msg.des_pos_y = current_state.des_pos(1);
+  msg.des_pos_z = current_state.des_pos(2);
 
   pubFSM_.publish(msg);
-}
-
-float AirHockey::calculateDirFlux(Robot robot_name) {
-  return (iiwaTaskInertiaPos_[robot_name](1, 1) / (iiwaTaskInertiaPos_[robot_name](1, 1) + objectMass_)) * iiwaVelocityFromSource_[robot_name](1);
 }
 
 // KEYBOARD INTERACTIONS
@@ -502,7 +517,6 @@ void AirHockey::run() {
   FSMState fsm_state;
 
   std::cout << "READY TO RUN " << std::endl;
-  std::cout << "Hitting Flux for next 2 hits : " << hittingFlux_[IIWA_7] << std::endl; 
 
   if(isAuto_){ // DISPLAY warnings
     std::cout << "RUNNING AUTOMATICALLY!! " << std::endl;
@@ -588,17 +602,21 @@ void AirHockey::run() {
       fsm_state.isHit = 0;
     }
 
-    // Update isHit 
+    // Update isHit and FSM state for recorder
     if (!fsm_state.isHit && generateHitting7_->get_des_direction().dot(generateHitting7_->get_DS_attractor()
                                                       - generateHitting7_->get_current_position()) < 0) {
       fsm_state.isHit = 1;
       fsm_state.hit_time = ros::Time::now();
+      fsm_state.des_flux = hittingFlux_[IIWA_7];
+      fsm_state.des_pos = generateHitting7_->get_DS_attractor();
     }
 
     if (!fsm_state.isHit && generateHitting14_->get_des_direction().dot(generateHitting14_->get_DS_attractor()
                                                       - generateHitting14_->get_current_position())  < 0) {
       fsm_state.isHit = 1;
-      fsm_state.hit_time = ros::Time::now();     
+      fsm_state.hit_time = ros::Time::now();
+      fsm_state.des_flux = hittingFlux_[IIWA_14];
+      fsm_state.des_pos = generateHitting14_->get_DS_attractor();     
     }
 
     // Update hitting flux if needed

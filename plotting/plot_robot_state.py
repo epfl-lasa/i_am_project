@@ -142,14 +142,14 @@ if __name__== "__main__" :
 
     # path_to_data_airhockey = "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
-    hit_number = 7
-    iiwa_number = 14 
+    hit_number = 5
+    iiwa_number = 7
     # Example usage
     # process_timestamped_folders('/path/to/timestamped_folders')
 
     # test one plot
-    path_to_robot_hit = path_to_data_airhockey + f"2024-01-26_17:08:43/IIWA_{iiwa_number}_hit_{hit_number}.csv"
-    path_to_object_hit = path_to_data_airhockey + f"2024-01-26_17:08:43/object_hit_{hit_number}.csv"
+    path_to_robot_hit = path_to_data_airhockey + f"2024-02-08_12:48:40/IIWA_{iiwa_number}_hit_{hit_number}.csv"
+    path_to_object_hit = path_to_data_airhockey + f"2024-02-08_12:48:40/object_hit_{hit_number}.csv"
 
 
     plot_robot_data(path_to_robot_hit, show_plot=False)

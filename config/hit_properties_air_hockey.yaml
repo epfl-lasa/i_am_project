@@ -1,9 +1,9 @@
-automatic: False # Autonoumous hitting
+automatic: True # Autonoumous hitting
 
 fixed_flux: True # Wether to use a fixed flux for each hit (otherwise uses file below in a loop)
 desired_fluxes_filename: "exp_test.txt" # This file MUSt be in 'desired_hitting_fluxes' folder
 
-safety_distance: 1.3 # distance at which to PAUSE the robots when running autonomously
+safety_distance: 1.15 # distance at which to PAUSE the robots when running autonomously
 
 iiwa7:
 
@@ -28,7 +28,7 @@ iiwa7:
   return_position:
     x: 0.55
     y: -0.3
-    z: 0.3 #.25
+    z: 0.25
 
   object_offset:
     x : 0.02
@@ -57,12 +57,12 @@ iiwa14:
   hitting_flux : 1.2
     
   return_position:
-    x: 0.55 #.6 
+    x: 0.6 
     y: 0.3  
-    z: 0.3 #.20
+    z: 0.25
     
   object_offset:
     x : 0.05
     y : 0.15
-    z : -0.05
+    z : -0.07
 

@@ -202,6 +202,37 @@ def plot_object_data(csv_file, show_plot=True):
     plt.grid(True)
 
     if show_plot : plt.show()
+    
+
+def get_flux_at_hit(csv_file):
+    
+    # Read CSV file into a Pandas DataFrame
+    df = pd.read_csv(csv_file, skiprows=1,
+                     converters={'RosTime' : parse_value, 'JointPosition': parse_list, 'JointVelocity': parse_list, 'JointEffort': parse_list, 
+                                 'TorqueCmd': parse_list, 'EEF_Position': parse_list, 'EEF_Orientation': parse_list, 'EEF_Velocity': parse_list, 
+                                 'EEF_DesiredVelocity': parse_list, 'Inertia': parse_list, 'HittingFlux': parse_value})
+                    #  dtype={'RosTime': 'float64'})
+    
+    # Define set values from first row
+    df_top_row = pd.read_csv(csv_file, nrows=1, header=None)
+    top_row_list = df_top_row.iloc[0].to_list()
+    des_flux = top_row_list[1]
+    des_pos = parse_list(top_row_list[5])
+    recorded_hit_time = top_row_list[3]
+    # print(f"Desired Flux: {des_flux} \n Desired Pos: [{des_pos[0]:.3f}, {des_pos[1]:.3f}, {des_pos[2]:.3f}] \n Hit Time: {pd.to_datetime(recorded_hit_time, unit='s')}")
+
+    # Make title string
+    filename = os.path.basename(csv_file)
+    filename_without_extension = os.path.splitext(filename)[0]
+    parts = filename_without_extension.split('_')
+    # title_str = f"Object data for hit #{parts[2]}"
+
+    # Get max flux
+    max_flux = df['HittingFlux'].abs().max()
+        
+    print(f"Hit #{parts[3]}, IIWA_{parts[1]} \n Desired Flux: {des_flux} \n Max Flux: {max_flux} \n")
+    
+    return max_flux
 
 def process_timestamped_folders(root_folder):
     for folder in os.listdir(root_folder):
@@ -228,14 +259,33 @@ if __name__== "__main__" :
     # path_to_data_airhockey = "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
     
-    folder_name = "2024-02-08_14:04:37"
-    hit_number = 6
-    iiwa_number = 7
+    folder_name = "2024-02-19_17:11:18"
+    hit_number = [1,7]
+    iiwa_number = 14
 
     # test one plot
-    path_to_robot_hit = path_to_data_airhockey + f"{folder_name}/IIWA_{iiwa_number}_hit_{hit_number}.csv"
-    path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_hit_{hit_number}.csv"
+    if isinstance(hit_number, int) :
+        path_to_robot_hit = path_to_data_airhockey + f"{folder_name}/IIWA_{iiwa_number}_hit_{hit_number}.csv"
+        path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_hit_{hit_number}.csv"
 
-    plot_actual_vs_des(path_to_robot_hit)
-    # plot_robot_data(path_to_robot_hit, show_plot=False)
-    # plot_object_data(path_to_object_hit)
+        plot_actual_vs_des(path_to_robot_hit)
+        # plot_robot_data(path_to_robot_hit, show_plot=False)
+        # plot_object_data(path_to_object_hit)
+        
+    elif isinstance(hit_number, list):
+        for hit in range(hit_number[0], hit_number[1]+1):
+        
+            path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_hit_{hit}.csv"
+
+            # grab robot data file for the hit
+            if os.path.exists(path_to_data_airhockey + f"{folder_name}/IIWA_7_hit_{hit}.csv"):
+                path_to_robot_hit = path_to_data_airhockey + f"{folder_name}/IIWA_7_hit_{hit}.csv"
+            elif os.path.exists(path_to_data_airhockey + f"{folder_name}/IIWA_14_hit_{hit}.csv"):
+                path_to_robot_hit = path_to_data_airhockey + f"{folder_name}/IIWA_14_hit_{hit}.csv"
+            else :
+                print(f"No robot data file for hit #{hit} \n")
+
+            
+            get_flux_at_hit(path_to_robot_hit)
+        
+    

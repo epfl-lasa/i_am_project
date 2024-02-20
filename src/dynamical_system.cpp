@@ -20,7 +20,7 @@ hitting_DS::hitting_DS(Eigen::Vector3f& current_end_effector,
   des_speed_ = hit_speed;
 }
 
-Eigen::Vector3f hitting_DS::flux_DS(float dir_flux, Eigen::Matrix3f& current_inertia) {
+Eigen::Vector3f hitting_DS::flux_DS(float dir_flux, Eigen::Matrix3f& current_inertia_inverse) {
 
   /* ** Finding the virtual end effector position ** */
 
@@ -29,7 +29,7 @@ Eigen::Vector3f hitting_DS::flux_DS(float dir_flux, Eigen::Matrix3f& current_ine
   Eigen::Vector3f virtual_ee =
       DS_attractor_ + des_direction_ * (relative_position.dot(des_direction_) / (des_direction_.squaredNorm()));
 
-  float dir_inertia = des_direction_.transpose() * current_inertia * des_direction_;
+  float dir_inertia = 1/(des_direction_.transpose() * current_inertia_inverse * des_direction_);
 
   // ROS_INFO_STREAM("Dir_inertia: " << dir_inertia);
   float exp_term = (current_position_ - virtual_ee).norm();

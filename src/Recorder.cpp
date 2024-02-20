@@ -196,15 +196,15 @@ void Recorder::iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkSta
 }
 
 void Recorder::iiwaInertiaCallback(const geometry_msgs::Inertia::ConstPtr& msg, int k) {
-  iiwaTaskInertiaPos_[k](0, 0) = msg->ixx;
-  iiwaTaskInertiaPos_[k](2, 2) = msg->izz;
-  iiwaTaskInertiaPos_[k](1, 1) = msg->iyy;
-  iiwaTaskInertiaPos_[k](0, 1) = msg->ixy;
-  iiwaTaskInertiaPos_[k](1, 0) = msg->ixy;
-  iiwaTaskInertiaPos_[k](0, 2) = msg->ixz;
-  iiwaTaskInertiaPos_[k](2, 0) = msg->ixz;
-  iiwaTaskInertiaPos_[k](1, 2) = msg->iyz;
-  iiwaTaskInertiaPos_[k](2, 1) = msg->iyz;
+  iiwaTaskInertiaPosInv_[k](0, 0) = msg->ixx;
+  iiwaTaskInertiaPosInv_[k](2, 2) = msg->izz;
+  iiwaTaskInertiaPosInv_[k](1, 1) = msg->iyy;
+  iiwaTaskInertiaPosInv_[k](0, 1) = msg->ixy;
+  iiwaTaskInertiaPosInv_[k](1, 0) = msg->ixy;
+  iiwaTaskInertiaPosInv_[k](0, 2) = msg->ixz;
+  iiwaTaskInertiaPosInv_[k](2, 0) = msg->ixz;
+  iiwaTaskInertiaPosInv_[k](1, 2) = msg->iyz;
+  iiwaTaskInertiaPosInv_[k](2, 1) = msg->iyz;
 }
 
 void Recorder::iiwaPoseCallbackReal(const geometry_msgs::Pose::ConstPtr& msg, int k){
@@ -262,7 +262,7 @@ int Recorder::getIndex(std::vector<std::string> v, std::string value) {
 }
 
 float Recorder::calculateDirFlux(Robot robot_name) {
-  return (iiwaTaskInertiaPos_[robot_name](1, 1) / (iiwaTaskInertiaPos_[robot_name](1, 1) + objectMass_)) * iiwaVelocityFromSource_[robot_name](1);
+  return ((1/iiwaTaskInertiaPosInv_[robot_name](1, 1)) / (1/(iiwaTaskInertiaPosInv_[robot_name](1, 1)) + objectMass_)) * iiwaVelocityFromSource_[robot_name](1);
 }
 
 // RECORDING FUNCTIONS 
@@ -313,7 +313,7 @@ void Recorder::recordRobot(Robot robot_name){
   newState.eef_vel_des = iiwaDesiredVelocityFromSource_[robot_name];
 
   newState.inertia.resize(9);
-  Eigen::Map<Eigen::Matrix<float, 9, 1>> tempVector4(iiwaTaskInertiaPos_[robot_name].data());
+  Eigen::Map<Eigen::Matrix<float, 9, 1>> tempVector4(iiwaTaskInertiaPosInv_[robot_name].data());
   newState.inertia = tempVector4;
 
   newState.hitting_flux = calculateDirFlux(robot_name);

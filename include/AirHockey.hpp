@@ -115,7 +115,7 @@ private:
   Eigen::Vector4f iiwaOrientationFromSource_[NB_ROBOTS];
   Eigen::Vector3f iiwaVelocityFromSource_[NB_ROBOTS];
   Eigen::Vector3f iiwaBasePositionFromSource_[NB_ROBOTS];
-  Eigen::Matrix3f iiwaTaskInertiaPos_[NB_ROBOTS];
+  Eigen::Matrix3f iiwaTaskInertiaPosInv_[NB_ROBOTS];
   Eigen::Vector3f objectOffset_[NB_ROBOTS];
 
   Robot next_hit_;
@@ -153,7 +153,6 @@ public:
   void objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg);
   void objectPositionIiwaFrames();
 
-  float calculateDirFlux(Robot robot_name);
   void getDesiredFluxes(std::string filename);
 
   FSMState updateKeyboardControl(FSMState statesvar );

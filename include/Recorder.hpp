@@ -131,7 +131,7 @@ private:
   Eigen::Vector3f iiwaPositionFromSource_[NB_ROBOTS];
   Eigen::Vector4f iiwaOrientationFromSource_[NB_ROBOTS];
   Eigen::Vector3f iiwaVelocityFromSource_[NB_ROBOTS];
-  Eigen::Matrix3f iiwaTaskInertiaPos_[NB_ROBOTS];;
+  Eigen::Matrix3f iiwaTaskInertiaPosInv_[NB_ROBOTS];;
   Eigen::Vector3f iiwaDesiredVelocityFromSource_[NB_ROBOTS];
   Eigen::VectorXd iiwaTorqueCmdFromSource_[NB_ROBOTS];
   bool isObjectMoving_;

@@ -26,8 +26,8 @@ iiwa: {
   },
 
   inertia: {
-    taskPos_7: "/iiwa1/Inertia/taskPos", # Subscriber - Iiwa inertia - type geometry_msgs::Inertia (SIM + REAL)
-    taskPos_14: "/iiwa2/Inertia/taskPos", # Subscriber - Iiwa inertia - type geometry_msgs::Inertia (SIM + REAL)
+    taskPos_7: "/iiwa1/Inertia/taskPosInv", # Subscriber - Iiwa inertia inverse - type geometry_msgs::Inertia (SIM + REAL)
+    taskPos_14: "/iiwa2/Inertia/taskPosInv", # Subscriber - Iiwa inertia inverse - type geometry_msgs::Inertia (SIM + REAL)
   }
 }
 

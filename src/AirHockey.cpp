@@ -240,15 +240,15 @@ void AirHockey::iiwaPositionCallbackGazebo(const gazebo_msgs::LinkStates& linkSt
 }
 
 void AirHockey::iiwaInertiaCallback(const geometry_msgs::Inertia::ConstPtr& msg, int k) {
-  iiwaTaskInertiaPos_[k](0, 0) = msg->ixx;
-  iiwaTaskInertiaPos_[k](2, 2) = msg->izz;
-  iiwaTaskInertiaPos_[k](1, 1) = msg->iyy;
-  iiwaTaskInertiaPos_[k](0, 1) = msg->ixy;
-  iiwaTaskInertiaPos_[k](1, 0) = msg->ixy;
-  iiwaTaskInertiaPos_[k](0, 2) = msg->ixz;
-  iiwaTaskInertiaPos_[k](2, 0) = msg->ixz;
-  iiwaTaskInertiaPos_[k](1, 2) = msg->iyz;
-  iiwaTaskInertiaPos_[k](2, 1) = msg->iyz;
+  iiwaTaskInertiaPosInv_[k](0, 0) = msg->ixx;
+  iiwaTaskInertiaPosInv_[k](2, 2) = msg->izz;
+  iiwaTaskInertiaPosInv_[k](1, 1) = msg->iyy;
+  iiwaTaskInertiaPosInv_[k](0, 1) = msg->ixy;
+  iiwaTaskInertiaPosInv_[k](1, 0) = msg->ixy;
+  iiwaTaskInertiaPosInv_[k](0, 2) = msg->ixz;
+  iiwaTaskInertiaPosInv_[k](2, 0) = msg->ixz;
+  iiwaTaskInertiaPosInv_[k](1, 2) = msg->iyz;
+  iiwaTaskInertiaPosInv_[k](2, 1) = msg->iyz;
 }
 
 void AirHockey::iiwaPoseCallbackReal(const geometry_msgs::Pose::ConstPtr& msg, int k){
@@ -273,10 +273,6 @@ void AirHockey::objectPositionCallbackReal(const geometry_msgs::PoseStamped::Con
 }
 
 // UPDATES AND CALCULATIONS
-float AirHockey::calculateDirFlux(Robot robot_name) {
-  return (iiwaTaskInertiaPos_[robot_name](1, 1) / (iiwaTaskInertiaPos_[robot_name](1, 1) + objectMass_)) * iiwaVelocityFromSource_[robot_name](1);
-}
-
 void AirHockey::objectPositionIiwaFrames() {
   rotationMat_ << 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0;
 
@@ -589,11 +585,11 @@ void AirHockey::run() {
 
     // UPDATE robot state
     if(fsm_state.mode_iiwa7 == HIT){
-      refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPos_[IIWA_7]);
+      refVelocity_[IIWA_7] = generateHitting7_->flux_DS(hittingFlux_[IIWA_7], iiwaTaskInertiaPosInv_[IIWA_7]);
     }
 
     if(fsm_state.mode_iiwa14 == HIT){
-      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_14], iiwaTaskInertiaPos_[IIWA_14]);
+      refVelocity_[IIWA_14] = generateHitting14_->flux_DS(hittingFlux_[IIWA_14], iiwaTaskInertiaPosInv_[IIWA_14]);
       update_flux_once = 1; // only update after 1 hit from each robot
     }
 

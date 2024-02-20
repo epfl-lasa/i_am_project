@@ -361,11 +361,11 @@ if __name__== "__main__" :
     # path_to_data_airhockey = "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
     
-    folder_name = "2024-02-20_12:16:51"
-    hit_number = [1,10]
+    folder_name = "2024-02-20_16:01:14"
+    hit_number = [5,7]
     iiwa_number = 7
     
-    # plot_all_des_vs_achieved(folder_name, hit_number, iiwa_number)
+    plot_all_des_vs_achieved(folder_name, hit_number, iiwa_number)
 
     # test one plot
     if isinstance(hit_number, int) :

@@ -8,7 +8,7 @@ bool Recorder::init() {
   // check if recording
   if (!nh_.getParam("recording",isRecording_)) { ROS_ERROR("Param recording not found"); }
   if (!nh_.getParam("recorder_folder", recordingFolderPath_)) { ROS_ERROR("Param recorder_path not found"); }
-  if (!nh_.getParam("time_object_record", recordingTimeObject_)) { ROS_ERROR("Param recorder_path not found"); }
+  if (!nh_.getParam("time_object_record", recordingTimeObject_)) { ROS_ERROR("Param recorder_time not found"); }
 
   if (!nh_.getParam("object_mass", objectMass_)) {ROS_ERROR("Param object_mass not found");}
 
@@ -323,7 +323,7 @@ void Recorder::recordRobot(Robot robot_name){
 
 }
 
-void Recorder::recordObject(){
+void Recorder::recordObject(bool manual){
   // record object position 
   // Start when robot enters HIT phase, ends with a timer after X seconds
 
@@ -333,14 +333,15 @@ void Recorder::recordObject(){
   newState.position = objectPositionFromSource_;
 
   // Add the new state to the vector
-  objectStatesVector_.push_back(newState);
-
+  if(manual){objectStatesVectorManual_.push_back(newState);}
+  else if(!manual){objectStatesVector_.push_back(newState);}
 }
 
 void Recorder::recordObjectMovedByHand(int hit_count){
   // Called when both robots are at rest
   // Detects if object is moving and record if so. Writes to file when stops moving
 
+  bool manual = true;
   float stopped_threshold = 2*1e-4;
   float moving_threshold = 1e-3;
   float norm = (previousObjectPositionFromSource_-objectPositionFromSource_).norm();
@@ -351,7 +352,7 @@ void Recorder::recordObjectMovedByHand(int hit_count){
   if((norm < stopped_threshold) && isObjectMoving_){
     // was moving but stopped -> write to file
     std::string fn = recordingFolderPath_ + "object_moved_manually_after_hit_"+ std::to_string(hit_count)+"-"+std::to_string(moved_manually_count_)+".csv";
-    writeObjectStatesToFile(hit_count, fn);
+    writeObjectStatesToFile(hit_count, fn, manual);
     moved_manually_count_ += 1;
     isObjectMoving_ = 0;
     std::cout << "Finished writing motion for object moved manually after hit " << std::to_string(hit_count) << "-" << std::to_string(moved_manually_count_) << std::endl;
@@ -363,7 +364,7 @@ void Recorder::recordObjectMovedByHand(int hit_count){
   else if(norm > moving_threshold){
     // moving -> record object
     isObjectMoving_ = 1;
-    recordObject();
+    recordObject(manual);
   }
 
   previousObjectPositionFromSource_ = objectPositionFromSource_;
@@ -413,7 +414,7 @@ void Recorder::writeRobotStatesToFile(Robot robot_name, int hit_count) {
     
 }
 
-void Recorder::writeObjectStatesToFile(int hit_count, std::string filename) {
+void Recorder::writeObjectStatesToFile(int hit_count, std::string filename, bool manual) {
 
   std::ofstream outFile(filename, std::ios::app); // Open file in append mode
 
@@ -425,16 +426,31 @@ void Recorder::writeObjectStatesToFile(int hit_count, std::string filename) {
   // Write CSV header
   outFile << "RosTime,Position\n";
 
-  // Write each RobotState structure to the file
-  for (const auto& state : objectStatesVector_) {
-      // outFile << "Object Name: " << state.robot_name << "\n";
-      outFile << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec()+3600 << "," // add precision and 1h for GMT
-              << state.position.transpose() << "\n";
+  if(!manual){
+    // Write each RobotState structure to the file
+    for (const auto& state : objectStatesVector_) {
+        // outFile << "Object Name: " << state.robot_name << "\n";
+        outFile << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec()+3600 << "," // add precision and 1h for GMT
+                << state.position.transpose() << "\n";
+    }
+
+    outFile.close();
+
+    objectStatesVector_.clear(); // clear vector data
   }
 
-  outFile.close();
+  else if(manual){
+        // Write each RobotState structure to the file
+    for (const auto& state : objectStatesVectorManual_) {
+        // outFile << "Object Name: " << state.robot_name << "\n";
+        outFile << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec()+3600 << "," // add precision and 1h for GMT
+                << state.position.transpose() << "\n";
+    }
 
-  objectStatesVector_.clear(); // clear vector data
+    outFile.close();
+
+    objectStatesVectorManual_.clear(); // clear vector data
+  }
 }
 
 void Recorder::copyYamlFile(std::string inFilePath, std::string outFilePath){
@@ -536,6 +552,7 @@ void Recorder::run() {
   bool write_once_7 = 0;
   bool write_once_14 = 0;
   bool write_once_object = 0;
+  bool manual = false; // only call functin to record hits form here
 
   ros::Duration max_recording_time = ros::Duration(recordingTimeObject_);
 
@@ -544,8 +561,9 @@ void Recorder::run() {
   while (ros::ok()) {
 
     // DEBUG
-    if(print_count%200 == 0 ){
+    if(print_count%20 == 0 ){
       // std::cout << "iiwa7_state : " << fsmState_.mode_iiwa7 << " \n iiwa14_state : " << fsmState_.mode_iiwa14<< std::endl;
+      // std::cout << "time_since hit : " << time_since_hit << std::endl;
     }
     print_count +=1 ;
 
@@ -569,14 +587,14 @@ void Recorder::run() {
       // Record data logic
       if(fsmState_.mode_iiwa7 == HIT){
         recordRobot(IIWA_7);
-        recordObject();
+        recordObject(manual);
         write_once_7 = 1;
         write_once_object =1;
       }
 
       if(fsmState_.mode_iiwa14 == HIT){
         recordRobot(IIWA_14);
-        recordObject();
+        recordObject(manual);
         write_once_14 = 1;
         write_once_object = 1;
       }
@@ -585,15 +603,15 @@ void Recorder::run() {
       // Keep recording object for X seconds after hit (only when robots are at rest to avoid overlap)
       auto time_since_hit = ros::Time::now() - fsmState_.hit_time;
       if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && time_since_hit < max_recording_time){
-        recordObject();
+        recordObject(manual);
       }
       // Stop recording object and write to file
       else if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && 
               time_since_hit > max_recording_time && write_once_object){        
         std::string fn = recordingFolderPath_ + "object_hit_"+ std::to_string(hit_count)+".csv";
-        writeObjectStatesToFile(hit_count, fn);
-        write_once_object = 0;
+        writeObjectStatesToFile(hit_count, fn, manual);
         hit_count += 1;
+        write_once_object = 0;
         moved_manually_count_ = 1; // reset count for moved manually
         std::cout << "Finished writing hit " << hit_count << " for object!" << std::endl;
       }

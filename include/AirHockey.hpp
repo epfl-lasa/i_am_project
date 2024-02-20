@@ -69,6 +69,8 @@ private:
   bool isAuto_;
   bool isPaused_;
   bool isFluxFixed_;
+  float timeToWait_;
+  ros::Duration waitDuration_;
 
   Eigen::Vector3f hitDirection_[NB_ROBOTS];
   Eigen::Vector3f refVelocity_[NB_ROBOTS];

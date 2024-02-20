@@ -139,6 +139,7 @@ private:
 
   std::vector<RecordedRobotState> robotStatesVector_[NB_ROBOTS];
   std::vector<RecordedObjectState> objectStatesVector_;
+  std::vector<RecordedObjectState> objectStatesVectorManual_;
 
 public:
 
@@ -163,10 +164,10 @@ public:
   void FSMCallback(const i_am_project::FSM_state::ConstPtr& msg);
 
   void recordRobot(Robot robot_name);
-  void recordObject();
+  void recordObject(bool manual);
   void recordObjectMovedByHand(int hit_count); 
   void writeRobotStatesToFile(Robot robot_name, int hit_count);
-  void writeObjectStatesToFile(int hit_count, std::string filename);
+  void writeObjectStatesToFile(int hit_count, std::string filename, bool manual);
   void copyYamlFile(std::string inFilePath, std::string outFilePath);
   void setUpRecordingDir();
   std::string robotToString(Robot robot_name);

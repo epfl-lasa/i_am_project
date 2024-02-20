@@ -10,6 +10,9 @@ bool AirHockey::init() {
   if (!nh_.getParam("fixed_flux",isFluxFixed_)) { ROS_ERROR("Param automatic not found"); }
   // Check safetz distance
   if (!nh_.getParam("safety_distance", objectSafetyDistance_)) { ROS_ERROR("Param safety distance not found"); }
+  // Check tiem to wait between hits
+  if (!nh_.getParam("time_to_wait",timeToWait_)) { ROS_ERROR("Param tiem to waitnot found"); }
+  waitDuration_= ros::Duration(timeToWait_);
 
   // Get topics names
   if (!nh_.getParam("recorder_topic", pubFSMTopic_)) {ROS_ERROR("Topic /recorder/robot_states not found");}
@@ -473,6 +476,12 @@ AirHockey::FSMState AirHockey::updateFSMAutomatic(FSMState current_state ) {
 
   // Only set to HIt if both robots are at rest!
   if(current_state.mode_iiwa7 == REST && current_state.mode_iiwa14 == REST){
+    
+    // Stay in REST for desired duration
+    auto time_in_rest = ros::Time::now() - current_state.hit_time;
+    if(time_in_rest < waitDuration_){ 
+      return current_state;
+    }
 
     // is object stopped?
     if(norm_object < object_stopped_threshold){

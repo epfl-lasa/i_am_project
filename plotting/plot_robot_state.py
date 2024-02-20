@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 from datetime import datetime
 
 # def parse_list(cell):
@@ -203,6 +204,101 @@ def plot_object_data(csv_file, show_plot=True):
 
     if show_plot : plt.show()
     
+def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effort=True):
+    
+    # Create figures
+    
+    fig_trq, axs_trq = plt.subplots(7, 1, figsize=(15, 12), sharex=True)
+    fig_vel, axs_vel = plt.subplots(3, 1, figsize=(9, 12), sharex=True)
+    fig_pos, axs_pos = plt.subplots(3, 1, figsize=(9, 12), sharex=True)
+    fig_flux, ax_flux = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
+    
+    for hit in range(hit_numbers[0], hit_numbers[1]+1):
+        
+        path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_hit_{hit}.csv"
+        
+        if os.path.exists(path_to_data_airhockey + f"{folder_name}/IIWA_{iiwa_number}_hit_{hit}.csv"):
+            path_to_robot_hit = path_to_data_airhockey + f"{folder_name}/IIWA_{iiwa_number}_hit_{hit}.csv"
+        else :
+            print(f"No iiwa_{iiwa_number} data file for hit #{hit} \n")
+    
+        # Read CSV file into a Pandas DataFrame
+        df = pd.read_csv(path_to_robot_hit, skiprows=1,
+                        converters={'RosTime' : parse_value, 'JointPosition': parse_list, 'JointVelocity': parse_list, 'JointEffort': parse_list, 
+                                    'TorqueCmd': parse_list, 'EEF_Position': parse_list, 'EEF_Orientation': parse_list, 'EEF_Velocity': parse_list, 
+                                    'EEF_DesiredVelocity': parse_list, 'Inertia': parse_list, 'HittingFlux': parse_value})
+                        #  dtype={'RosTime': 'float64'})
+        
+        # Define set values from first row
+        df_top_row = pd.read_csv(path_to_robot_hit, nrows=1, header=None)
+        top_row_list = df_top_row.iloc[0].to_list()
+        des_flux = top_row_list[1]
+        des_pos = parse_list(top_row_list[5])
+        recorded_hit_time = top_row_list[3]
+        # print(f"Desired Flux: {des_flux} \n Desired Pos: [{des_pos[0]:.3f}, {des_pos[1]:.3f}, {des_pos[2]:.3f}] \n Hit Time: {pd.to_datetime(recorded_hit_time, unit='s')}")
+
+        # Make title string
+        filename = os.path.basename(path_to_robot_hit)
+        filename_without_extension = os.path.splitext(filename)[0]
+        parts = filename_without_extension.split('_')
+        # title_str = f"Robot data for iiwa {parts[1]}, hit #{parts[3]}" #filename_without_extension.replace('_', ' ')
+
+        # Rewrite time to be relative 
+        temp_time = np.linspace(0,df['RosTime'].iloc[-1]-df['RosTime'].iloc[0], len(df['RosTime']))
+        df['RosTime'] = temp_time
+
+        # Labels for the coordinates
+        coordinate_labels = ['x', 'y', 'z']
+
+        # Invers Effort for easier to read plots
+        if inverse_effort: effort_factor = -1
+        else: effort_factor = 1
+
+        # Plot JointEffort vs TorqueCmd
+        for i in range(7):
+            axs_trq[i].plot(df['RosTime'], effort_factor*df['JointEffort'].apply(lambda x: x[i]))
+            axs_trq[i].plot(df['RosTime'], df['TorqueCmd'].apply(lambda x: x[i]), linestyle='--')
+            axs_trq[i].set_title(f'Joint{i+1}')
+            # axs_trq[i].legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
+            axs_trq[i].grid(True)
+        axs_trq[i].set_xlabel('Time [s]')
+        fig_trq.suptitle(f"Effort vs Cmd : iiwa {parts[1]}, hit #{parts[3]}, flux {des_flux}")
+        fig_trq.tight_layout(rect=(0.01,0.01,0.99,0.99))
+
+
+        # Plot EEF_Velocities vs Desired Velocities
+        for i in range(3):
+            axs_vel[i].plot(df['RosTime'], df['EEF_Velocity'].apply(lambda x: x[i]), label=f'Velocity')
+            axs_vel[i].plot(df['RosTime'], df['EEF_DesiredVelocity'].apply(lambda x: x[i]), linestyle='--', label=f'Desired')
+            axs_vel[i].set_title(f'Axis {coordinate_labels[i]}')
+            # axs_vel[i].legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
+            axs_vel[i].grid(True)
+        axs_vel[i].set_xlabel('Time [s]')
+        fig_vel.suptitle(f"EEF Velocities vs Desired : iiwa {parts[1]}, hit #{parts[3]}")
+        fig_vel.tight_layout(rect=(0.01,0.01,0.99,0.99))
+
+
+        # Plot EEF_Position vs Desired Psosiont
+        for i in range(3):
+            axs_pos[i].plot(df['RosTime'], df['EEF_Position'].apply(lambda x: x[i]), label=f'Position')
+            axs_pos[i].axhline(y=des_pos[i], color='r', linestyle='--')
+            axs_pos[i].set_title(f'Axis {coordinate_labels[i]}')
+            # axs_pos[i].legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
+            axs_pos[i].grid(True)
+        axs_pos[i].set_xlabel('Time [s]')
+        fig_pos.suptitle(f"EEF Position vs Desired : iiwa {parts[1]}, hit #{parts[3]}")
+        fig_pos.tight_layout(rect=(0.01,0.01,0.99,0.99))
+
+        # Plot Flux
+        ax_flux.plot(df['RosTime'], df['HittingFlux'])
+        ax_flux.axhline(y=des_flux, color='r', linestyle='--')
+        ax_flux.set_xlabel('Time [s]')
+        ax_flux.set_ylabel('Hitting flux [m/s]')
+        ax_flux.grid(True)
+        fig_flux.suptitle(f"Hitting Flux : iiwa {parts[1]}, hit #{parts[3]}")
+        fig_flux.tight_layout(rect=(0.01,0.01,0.99,0.99))
+    
+    plt.show()
 
 def get_flux_at_hit(csv_file):
     
@@ -229,10 +325,16 @@ def get_flux_at_hit(csv_file):
 
     # Get max flux
     max_flux = df['HittingFlux'].abs().max()
+    
+    # Get hit time
+    df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
+    hit_time = df[df['HittingFlux'].abs()==max_flux].iloc[0]['RosTime']
         
     print(f"Hit #{parts[3]}, IIWA_{parts[1]} \n Desired Flux: {des_flux} \n Max Flux: {max_flux} \n")
+    print(f"Real Hit time : {hit_time} \n Recorded Hit Time : {pd.to_datetime(recorded_hit_time, unit='s')}")
     
     return max_flux
+
 
 def process_timestamped_folders(root_folder):
     for folder in os.listdir(root_folder):
@@ -259,9 +361,11 @@ if __name__== "__main__" :
     # path_to_data_airhockey = "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
     
-    folder_name = "2024-02-19_17:11:18"
-    hit_number = [1,7]
-    iiwa_number = 14
+    folder_name = "2024-02-20_12:16:51"
+    hit_number = [1,10]
+    iiwa_number = 7
+    
+    # plot_all_des_vs_achieved(folder_name, hit_number, iiwa_number)
 
     # test one plot
     if isinstance(hit_number, int) :
@@ -284,8 +388,9 @@ if __name__== "__main__" :
                 path_to_robot_hit = path_to_data_airhockey + f"{folder_name}/IIWA_14_hit_{hit}.csv"
             else :
                 print(f"No robot data file for hit #{hit} \n")
-
             
+            plot_object_data(path_to_object_hit, show_plot=False)
             get_flux_at_hit(path_to_robot_hit)
-        
+            
+    plt.show()
     

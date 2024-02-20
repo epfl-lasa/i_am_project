@@ -165,7 +165,7 @@ ssh elise@128.178.96.187
 Launch docker on both computers with aica-docker command above or using the alias :
 ```bash
 airhockey
-```bash
+```
 
 Connect with other terminals using : 
 ```bash
@@ -174,6 +174,8 @@ aica-docker connect iam_project_harshit-noetic-runtime -u ros
 (use this command on computer 2 to leave container running)
 
 You should have 4 terminals, 3 connected to the docker container on computer 1 and one on the docker container on Computer 2. From now on, Computer 2 will refer to that last terminal (connected via ssh)
+
+Don't forget to run catkin_make to build the latest version of the code!!!
 
 ## Setup ROS communications
 

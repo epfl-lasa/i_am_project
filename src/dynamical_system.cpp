@@ -25,9 +25,10 @@ Eigen::Vector3f hitting_DS::flux_DS(float dir_flux, Eigen::Matrix3f& current_ine
   /* ** Finding the virtual end effector position ** */
 
   Eigen::Vector3f reference_velocity = Eigen::Vector3f{0.0, 0.0, 0.0};
+  Eigen::Vector3f reference_direction = Eigen::Vector3f{0.0, 1.0, 0.0};
   Eigen::Vector3f relative_position = current_position_ - DS_attractor_;
   Eigen::Vector3f virtual_ee =
-      DS_attractor_ + des_direction_ * (relative_position.dot(des_direction_) / (des_direction_.squaredNorm()));
+      DS_attractor_ + des_direction_ * (relative_position.dot(reference_direction) / (des_direction_.squaredNorm()));
 
   float dir_inertia = 1/(des_direction_.transpose() * current_inertia_inverse * des_direction_);
 

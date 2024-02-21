@@ -602,7 +602,7 @@ void Recorder::run() {
       // Record object when robots are not in HIT mode logic
       // Keep recording object for X seconds after hit (only when robots are at rest to avoid overlap)
       auto time_since_hit = ros::Time::now() - fsmState_.hit_time;
-      if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && time_since_hit < max_recording_time){
+      if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && time_since_hit < max_recording_time && write_once_object){
         recordObject(manual);
       }
       // Stop recording object and write to file
@@ -610,10 +610,10 @@ void Recorder::run() {
               time_since_hit > max_recording_time && write_once_object){        
         std::string fn = recordingFolderPath_ + "object_hit_"+ std::to_string(hit_count)+".csv";
         writeObjectStatesToFile(hit_count, fn, manual);
+        std::cout << "Finished writing hit " << hit_count << " for object!" << std::endl;
         hit_count += 1;
         write_once_object = 0;
-        moved_manually_count_ = 1; // reset count for moved manually
-        std::cout << "Finished writing hit " << hit_count << " for object!" << std::endl;
+        moved_manually_count_ = 1; // reset count for moved manually 
       }
       // If not during hit, check if we are moving the object manually, record if so
       else if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && 

@@ -187,11 +187,13 @@ sudo nano ~/.bashrc
 ```
 Computer 1 : 
 ```bash
-export ROS_MASTER_URI=http://128.178.145.165:11311 export ROS_IP=128.178.145.165
+export ROS_MASTER_URI=http://128.178.145.165:11311 
+export ROS_IP=128.178.145.165
 ```
 Computer 2 : 
 ```bash
-export ROS_MASTER_URI=http://128.178.145.165:11311 export ROS_IP=128.178.96.187
+export ROS_MASTER_URI=http://128.178.145.165:11311 
+export ROS_IP=128.178.96.187
 ```
 both : 
 ```bash

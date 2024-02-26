@@ -570,8 +570,11 @@ void AirHockey::run() {
     // DEBUG
     if(print_count%200 == 0 ){
       // std::cout << "iiwa7_state : " << fsm_state.mode_iiwa7 << " \n iiwa14_state : " << fsm_state.mode_iiwa14<< std::endl;
-      // std::cout << "iiwaPos_7  " << iiwaPositionFromSource_[IIWA_7]<< std::endl;
-      // std::cout << "iiwaPos_14  " << iiwaPositionFromSource_[IIWA_14]<< std::endl;
+      // std::cout << "object source pos  " << objectPositionFromSource_ << std::endl;
+      // std::cout << "iiwaPos_7  " << iiwaBasePositionFromSource_[IIWA_7]<< std::endl;
+      // std::cout << "iiwaPos_14  " << iiwaBasePositionFromSource_[IIWA_14]<< std::endl;
+      // std::cout << "object pos by iiwaPos_7  " << objectPositionForIiwa_[IIWA_7]<< std::endl;
+      // std::cout << "object pos by  iiwaPos_14  " << objectPositionForIiwa_[IIWA_14]<< std::endl;
       // std::cout << "returnPos_7  " << returnPosGazebo_[IIWA_7]<< std::endl;
       // std::cout << "returnPos_14  " << returnPosGazebo_[IIWA_14]<< std::endl; //objectPositionForIiwa_[IIWA_7]
     }

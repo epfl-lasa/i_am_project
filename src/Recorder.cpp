@@ -262,7 +262,7 @@ int Recorder::getIndex(std::vector<std::string> v, std::string value) {
 }
 
 float Recorder::calculateDirFlux(Robot robot_name) {
-  return ((1/iiwaTaskInertiaPosInv_[robot_name](1, 1)) / (1/(iiwaTaskInertiaPosInv_[robot_name](1, 1)) + objectMass_)) * iiwaVelocityFromSource_[robot_name](1);
+  return ((1/iiwaTaskInertiaPosInv_[robot_name](1, 1)) / (1/(iiwaTaskInertiaPosInv_[robot_name](1, 1)) + objectMass_)) * iiwaVelocityFromSource_[robot_name].norm();
 }
 
 // RECORDING FUNCTIONS 

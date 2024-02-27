@@ -214,6 +214,7 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
     if "Flux" in data_to_plot: fig_flux, ax_flux = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
     if "Inertia" in data_to_plot: fig_inertia, ax_inertia = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
     if "Normed Vel" in data_to_plot: fig_norm_vel, ax_norm_vel = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
+    if "Joint Vel" in data_to_plot: fig_jnt_vel, axs_jnt_vel = plt.subplots(7, 1, figsize=(15, 12), sharex=True)
     if "Object" in data_to_plot: fig_obj, axs_obj = plt.subplots(3, 1, figsize=(9, 12), sharex=True)
     
     for hit in range(hit_numbers[0], hit_numbers[1]+1):
@@ -345,6 +346,16 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
                 ax_norm_vel.grid(True)
                 fig_norm_vel.suptitle(f"Normed_velocity: iiwa {parts[1]}, hit #{hit_numbers[0]}-{hit_numbers[1]}")
                 fig_norm_vel.tight_layout(rect=(0.01,0.01,0.99,0.99))            
+            
+            if "Joint Vel" in data_to_plot:
+                for i in range(7):
+                    axs_jnt_vel[i].plot(df['RosTime'], df['JointVelocity'].apply(lambda x: x[i]))
+                    axs_jnt_vel[i].set_title(f'Joint{i+1}')
+                    # axs_jnt_vel[i].legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
+                    axs_jnt_vel[i].grid(True)
+                axs_jnt_vel[i].set_xlabel('Time [s]')
+                fig_jnt_vel.suptitle(f"Joint Velocity : iiwa {parts[1]}, hit #{hit_numbers[0]}-{hit_numbers[1]}")
+                fig_jnt_vel.tight_layout(rect=(0.01,0.01,0.99,0.99))
             
             # Plot Object position
             if "Object" in data_to_plot:
@@ -556,7 +567,7 @@ if __name__== "__main__" :
     folder_name = "2024-02-21_15:26:34"
     hit_number = [16,17]
     iiwa_number = 14
-    plot_this_data = ["Torque", "Vel", "Object"]#["Vel", "Inertia", "Flux", "Normed Vel"]
+    plot_this_data = ["Torque", "Vel", "Object", "Joint Vel"]#["Vel", "Inertia", "Flux", "Normed Vel"]
     
     plot_all_des_vs_achieved(folder_name, hit_number, iiwa_number, data_to_plot=plot_this_data)
 

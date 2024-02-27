@@ -205,7 +205,7 @@ def plot_object_data(csv_file, show_plot=True):
     if show_plot : plt.show()
     
 def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effort=True, 
-                             data_to_plot=["Torque", "Pos", "Vel", "Inertia", "Flux", "Normed Vel"]):
+                             data_to_plot=["Torque", "Pos", "Vel", "Inertia", "Flux", "Normed Vel", "Object"]):
     
     # Create figures 
     if "Torque" in data_to_plot: fig_trq, axs_trq = plt.subplots(7, 1, figsize=(15, 12), sharex=True)
@@ -214,6 +214,7 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
     if "Flux" in data_to_plot: fig_flux, ax_flux = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
     if "Inertia" in data_to_plot: fig_inertia, ax_inertia = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
     if "Normed Vel" in data_to_plot: fig_norm_vel, ax_norm_vel = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
+    if "Object" in data_to_plot: fig_obj, axs_obj = plt.subplots(3, 1, figsize=(9, 12), sharex=True)
     
     for hit in range(hit_numbers[0], hit_numbers[1]+1):
         
@@ -345,6 +346,24 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
                 fig_norm_vel.suptitle(f"Normed_velocity: iiwa {parts[1]}, hit #{hit_numbers[0]}-{hit_numbers[1]}")
                 fig_norm_vel.tight_layout(rect=(0.01,0.01,0.99,0.99))            
             
+            # Plot Object position
+            if "Object" in data_to_plot:
+                df_obj = pd.read_csv(path_to_object_hit,
+                                converters={'RosTime' : parse_value, 'Position': parse_list})
+                
+                # Rewrite time to be relative 
+                temp_time = np.linspace(0,df_obj['RosTime'].iloc[-1]-df_obj['RosTime'].iloc[0], len(df_obj['RosTime']))
+                df_obj['RosTime'] = temp_time
+
+                for i in range(3):
+                    axs_obj[i].plot(df_obj['RosTime'], df_obj['Position'].apply(lambda x: x[i]))
+                    axs_obj[i].set_title(f'Axis {coordinate_labels[i]}')
+                    axs_obj[i].grid(True)
+                    
+                axs_obj[i].set_xlabel('Time [s]')
+                fig_obj.suptitle(f"Object data for hit #{hit_numbers[0]}-{hit_numbers[1]}")
+                fig_obj.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
+            
         else :
             print(f"No iiwa_{iiwa_number} data file for hit #{hit} \n")
 
@@ -430,8 +449,8 @@ def get_distance_travelled(csv_file, show_print=True, show_hit=True):
     return distance_in_x, norm_distance
 
 
-def process_timestamped_folders(root_folder):
-    
+def process_timestamped_folders(root_folder):    
+   
     for folder in os.listdir(root_folder):
         folder_path = os.path.join(root_folder, folder)
         if os.path.isdir(folder_path) and len(folder) == 19 and folder[10] == '_':
@@ -535,9 +554,9 @@ if __name__== "__main__" :
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
     
     folder_name = "2024-02-21_15:26:34"
-    hit_number = [1,10]
-    iiwa_number = 7
-    plot_this_data = ["Flux"]#["Vel", "Inertia", "Flux", "Normed Vel"]
+    hit_number = [16,17]
+    iiwa_number = 14
+    plot_this_data = ["Torque", "Vel", "Object"]#["Vel", "Inertia", "Flux", "Normed Vel"]
     
     plot_all_des_vs_achieved(folder_name, hit_number, iiwa_number, data_to_plot=plot_this_data)
 

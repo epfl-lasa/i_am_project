@@ -80,6 +80,7 @@ private:
   struct RecordedObjectState {
     ros::Time time;
     Eigen::Vector3f position;
+    Eigen::Vector4f orientation;
   };
 
   bool isSim_;

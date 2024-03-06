@@ -420,7 +420,7 @@ def process_timestamped_folders(root_folder):
 
 # test stuff out 
                     
-def flux_DS(attractor_pos, current_inertia, current_position):
+def flux_DS_by_harshit(attractor_pos, current_inertia, current_position):
     
     # set values
     DS_attractor = np.reshape(np.array(attractor_pos), (-1,1))
@@ -447,6 +447,48 @@ def flux_DS(attractor_pos, current_inertia, current_position):
     return reference_velocity.T, reference_vel.T, virtual_ee.T
 
 
+             
+def flux_DS_by_maxime(attractor_pos, current_inertia, current_position):
+    
+    # set values
+    DS_attractor = np.reshape(np.array(attractor_pos), (-1,1))
+    des_direction = np.array([[0.0], [-1.0], [0.0]])
+    sigma = 0.2
+    gain = -2.0 * np.identity(3)
+    m_obj = 0.4
+    des_flux = 1.2
+
+    # First fin directional inertia using DESIRED DIRECTION
+    dir_inertia = 1/np.dot(des_direction.T, np.dot(current_inertia, des_direction))
+    
+    # define x dot start according to paper
+    des_velocity = des_flux * (dir_inertia +m_obj)/dir_inertia
+    des_direction_new = des_velocity*des_direction
+    
+
+    # Finding the virtual end effector position
+    relative_position = current_position - DS_attractor
+    virtual_ee = DS_attractor + des_direction * (np.dot(relative_position.T, des_direction) / np.linalg.norm(des_direction)**2)
+    virtual_ee_new = DS_attractor + des_direction_new * (np.dot(relative_position.T, des_direction_new) / np.linalg.norm(des_direction_new)**2)
+    
+    exp_term = np.linalg.norm(current_position - virtual_ee)
+    exp_term_new = np.linalg.norm(current_position - virtual_ee_new)
+
+    alpha = np.exp(-exp_term / (sigma * sigma))
+    alpha_new = np.exp(-exp_term_new / (sigma * sigma))
+
+    reference_vel = alpha * des_direction + (1 - alpha) * np.dot(gain, (current_position - virtual_ee))
+    reference_vel_new = alpha_new * des_direction_new + (1 - alpha_new) * np.dot(gain, (current_position - virtual_ee_new))
+    
+
+    reference_velocity = (des_flux / dir_inertia) * (dir_inertia + m_obj) * reference_vel / np.linalg.norm(reference_vel)
+    reference_velocity_new = (des_flux / dir_inertia) * (dir_inertia + m_obj) * reference_vel_new / np.linalg.norm(reference_vel)
+    print(reference_velocity.T, reference_velocity_new.T)
+
+    return reference_velocity.T, reference_vel.T, virtual_ee.T
+
+
+
 def test_flux_DS(csv_file):
 
     # Read CSV file into a Pandas DataFrame
@@ -469,7 +511,7 @@ def test_flux_DS(csv_file):
 
     for i in range(len(df.index)):
 
-          ref_vel[i], ref_vel2[i], virtual_ee[i] = (flux_DS(des_pos, reshaped_inertia.iloc[i], np.array(reshaped_position.iloc[i])))
+          ref_vel[i], ref_vel2[i], virtual_ee[i] = (flux_DS_by_maxime(des_pos, reshaped_inertia.iloc[i], np.array(reshaped_position.iloc[i])))
         # print(ref_vel)
 
     # Plot the data
@@ -502,10 +544,10 @@ if __name__== "__main__" :
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
     
     folder_name = "2024-02-21_15:26:34"
-    hit_number = 16 #[10,13]
+    hit_number = [16,30]
     iiwa_number = 14
     
-    # plot_all_des_vs_achieved(folder_name, hit_number, iiwa_number, data_to_plot=["Vel", "Inertia", "Flux"])
+    plot_all_des_vs_achieved(folder_name, hit_number, iiwa_number, data_to_plot=["Vel", "Inertia", "Flux"])
 
     
 
@@ -514,7 +556,7 @@ if __name__== "__main__" :
         path_to_robot_hit = path_to_data_airhockey + f"{folder_name}/IIWA_{iiwa_number}_hit_{hit_number}.csv"
         path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_hit_{hit_number}.csv"
 
-        test_flux_DS(path_to_robot_hit)
+        # test_flux_DS(path_to_robot_hit)
         # plot_actual_vs_des(path_to_robot_hit)
         # plot_robot_data(path_to_robot_hit, show_plot=False)
         # plot_object_data(path_to_object_hit)

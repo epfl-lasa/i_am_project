@@ -205,7 +205,7 @@ def plot_object_data(csv_file, show_plot=True):
     if show_plot : plt.show()
     
 def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effort=True, 
-                             data_to_plot=["Torque", "Pos", "Vel", "Inertia", "Flux"]):
+                             data_to_plot=["Torque", "Pos", "Vel", "Inertia", "Flux", "Normed Vel", "Object"]):
     
     # Create figures 
     if "Torque" in data_to_plot: fig_trq, axs_trq = plt.subplots(7, 1, figsize=(15, 12), sharex=True)
@@ -213,6 +213,9 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
     if "Pos" in data_to_plot: fig_pos, axs_pos = plt.subplots(3, 1, figsize=(9, 12), sharex=True)
     if "Flux" in data_to_plot: fig_flux, ax_flux = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
     if "Inertia" in data_to_plot: fig_inertia, ax_inertia = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
+    if "Normed Vel" in data_to_plot: fig_norm_vel, ax_norm_vel = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
+    if "Joint Vel" in data_to_plot: fig_jnt_vel, axs_jnt_vel = plt.subplots(7, 1, figsize=(15, 12), sharex=True)
+    if "Object" in data_to_plot: fig_obj, axs_obj = plt.subplots(3, 1, figsize=(9, 12), sharex=True)
     
     for hit in range(hit_numbers[0], hit_numbers[1]+1):
         
@@ -291,16 +294,6 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
                 fig_pos.suptitle(f"EEF Position vs Desired : iiwa {parts[1]}, hit #{hit_numbers[0]}-{hit_numbers[1]}")
                 fig_pos.tight_layout(rect=(0.01,0.01,0.99,0.99))
 
-            # Plot Flux
-            if "Flux" in data_to_plot:
-                ax_flux.plot(df['RosTime'], df['HittingFlux'])
-                ax_flux.axhline(y=des_flux, color='r', linestyle='--')
-                ax_flux.set_xlabel('Time [s]')
-                ax_flux.set_ylabel('Hitting flux [m/s]')
-                ax_flux.grid(True)
-                fig_flux.suptitle(f"Hitting Flux : iiwa {parts[1]}, hit #{hit_numbers[0]}-{hit_numbers[1]}")
-                fig_flux.tight_layout(rect=(0.01,0.01,0.99,0.99))
-            
             # Plot Inertia
             if "Inertia" in data_to_plot:
                 # First project it
@@ -318,14 +311,80 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
                 ax_inertia.set_ylabel('Inertia [kg.m^2]')
                 ax_inertia.grid(True)
                 fig_inertia.suptitle(f"Projected Inertia : iiwa {parts[1]}, hit #{hit_numbers[0]}-{hit_numbers[1]}")
-                fig_inertia.tight_layout(rect=(0.01,0.01,0.99,0.99))            
+                fig_inertia.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
+                      
+            # Plot Flux
+            if "Flux" in data_to_plot:
+                # Recalculate Flux as per paper
+                # m_obj = 0.4
+                # if iiwa_number == 7:
+                #     des_direction = np.array([[0.0], [1.0], [0.0]])
+                # elif iiwa_number == 14:
+                #     des_direction = np.array([[0.0], [-1.0], [0.0]])
+                
+                # # NOTE : Inertia recorded is actually Inertia Task Position INVERSE
+                # projected_inertia = df['Inertia'].apply(lambda x : 1/(des_direction.T @ np.reshape(x, (3,3)) @ des_direction))
+                # paper_flux = (projected_inertia/(projected_inertia+m_obj)) * df['EEF_Velocity'].apply(lambda x: np.linalg.norm(x))
+                # abs_flux = df['HittingFlux'].abs()
+                # Then plot 
+                ax_flux.plot(df['RosTime'], df['HittingFlux'], label='recorded')
+                # ax_flux.plot(df['RosTime'], paper_flux, label='paper')
+                # ax_flux.plot(df['RosTime'], abs_flux)
+                ax_flux.axhline(y=des_flux, color='r', linestyle='--')
+                ax_flux.set_xlabel('Time [s]')
+                ax_flux.set_ylabel('Hitting flux [m/s]')
+                ax_flux.grid(True)
+                # ax_flux.legend()
+                fig_flux.suptitle(f"Hitting Flux : iiwa {parts[1]}, hit #{hit_numbers[0]}-{hit_numbers[1]}")
+                fig_flux.tight_layout(rect=(0.01,0.01,0.99,0.99))
+                 
+            # Plot Normed velocity
+            if "Normed Vel" in data_to_plot:
+                ax_norm_vel.plot(df['RosTime'], df['EEF_Velocity'].apply(lambda x: np.linalg.norm(x)))
+                ax_norm_vel.set_xlabel('Time [s]')
+                ax_norm_vel.set_ylabel('Normed Velocity [kg.m^2]')
+                ax_norm_vel.grid(True)
+                fig_norm_vel.suptitle(f"Normed_velocity: iiwa {parts[1]}, hit #{hit_numbers[0]}-{hit_numbers[1]}")
+                fig_norm_vel.tight_layout(rect=(0.01,0.01,0.99,0.99))            
+            
+            if "Joint Vel" in data_to_plot:
+                for i in range(7):
+                    axs_jnt_vel[i].plot(df['RosTime'], df['JointVelocity'].apply(lambda x: x[i]))
+                    axs_jnt_vel[i].set_title(f'Joint{i+1}')
+                    # axs_jnt_vel[i].legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
+                    axs_jnt_vel[i].grid(True)
+                axs_jnt_vel[i].set_xlabel('Time [s]')
+                fig_jnt_vel.suptitle(f"Joint Velocity : iiwa {parts[1]}, hit #{hit_numbers[0]}-{hit_numbers[1]}")
+                fig_jnt_vel.tight_layout(rect=(0.01,0.01,0.99,0.99))
+            
+            # Plot Object position
+            if "Object" in data_to_plot:
+                df_obj = pd.read_csv(path_to_object_hit,
+                                converters={'RosTime' : parse_value, 'Position': parse_list})
+                
+                # Rewrite time to be relative 
+                temp_time = np.linspace(0,df_obj['RosTime'].iloc[-1]-df_obj['RosTime'].iloc[0], len(df_obj['RosTime']))
+                df_obj['RosTime'] = temp_time
+
+                for i in range(3):
+                    axs_obj[i].plot(df_obj['RosTime'], df_obj['Position'].apply(lambda x: x[i]))
+                    axs_obj[i].set_title(f'Axis {coordinate_labels[i]}')
+                    axs_obj[i].grid(True)
+                    
+                axs_obj[i].set_xlabel('Time [s]')
+                fig_obj.suptitle(f"Object data for hit #{hit_numbers[0]}-{hit_numbers[1]}")
+                fig_obj.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
             
         else :
             print(f"No iiwa_{iiwa_number} data file for hit #{hit} \n")
 
-        max_flux = get_flux_at_hit(path_to_robot_hit, show_print=False)
+        max_flux, max_vel = get_flux_at_hit(path_to_robot_hit, show_print=False)
         y_distance, norm_distance = get_distance_travelled(path_to_object_hit, show_print=False)
-        print(f"Hit #{parts[3]} \n Max Flux: {max_flux:.4f} \n Distance travelled (norm): {norm_distance:.3f} ")
+        
+        print(f"Hit #{parts[3]}\n"
+              f" Max Flux: {max_flux:.4f} \n"
+              f" Max velocity (norm): {max_vel:.4f} \n"
+              f" Distance travelled (norm): {norm_distance:.3f}")
         
         
     plt.show()
@@ -352,6 +411,10 @@ def get_flux_at_hit(csv_file, show_print=True):
     filename_without_extension = os.path.splitext(filename)[0]
     parts = filename_without_extension.split('_')
 
+    # Get max normed vel
+    normed_vel = df['EEF_Velocity'].apply(lambda x: np.linalg.norm(x))
+    max_vel = normed_vel.max()
+    
     # Get max flux
     max_flux = df['HittingFlux'].abs().max()
     
@@ -363,7 +426,7 @@ def get_flux_at_hit(csv_file, show_print=True):
         print(f"Hit #{parts[3]}, IIWA_{parts[1]} \n Desired Flux: {des_flux} \n Max Flux: {max_flux:.4f}")
         print(f" Real Hit time : {hit_time} \n Recorded Hit Time : {pd.to_datetime(recorded_hit_time, unit='s')}")
     
-    return max_flux
+    return max_flux, max_vel
 
 def get_distance_travelled(csv_file, show_print=True, show_hit=True):
     # Read CSV file into a Pandas DataFrame
@@ -397,8 +460,8 @@ def get_distance_travelled(csv_file, show_print=True, show_hit=True):
     return distance_in_x, norm_distance
 
 
-def process_timestamped_folders(root_folder):
-    
+def process_timestamped_folders(root_folder):    
+   
     for folder in os.listdir(root_folder):
         folder_path = os.path.join(root_folder, folder)
         if os.path.isdir(folder_path) and len(folder) == 19 and folder[10] == '_':
@@ -418,13 +481,19 @@ def process_timestamped_folders(root_folder):
                     file_path = os.path.join(folder_path, file)
                     plot_robot_data(file_path)
 
+<<<<<<< HEAD
 # test stuff out 
                     
 def flux_DS_by_harshit(attractor_pos, current_inertia, current_position):
+=======
+# test stuff out                  
+def flux_DS(attractor_pos, current_inertia, current_position):
+>>>>>>> 632dedb62777145e4a02d8aec0f54f0940c500a4
     
     # set values
     DS_attractor = np.reshape(np.array(attractor_pos), (-1,1))
     des_direction = np.array([[0.0], [-1.0], [0.0]])
+    test_des_direction = np.array([[0.0], [-1.0], [0.0]])
     sigma = 0.2
     gain = -2.0 * np.identity(3)
     m_obj = 0.4
@@ -432,7 +501,7 @@ def flux_DS_by_harshit(attractor_pos, current_inertia, current_position):
 
     # Finding the virtual end effector position
     relative_position = current_position - DS_attractor
-    virtual_ee = DS_attractor + des_direction * (np.dot(relative_position.T, des_direction) / np.linalg.norm(des_direction)**2)
+    virtual_ee = DS_attractor + des_direction * (np.dot(relative_position.T, test_des_direction) / np.linalg.norm(des_direction)**2)
     
     dir_inertia = 1/np.dot(des_direction.T, np.dot(current_inertia, des_direction))
     
@@ -544,10 +613,19 @@ if __name__== "__main__" :
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
     
     folder_name = "2024-02-21_15:26:34"
+<<<<<<< HEAD
     hit_number = [16,30]
+=======
+    hit_number = [16,17]
+>>>>>>> 632dedb62777145e4a02d8aec0f54f0940c500a4
     iiwa_number = 14
+    plot_this_data = ["Torque", "Vel", "Object", "Joint Vel"]#["Vel", "Inertia", "Flux", "Normed Vel"]
     
+<<<<<<< HEAD
     plot_all_des_vs_achieved(folder_name, hit_number, iiwa_number, data_to_plot=["Vel", "Inertia", "Flux"])
+=======
+    plot_all_des_vs_achieved(folder_name, hit_number, iiwa_number, data_to_plot=plot_this_data)
+>>>>>>> 632dedb62777145e4a02d8aec0f54f0940c500a4
 
     
 

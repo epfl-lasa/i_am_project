@@ -209,7 +209,7 @@ void Recorder::iiwaInertiaCallback(const geometry_msgs::Inertia::ConstPtr& msg, 
 
 void Recorder::iiwaPoseCallbackReal(const geometry_msgs::Pose::ConstPtr& msg, int k){
   iiwaPositionFromSource_[k]  << msg->position.x, msg->position.y, msg->position.z;
-  iiwaOrientationFromSource_[k] << msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w;
+  iiwaOrientationFromSource_[k] << msg->orientation.w, msg->orientation.x, msg->orientation.y, msg->orientation.z;
 }
 
 void Recorder::iiwaVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& msg, int k){
@@ -218,8 +218,7 @@ void Recorder::iiwaVelocityCallbackReal(const geometry_msgs::Twist::ConstPtr& ms
 
 void Recorder::objectPositionCallbackReal(const geometry_msgs::PoseStamped::ConstPtr& msg){
   objectPositionFromSource_ << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
-  objectOrientationFromSource_ << msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z,
-      msg->pose.orientation.w;
+  objectOrientationFromSource_ << msg->pose.orientation.w, msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z;
 }
 
 void Recorder::iiwaJointStateCallbackReal(const sensor_msgs::JointState::ConstPtr& msg, int k){
@@ -262,7 +261,7 @@ int Recorder::getIndex(std::vector<std::string> v, std::string value) {
 }
 
 float Recorder::calculateDirFlux(Robot robot_name) {
-  return ((1/iiwaTaskInertiaPosInv_[robot_name](1, 1)) / (1/(iiwaTaskInertiaPosInv_[robot_name](1, 1)) + objectMass_)) * iiwaVelocityFromSource_[robot_name](1);
+  return ((1/iiwaTaskInertiaPosInv_[robot_name](1, 1)) / (1/(iiwaTaskInertiaPosInv_[robot_name](1, 1)) + objectMass_)) * iiwaVelocityFromSource_[robot_name].norm();
 }
 
 // RECORDING FUNCTIONS 
@@ -331,6 +330,7 @@ void Recorder::recordObject(bool manual){
   // Get the current time
   newState.time = ros::Time::now();
   newState.position = objectPositionFromSource_;
+  newState.orientation = objectOrientationFromSource_;
 
   // Add the new state to the vector
   if(manual){objectStatesVectorManual_.push_back(newState);}
@@ -424,14 +424,15 @@ void Recorder::writeObjectStatesToFile(int hit_count, std::string filename, bool
   }
 
   // Write CSV header
-  outFile << "RosTime,Position\n";
+  outFile << "RosTime,Position,Orientation\n";
 
   if(!manual){
     // Write each RobotState structure to the file
     for (const auto& state : objectStatesVector_) {
         // outFile << "Object Name: " << state.robot_name << "\n";
         outFile << std::setprecision(std::numeric_limits<double>::max_digits10) << state.time.toSec()+3600 << "," // add precision and 1h for GMT
-                << state.position.transpose() << "\n";
+                << state.position.transpose() << ","
+                << state.orientation.transpose() << "\n";
     }
 
     outFile.close();

@@ -5,20 +5,9 @@ import numpy as np
 from datetime import datetime
 import re
 import time
+from process_data import parse_list, parse_value, get_impact_time_from_object, get_flux_and_inertia_at_hit, get_distance_travelled
 
-# def parse_list(cell):
-#     # Parse the comma-separated values as a list of floats
-#     # return [float(value) for value in cell.strip().split('\t')]
-
-def parse_list(cell):
-    # Split the space-separated values and parse them as a list of floats
-    return [float(value) for value in cell.split()]
-
-def parse_value(cell):
-    # convert string to float 
-    return float(cell)
-
-
+## PLOT FUNCTIONS
 def plot_robot_data(csv_file, show_plot=True):
 
     # Read CSV file into a Pandas DataFrame
@@ -155,14 +144,11 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
     hit_time = get_impact_time_from_object(object_csv, show_print=True)
     datetime_hit_time= pd.to_datetime(hit_time, unit='s')
 
-    print(f"hit time : {datetime_hit_time}")
-
     # Get the 'Time' column as datetime
     df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
 
     # Labels for the coordinates
     coordinate_labels = ['x', 'y', 'z']
-
 
     # Inverse Effort for easier to read plots
     if inverse_effort: effort_factor = -1
@@ -244,6 +230,15 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
         ax.legend()
         ax.grid(True)
         # fig.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
+
+    hit_time = get_impact_time_from_object(path_to_object_hit)
+    flux_at_hit, inertia_at_hit = get_flux_and_inertia_at_hit(path_to_robot_hit, hit_time, show_print=False)
+    norm_distance = get_distance_travelled(path_to_object_hit, show_print=False)
+    
+    print(f"Hit #{parts[3]}\n"
+            f" Hitting Flux: {flux_at_hit:.4f} \n"
+            f" Hitting inertia: {inertia_at_hit:.4f} \n"
+            f" Distance travelled (norm): {norm_distance:.3f}")
 
     if show_plot : plt.show()
 
@@ -358,21 +353,7 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
                       
             # Plot Flux
             if "Flux" in data_to_plot:
-                # Recalculate Flux as per paper
-                # m_obj = 0.4
-                # if iiwa_number == 7:
-                #     des_direction = np.array([[0.0], [1.0], [0.0]])
-                # elif iiwa_number == 14:
-                #     des_direction = np.array([[0.0], [-1.0], [0.0]])
-                
-                # # NOTE : Inertia recorded is actually Inertia Task Position INVERSE
-                # projected_inertia = df['Inertia'].apply(lambda x : 1/(des_direction.T @ np.reshape(x, (3,3)) @ des_direction))
-                # paper_flux = (projected_inertia/(projected_inertia+m_obj)) * df['EEF_Velocity'].apply(lambda x: np.linalg.norm(x))
-                # abs_flux = df['HittingFlux'].abs()
-                # Then plot 
                 ax_flux.plot(df['RosTime'], df['HittingFlux'], label='recorded')
-                # ax_flux.plot(df['RosTime'], paper_flux, label='paper')
-                # ax_flux.plot(df['RosTime'], abs_flux)
                 ax_flux.axhline(y=des_flux, color='r', linestyle='--')
                 ax_flux.set_xlabel('Time [s]')
                 ax_flux.set_ylabel('Hitting flux [m/s]')
@@ -422,230 +403,19 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
             print(f"No iiwa_{iiwa_number} data file for hit #{hit} \n")
         
         hit_time = get_impact_time_from_object(path_to_object_hit)
-        flux_at_hit, inertia_at_hit = get_flux_and_inertia_at_hit(path_to_robot_hit, hit_time, show_print=True)
-        y_distance, norm_distance = get_distance_travelled(path_to_object_hit, show_print=False)
+        flux_at_hit, inertia_at_hit = get_flux_and_inertia_at_hit(path_to_robot_hit, hit_time, show_print=False)
+        norm_distance = get_distance_travelled(path_to_object_hit, show_print=False)
         
-        # print(f"Hit #{parts[3]}\n"
-        #       f" Hitting Flux: {flux_at_hit:.4f} \n"
-        #       f" Hitting inertia: {inertia_at_hit:.4f} \n"
-        #       f" Distance travelled (norm): {norm_distance:.3f}")
+        print(f"Hit #{parts[3]}\n"
+              f" Hitting Flux: {flux_at_hit:.4f} \n"
+              f" Hitting inertia: {inertia_at_hit:.4f} \n"
+              f" Distance travelled (norm): {norm_distance:.3f}")
         
         
     plt.show()
 
-def get_flux_and_inertia_at_hit(csv_file, hit_time, show_print=False, get_max_values=False):
-    
-    # Read CSV file into a Pandas DataFrame
-    df = pd.read_csv(csv_file, skiprows=1,
-                     converters={'RosTime' : parse_value, 'JointPosition': parse_list, 'JointVelocity': parse_list, 'JointEffort': parse_list, 
-                                 'TorqueCmd': parse_list, 'EEF_Position': parse_list, 'EEF_Orientation': parse_list, 'EEF_Velocity': parse_list, 
-                                 'EEF_DesiredVelocity': parse_list, 'Inertia': parse_list, 'HittingFlux': parse_value})
-                    #  dtype={'RosTime': 'float64'})
-    
-    # TODO : add check if we don't get a match to return last value?
-    # Get flux at closest hit time 
-    flux_at_hit = df[(df['RosTime']-hit_time) >= 0].iloc[0]['HittingFlux']
 
-    # Get directional inertia at hit time
-    # NOTE : Inertia recorded is actually Inertia Task Position INVERSE
-    inertia_at_hit = df[(df['RosTime']-hit_time) >= 0].iloc[0]['Inertia']
-
-    des_direction = np.array([[0.0], [1.0], [0.0]])
-    dir_inertia_at_hit = 1/(des_direction.T @ np.reshape(inertia_at_hit, (3,3)) @ des_direction)[0,0]
-
-    if get_max_values : 
-        # Get max normed vel
-        normed_vel = df['EEF_Velocity'].apply(lambda x: np.linalg.norm(x))
-        max_vel = normed_vel.max()
-        
-        # Get max flux
-        max_flux = df['HittingFlux'].abs().max()
-    
-    if show_print: 
-         # Define set values from first row
-        df_top_row = pd.read_csv(csv_file, nrows=1, header=None)
-        top_row_list = df_top_row.iloc[0].to_list()
-        des_flux = top_row_list[1]
-        des_pos = parse_list(top_row_list[5])
-        recorded_hit_time = top_row_list[3]
-        # print(f"Desired Flux: {des_flux} \n Desired Pos: [{des_pos[0]:.3f}, {des_pos[1]:.3f}, {des_pos[2]:.3f}] \n Hit Time: {pd.to_datetime(recorded_hit_time, unit='s')}")
-
-        # Make title string
-        filename = os.path.basename(csv_file)
-        filename_without_extension = os.path.splitext(filename)[0]
-        parts = filename_without_extension.split('_')
-
-        print(f"Hit #{parts[3]}, IIWA_{parts[1]} \n Desired Flux: {des_flux} \n Hitting Flux: {flux_at_hit:.4f}")
-        print(f" Real Hit time : {hit_time} \n Recorded Hit Time : {pd.to_datetime(recorded_hit_time, unit='s')}")
-    
-    if get_max_values : 
-        return max_flux, max_vel
-
-    else: 
-        return flux_at_hit, dir_inertia_at_hit
-
-def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False):    
-    # Reads object csv file and returns impact time OR indexes for before_impact, after_impact, stop moving
-
-    # Read CSV file into a Pandas DataFrame
-    df = pd.read_csv(csv_file,
-                     converters={'RosTime' : parse_value, 'Position': parse_list})
-                
-    ### SOLUTION TO DEAL WITH RECORDING OF MANUAL MOVEMENT 
-    # remove start_position rows and use derivative to find changes in speed 
-    derivative_threshold = 0.05
-
-    start_position = np.array(df['Position'].iloc[0]) # position before hit 
-
-    # find start and end index by using derivative in x axis --ASSUME MOVEMENT IN X AXIS
-    x_values =  df['Position'].apply(lambda x: x[0])
-    df['derivative'] = x_values.diff() / df['RosTime'].diff()
-
-    # remove zeros
-    filtered_df = df[df['derivative'] != 0.0].copy()
-
-    # remove all rows of start position
-    filtered_df['Filtered_Position'] = filtered_df['Position'].apply(lambda x: np.array([round(x[0]-start_position[0],3),round(x[1]-start_position[1],3),round(x[2]-start_position[2],3)]))
-    filtered_df = filtered_df[filtered_df['Filtered_Position'].apply(lambda x : not np.array_equal(np.array(x), np.array([0,0,0])))]
-
-    # get start and end index
-    idx_start_moving =  (filtered_df['derivative'].abs() > derivative_threshold).idxmax() # detect 1st time derivative is non-zero
-    idx_stop_moving = (filtered_df['derivative'].abs() < derivative_threshold).idxmax() # detect 1st time derivative comes back to zero
-    idx_before_impact = idx_start_moving-1 # time just before impact - 10ms error due to Motive streaming at 120Hz 
-
-    hit_time = df['RosTime'].iloc[idx_before_impact] # HIT TIME as float 
-
-    if show_print: 
-        df['RosTime'] = pd.to_datetime(df['RosTime'], unit='s')
-        print(f"Start moving from {df['Position'].iloc[idx_before_impact]} at {df['RosTime'].iloc[idx_before_impact]}")
-        print(f"Stop moving from {df['Position'].iloc[idx_stop_moving]} at {df['RosTime'].iloc[idx_stop_moving]}")
-
-    if not return_indexes: 
-        return hit_time
-    elif return_indexes:
-        if show_print : print("Return object movement indexes")
-        return idx_before_impact, idx_start_moving, idx_stop_moving
-
-def get_distance_travelled(csv_file, return_distance_in_x=False, show_print=False, show_hit=True):
-    # Read CSV file into a Pandas DataFrame
-    df = pd.read_csv(csv_file,
-                     converters={'RosTime' : parse_value, 'Position': parse_list})
-                    #  dtype={'RosTime': 'float64'})
-
-    # # Make title string
-    filename = os.path.basename(csv_file)
-    filename_without_extension = os.path.splitext(filename)[0]
-    parts = filename_without_extension.split('_')
-
-    idx_before_impact, idx_start_moving, idx_stop_moving = get_impact_time_from_object(csv_file, return_indexes=True)
-
-    ### Get distance in X = axis of hit in optitrack frame
-    distance_in_x = df['Position'].iloc[idx_before_impact][0]- df['Position'].iloc[idx_stop_moving][0]
-    #### Get distance in norm 
-    norm_distance = np.linalg.norm(np.array(df['Position'].iloc[idx_before_impact])-np.array(df['Position'].iloc[idx_stop_moving]))
-    
-    if show_print :
-        if show_hit:
-            print(f"Hit #{parts[2]}, Object \n")
-        print(f" Distance in Y-axis : {distance_in_x:.3f} \n Normed Distance : {norm_distance:.3f}")
-
-    if return_distance_in_x : 
-        return distance_in_x
-    else : 
-        return norm_distance
-
-def get_info_at_hit_time(robot_csv, object_csv):
-
-    # get hit time 
-    hit_time = get_impact_time_from_object(object_csv)
-
-    # get flux, inertia on hit
-
-    hitting_flux, hitting_dir_inertia = get_flux_and_inertia_at_hit(robot_csv, hit_time)
-
-    # get distance travelled
-    distance_travelled = get_distance_travelled(object_csv, show_print=False)
-
-    # get recording session, iiwa number and hit number from robot_csv name 
-    recording_session = os.path.basename(os.path.dirname(robot_csv))
-    filename = os.path.basename(robot_csv)
-    filename_without_extension = os.path.splitext(filename)[0]
-    parts = filename_without_extension.split('_')
-    iiwa_number = parts[1]
-    hit_number = parts[3]
-
-    # Should be ordered in the same way as output file columns
-    return [recording_session, hit_number, iiwa_number,  distance_travelled, hitting_flux, hitting_dir_inertia]
-
-def process_data_to_one_file(recording_sessions, output_filename="test.csv"):
-    
-    path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
-    output_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_processed/" + output_filename
-
-    output_df = pd.DataFrame(columns=["RecSession","HitNumber","IiwaNumber","DistanceTraveled","HittingFlux","HittingInertia"])
-
-    start_time= time.time()
-    # process each rec_sess folder 
-    for rec_sess in recording_sessions: 
-        
-        folder_name = os.path.join(path_to_data_airhockey,rec_sess)
-
-        # Iterate over files in the folder and write filenames to dictionary
-        hit_files = {}
-        for filename in os.listdir(folder_name):
-            # Check if the file matches the pattern
-            match = re.match(r'(?:IIWA_\d+_hit_|object_hit_)(\d+)\.csv', filename)
-            if match:
-                hit_number = int(match.group(1))
-                # Append the file to the corresponding hit_number key in the dictionary
-                hit_files.setdefault(hit_number, []).append(os.path.join(folder_name, filename))
-
-        # Iterate over pairs of files with the same hit number
-        for hit_number, files in hit_files.items():
-            # Check if there are at least two files with the same hit number
-            if len(files) == 2:
-                
-                files.sort() # Sort the files to process them in order -> robot_csv, then object_csv
-                
-                # process each "hit_number" set 
-                output_df.loc[len(output_df)]= get_info_at_hit_time(files[0], files[1])
-        
-
-            else :
-                print(f"ERROR : Wrong number of files, discarding the following : \n {files}")
-
-        print(f"FINISHED {rec_sess}")
-
-    # Save output df as .csv
-    output_df.to_csv(output_path)
-    
-    print(f"Took {time.time()-start_time} seconds \nProcessed impact info for folders : {recording_sessions}")
-
-    return
-
-
-def process_timestamped_folders(root_folder):    
-   
-    for folder in os.listdir(root_folder):
-        folder_path = os.path.join(root_folder, folder)
-        if os.path.isdir(folder_path) and len(folder) == 19 and folder[10] == '_':
-            # Check if the folder name matches the timestamp format
-            timestamp = folder.replace('_', ' ')
-            try:
-                datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
-            except ValueError:
-                continue
-
-            # Iterate through CSV files in the folder
-            for file in os.listdir(folder_path):
-                if file.startswith('iiwa'):
-                    file_path = os.path.join(folder_path, file)
-                    plot_robot_data(file_path)
-                if file.startswith('object'):
-                    file_path = os.path.join(folder_path, file)
-                    plot_robot_data(file_path)
-
-# test stuff out              
+# TESTING STUFF OUT             
 def flux_DS_by_harshit(attractor_pos, current_inertia, current_position):
     
     # set values
@@ -761,39 +531,56 @@ def test_flux_DS(csv_file):
     plt.grid(True)
     plt.show()
 
+def process_timestamped_folders(root_folder):    
+   
+    for folder in os.listdir(root_folder):
+        folder_path = os.path.join(root_folder, folder)
+        if os.path.isdir(folder_path) and len(folder) == 19 and folder[10] == '_':
+            # Check if the folder name matches the timestamp format
+            timestamp = folder.replace('_', ' ')
+            try:
+                datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                continue
+
+            # Iterate through CSV files in the folder
+            for file in os.listdir(folder_path):
+                if file.startswith('iiwa'):
+                    file_path = os.path.join(folder_path, file)
+                    plot_robot_data(file_path)
+                if file.startswith('object'):
+                    file_path = os.path.join(folder_path, file)
+                    plot_robot_data(file_path)
+
 
 if __name__== "__main__" :
 
-    # path_to_data_airhockey = "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
     
     ### Plots variables
-    folder_name = "2024-03-06_12:30:55"
-    hit_number = 68 #[16,17]
-    iiwa_number = 14
+    folder_name = "2024-03-05_15:58:41"
+    hit_number = 61 #[16,17]
+    iiwa_number = 7
     plot_this_data = ["Flux","Vel","Pos","Object"]#["Vel", "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
-    
-    # plot_all_des_vs_achieved(folder_name, hit_number, iiwa_number, data_to_plot=plot_this_data)
 
-    ### Processing variables "2024-03-06_12:30:55" -> problem hit 68 the hit time is after we stop record ing robot data 
-    folders_to_process = ["2024-03-05_12:20:48","2024-03-05_12:28:21","2024-03-05_14:04:43","2024-03-05_14:45:46","2024-03-05_15:19:15","2024-03-05_15:58:41",]
-
-    process_data_to_one_file(folders_to_process, output_filename="all_data.csv")
-
-
-    # test one plot
+    # PLOT FOR SINGLE HIT 
     if isinstance(hit_number, int) :
         path_to_robot_hit = path_to_data_airhockey + f"{folder_name}/IIWA_{iiwa_number}_hit_{hit_number}.csv"
         path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_hit_{hit_number}.csv"
 
-        # test_flux_DS(path_to_robot_hit)
+        # Plot one hit info with hit time 
         plot_actual_vs_des(path_to_robot_hit, path_to_object_hit, data_to_plot=plot_this_data)
+        
         # plot_robot_data(path_to_robot_hit, show_plot=False)
         # plot_object_data(path_to_object_hit)
         # get_distance_travelled(path_to_object_hit)
     
-    # iterate through hit_number
+    
+    # PLOT SEVERAL HITS (hit_number should be a list)
     elif isinstance(hit_number, list):
+
+        plot_all_des_vs_achieved(folder_name, hit_number, iiwa_number, data_to_plot=plot_this_data)
+
         for hit in range(hit_number[0], hit_number[1]+1):
         
             path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_hit_{hit}.csv"

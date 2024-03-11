@@ -92,6 +92,7 @@ private:
   std::string recordingFolderPath_;
   std::string fluxFilename_;
   float recordingTimeObject_;
+  float recordingTimeRobot_;
 
   float objectMass_;
   float hittingFluxDes_[NB_ROBOTS];

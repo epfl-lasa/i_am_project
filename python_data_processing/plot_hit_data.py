@@ -5,7 +5,7 @@ import numpy as np
 from datetime import datetime
 import re
 import time
-from process_data import parse_list, parse_value, get_impact_time_from_object, get_flux_and_inertia_at_hit, get_distance_travelled
+from process_data import parse_list, parse_value, get_impact_time_from_object, get_flux_and_inertia_at_hit, get_distance_travelled, get_info_at_hit_time
 
 ## PLOT FUNCTIONS
 def plot_robot_data(csv_file, show_plot=True):
@@ -557,11 +557,28 @@ if __name__== "__main__" :
 
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
     
+    # READ from file using index or enter manually
+    read_hit_info_from_file = True
+
     ### Plots variables
-    folder_name = "2024-03-05_15:58:41"
-    hit_number = 61 #[16,17]
-    iiwa_number = 7
-    plot_this_data = ["Flux","Vel","Pos","Object"]#["Vel", "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
+    if read_hit_info_from_file:
+        index_to_plot = 710 ## FILL THIS IF ABOVE IS TRUE
+        file_to_read = "all_data_march_clean.csv"
+
+        processed_df = pd.read_csv(os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_processed/"+file_to_read, index_col="Index")
+        folder_name = processed_df['RecSession'].loc[index_to_plot] # "2024-03-05_14:04:43"
+        hit_number = int(processed_df['HitNumber'].loc[index_to_plot]) #82 #[16,17]
+        iiwa_number = processed_df['IiwaNumber'].loc[index_to_plot] #14
+    
+    else : ## OTHERWISE FILL THIS 
+        folder_name = "2024-03-05_14:04:43"
+        hit_number = 82 #[16,17]
+        iiwa_number = 14
+    
+
+    ### DATA TO PLOT 
+    plot_this_data = ["Flux","Vel","Torque","Object"]#["Vel", "Inertia", "Flux", "Normed Vel"]"Torque", "Vel", , "Joint Vel"
+
 
     # PLOT FOR SINGLE HIT 
     if isinstance(hit_number, int) :
@@ -570,32 +587,10 @@ if __name__== "__main__" :
 
         # Plot one hit info with hit time 
         plot_actual_vs_des(path_to_robot_hit, path_to_object_hit, data_to_plot=plot_this_data)
-        
-        # plot_robot_data(path_to_robot_hit, show_plot=False)
-        # plot_object_data(path_to_object_hit)
-        # get_distance_travelled(path_to_object_hit)
-    
+
     
     # PLOT SEVERAL HITS (hit_number should be a list)
     elif isinstance(hit_number, list):
-
         plot_all_des_vs_achieved(folder_name, hit_number, iiwa_number, data_to_plot=plot_this_data)
 
-        for hit in range(hit_number[0], hit_number[1]+1):
-        
-            path_to_object_hit = path_to_data_airhockey + f"{folder_name}/object_hit_{hit}.csv"
-
-            # grab robot data file for the hit
-            if os.path.exists(path_to_data_airhockey + f"{folder_name}/IIWA_7_hit_{hit}.csv"):
-                path_to_robot_hit = path_to_data_airhockey + f"{folder_name}/IIWA_7_hit_{hit}.csv"
-            elif os.path.exists(path_to_data_airhockey + f"{folder_name}/IIWA_14_hit_{hit}.csv"):
-                path_to_robot_hit = path_to_data_airhockey + f"{folder_name}/IIWA_14_hit_{hit}.csv"
-            else :
-                print(f"No robot data file for hit #{hit} \n")
-            
-            # get_distance_travelled(path_to_object_hit)
-            # plot_object_data(path_to_object_hit, show_plot=False)
-            # get_flux_and_inertia_at_hit(path_to_robot_hit, show_hit=False)
-            
-    # plt.show()
     

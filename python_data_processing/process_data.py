@@ -218,4 +218,5 @@ if __name__== "__main__" :
     folders_to_process = ["2024-03-05_12:20:48","2024-03-05_12:28:21","2024-03-05_14:04:43","2024-03-05_14:45:46","2024-03-05_15:19:15","2024-03-05_15:58:41",
                           "2024-03-06_12:30:55", "2024-03-06_13:40:26","2024-03-06_13:52:53","2024-03-06_15:03:42" ]
 
-    process_data_to_one_file(folders_to_process, output_filename="all_data_march.csv")
+    process_data_to_one_file(folders_to_process, output_filename="all_data_march_test.csv")
+

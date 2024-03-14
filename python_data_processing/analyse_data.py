@@ -15,7 +15,6 @@ import torch
 
 def clean_data(df, distance_threshold=0.05, flux_threshold=0.35):
     
-    print(df.head())
     ### Remove low outliers -> due to way of recording and processing
     # Distance
     clean_df = df[df['DistanceTraveled']>distance_threshold]
@@ -41,8 +40,6 @@ def test_gmm_torch(df):
     temp_array = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
 
     data = torch.tensor(temp_array, dtype=torch.float32) 
-    
-    print(data.dtype)
 
     # Next, the Gaussian mixture is instantiated and ..
     model = GaussianMixture(n_components=5, n_features=2, covariance_type="full")
@@ -62,7 +59,12 @@ def plot_distance_vs_flux(df, with_linear_regression=True, gmm_model=None, use_m
     
     # Plot Flux
     fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
-    ax.scatter(df['HittingFlux'], df['DistanceTraveled'], color='blue', alpha=0.5, label='Data points')
+
+    df_iiwa7 = df[df['IiwaNumber']==7].copy()
+    df_iiwa14 = df[df['IiwaNumber']==14].copy()
+
+    ax.scatter(df_iiwa7['HittingFlux'], df_iiwa7['DistanceTraveled'], color='orange', alpha=0.6, label='Iiwa 7')
+    ax.scatter(df_iiwa14['HittingFlux'], df_iiwa14['DistanceTraveled'], color='blue', alpha=0.4, label='Iiwa 14')
 
     ## Add linear regression
     if with_linear_regression: 
@@ -71,7 +73,7 @@ def plot_distance_vs_flux(df, with_linear_regression=True, gmm_model=None, use_m
 
         flux_test = np.linspace(0.4,1.2,100).reshape(-1,1)
         distance_pred = lin_model.predict(flux_test)
-        ax.plot(flux_test,distance_pred,color='red', label='Predictions')
+        ax.plot(flux_test,distance_pred,color='red', label='Linear Regression')
 
 
     ## Add GMM model
@@ -93,9 +95,11 @@ def plot_distance_vs_flux(df, with_linear_regression=True, gmm_model=None, use_m
     low_to_med_threshold = 0.65
     med_to_high_threshold = 0.85
     print(f"Dataset info : \n"
-          f" Low Flux points (below {low_to_med_threshold}): {len(df[df['HittingFlux'] < low_to_med_threshold].index)} \n"
-          f" Medium Flux points : {len(df[df['HittingFlux'] > low_to_med_threshold].index) - len(df[df['HittingFlux'] > med_to_high_threshold].index)} \n"
-          f" High Flux points (above {med_to_high_threshold}) : {len(df[df['HittingFlux'] > med_to_high_threshold].index)} \n"
+          f" Iiwa 7 points : {len(df_iiwa7.index)} \n"
+          f" Iiwa 14 points : {len(df_iiwa14.index)} \n"
+        #   f" Low Flux points (below {low_to_med_threshold}): {len(df[df['HittingFlux'] < low_to_med_threshold].index)} \n"
+        #   f" Medium Flux points : {len(df[df['HittingFlux'] > low_to_med_threshold].index) - len(df[df['HittingFlux'] > med_to_high_threshold].index)} \n"
+        #   f" High Flux points (above {med_to_high_threshold}) : {len(df[df['HittingFlux'] > med_to_high_threshold].index)} \n"
           f" Total points : {len(df.index)}")
     
     # Adding info when hovering cursor
@@ -119,12 +123,12 @@ if __name__== "__main__" :
     csv_fn = processed_data_folder+ "all_data_march.csv"
     
     df = pd.read_csv(csv_fn, index_col="Index")
-    clean_df = clean_data(df, write_output=True)
+    clean_df = clean_data(df)
 
     # Saving clean df
     clean_df.to_csv(processed_data_folder+"all_data_march_clean.csv",index_label="Index")
 
-    # plot_distance_vs_flux(clean_df, with_linear_regression=True)
+    plot_distance_vs_flux(clean_df, with_linear_regression=True)
 
-    test_gmm_torch(clean_data(df))
+    # test_gmm_torch(clean_data(df))
 

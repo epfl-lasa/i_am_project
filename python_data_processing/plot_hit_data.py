@@ -5,7 +5,7 @@ import numpy as np
 from datetime import datetime
 import re
 import time
-from process_data import parse_list, parse_value, get_impact_time_from_object, get_flux_and_inertia_at_hit, get_distance_travelled, get_info_at_hit_time
+from process_data import parse_list, parse_value, get_impact_time_from_object, get_robot_data_at_hit, get_distance_travelled, get_info_at_hit_time
 
 ## PLOT FUNCTIONS
 def plot_robot_data(csv_file, show_plot=True):
@@ -232,7 +232,7 @@ def plot_actual_vs_des(robot_csv, object_csv, inverse_effort=True, show_plot=Tru
         # fig.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
 
     hit_time = get_impact_time_from_object(path_to_object_hit)
-    flux_at_hit, inertia_at_hit = get_flux_and_inertia_at_hit(path_to_robot_hit, hit_time, show_print=False)
+    flux_at_hit, inertia_at_hit, pos, orient = get_robot_data_at_hit(path_to_robot_hit, hit_time, show_print=False)
     norm_distance = get_distance_travelled(path_to_object_hit, show_print=False)
     
     print(f"Hit #{parts[3]}\n"
@@ -403,7 +403,7 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
             print(f"No iiwa_{iiwa_number} data file for hit #{hit} \n")
         
         hit_time = get_impact_time_from_object(path_to_object_hit)
-        flux_at_hit, inertia_at_hit = get_flux_and_inertia_at_hit(path_to_robot_hit, hit_time, show_print=False)
+        flux_at_hit, inertia_at_hit, pos, orient = get_robot_data_at_hit(path_to_robot_hit, hit_time, show_print=False)
         norm_distance = get_distance_travelled(path_to_object_hit, show_print=False)
         
         print(f"Hit #{parts[3]}\n"
@@ -562,7 +562,7 @@ if __name__== "__main__" :
 
     ### Plots variables
     if read_hit_info_from_file:
-        index_to_plot = 710 ## FILL THIS IF ABOVE IS TRUE
+        index_to_plot = 789 ## FILL THIS IF ABOVE IS TRUE
         file_to_read = "all_data_march_clean.csv"
 
         processed_df = pd.read_csv(os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey_processed/"+file_to_read, index_col="Index")

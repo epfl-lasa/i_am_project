@@ -6,12 +6,18 @@ from datetime import datetime
 import time
 from sklearn.linear_model import LinearRegression
 import mplcursors
+from matplotlib.patches import Rectangle
 
 import sys
 sys.path.append('/home/maxime/Workspace/i_am_project/python_data_processing/gmm_torch')
-from gmm_torch.gmm import GaussianMixture
-from gmm_torch.example import plot
+# from gmm_torch.gmm import GaussianMixture
+# from gmm_torch.example import plot
 import torch
+
+# PARSING FUNCTIONS
+def parse_list(cell):
+    # Split the comma-separated values and parse them as a list of floats
+    return [float(value) for value in cell.strip("[]").split(",")]
 
 def clean_data(df, distance_threshold=0.05, flux_threshold=0.35):
     
@@ -27,7 +33,8 @@ def clean_data(df, distance_threshold=0.05, flux_threshold=0.35):
     ## REMOVING datapoints manually -> after checking plots with plot_hit_data, these points are badly recorded
     ## maybe : 
     ## double hits (from 14): 202, 221, 250, 409, 791
-    idx_to_remove = []
+    ## didnt hit box ?? : 789 to remove for plot_hit_point_on_object
+    idx_to_remove = [789]
     clean_df = clean_df[~clean_df.index.isin(idx_to_remove)]
     clean_df.reset_index(drop=True, inplace=True)   
 
@@ -55,7 +62,7 @@ def test_gmm_torch(df):
     # plot(data, y)
 
 
-def plot_distance_vs_flux(df, with_linear_regression=True, gmm_model=None, use_mlpcursors=True):
+def plot_distance_vs_flux(df, with_linear_regression=True, gmm_model=None, use_mplcursors=True):
     
     # Plot Flux
     fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
@@ -63,8 +70,8 @@ def plot_distance_vs_flux(df, with_linear_regression=True, gmm_model=None, use_m
     df_iiwa7 = df[df['IiwaNumber']==7].copy()
     df_iiwa14 = df[df['IiwaNumber']==14].copy()
 
-    ax.scatter(df_iiwa7['HittingFlux'], df_iiwa7['DistanceTraveled'], color='orange', alpha=0.6, label='Iiwa 7')
-    ax.scatter(df_iiwa14['HittingFlux'], df_iiwa14['DistanceTraveled'], color='blue', alpha=0.4, label='Iiwa 14')
+    ax.scatter(df_iiwa7['HittingFlux'], df_iiwa7['DistanceTraveled'], color='red', alpha=0.5, label='Iiwa 7')
+    ax.scatter(df_iiwa14['HittingFlux'], df_iiwa14['DistanceTraveled'], color='blue', alpha=0.5, label='Iiwa 14')
 
     ## Add linear regression
     if with_linear_regression: 
@@ -103,7 +110,7 @@ def plot_distance_vs_flux(df, with_linear_regression=True, gmm_model=None, use_m
           f" Total points : {len(df.index)}")
     
     # Adding info when hovering cursor
-    if use_mlpcursors:
+    if use_mplcursors:
         mplcursors.cursor(hover=True).connect('add', lambda sel: sel.annotation.set_text(
             f"IDX: {sel.index} Rec:{df['RecSession'][sel.index]}, hit #{df['HitNumber'][sel.index]}, iiwa{df['IiwaNumber'][sel.index]}"))   
 
@@ -117,18 +124,49 @@ def plot_distance_vs_flux(df, with_linear_regression=True, gmm_model=None, use_m
     plt.show()
 
 
+def plot_hit_point_on_object(df, use_mplcursors=True):
+
+    # for each hit, get relative error in x,y,z 
+    df["RelPosError"]=df.apply(lambda row : [a-b for a,b in zip(row["HittingPos"],row["ObjectPos"])], axis=1)
+    df["RelPosError"] = df["RelPosError"].apply(lambda list : [x*100 for x in list]) # Read as cm
+
+    # plot x,z with y as color 
+    scatter = plt.scatter(df["RelPosError"].apply(lambda x: x[0]),df["RelPosError"].apply(lambda x: x[2]), c=df["RelPosError"].apply(lambda x: abs(x[1])), cmap='viridis')
+    plt.scatter(0,0, c="red", marker="x")
+    
+    # Add box - TODO : define it better
+    rect = Rectangle((-10, -10), 20, 20, linewidth=1, edgecolor='r', facecolor='none')
+    plt.gca().add_patch(rect)
+
+    cbar = plt.colorbar(scatter)
+    cbar.set_label('Y-axis [cm]')
+    # cbar.set_clim(vmin=df["RelPosError"].apply(lambda x: abs(x[1])).min(), vmax=df["RelPosError"].apply(lambda x: abs(x[1])).max())
+    plt.xlabel('X-axis [cm]')
+    plt.ylabel('Z-Axis[cm]')
+    plt.title('Hitting Point shown on object')
+
+    # Adding info when hovering cursor
+    if use_mplcursors:
+        mplcursors.cursor(hover=True).connect('add', lambda sel: sel.annotation.set_text(
+            f"IDX: {sel.index} Rec:{df['RecSession'][sel.index]}, hit #{df['HitNumber'][sel.index]}, iiwa{df['IiwaNumber'][sel.index]}"))   
+
+    plt.show()
+
+
+
 if __name__== "__main__" :
    
     processed_data_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+ "/data/airhockey_processed/"
     csv_fn = processed_data_folder+ "all_data_march.csv"
     
-    df = pd.read_csv(csv_fn, index_col="Index")
+    df = pd.read_csv(csv_fn, index_col="Index", converters={'ObjectPos' : parse_list, 'HittingPos': parse_list})
     clean_df = clean_data(df)
 
     # Saving clean df
     clean_df.to_csv(processed_data_folder+"all_data_march_clean.csv",index_label="Index")
 
-    plot_distance_vs_flux(clean_df, with_linear_regression=True)
+    # plot_distance_vs_flux(clean_df, with_linear_regression=True)
+    plot_hit_point_on_object(clean_df, use_mplcursors=False)
 
     # test_gmm_torch(clean_data(df))
 

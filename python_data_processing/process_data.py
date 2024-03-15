@@ -174,7 +174,7 @@ def get_object_orientation_at_hit(object_csv, hit_time):
     r_robot = Rotation.from_matrix(rotation_mat_robot)
     q_robot_frame = r_robot.as_quat()
 
-    return q_robot_frame
+    return np.array(q_robot_frame)
 
 def get_info_at_hit_time(robot_csv, object_csv):
 
@@ -266,8 +266,8 @@ if __name__== "__main__" :
     #                        "2024-03-06_12:30:55", "2024-03-06_13:40:26","2024-03-06_13:52:53","2024-03-06_15:03:42" ]
 
     ### WINDOWS
-    folders_to_process = ["2024-03-05_12_20_48","2024-03-05_12_28_21","2024-03-05_14_04_43","2024-03-05_14_45_46","2024-03-05_15_19_15","2024-03-05_15_58_41",
-                           "2024-03-06_12_30_55", "2024-03-06_13_40_26","2024-03-06_13_52_53","2024-03-06_15_03_42" ]
+    folders_to_process = ["2024-03-05_12_20_48"]#,"2024-03-05_12_28_21","2024-03-05_14_04_43","2024-03-05_14_45_46","2024-03-05_15_19_15","2024-03-05_15_58_41",
+                        #    "2024-03-06_12_30_55", "2024-03-06_13_40_26","2024-03-06_13_52_53","2024-03-06_15_03_42" ]
 
 
     process_data_to_one_file(folders_to_process, output_filename="test.csv")

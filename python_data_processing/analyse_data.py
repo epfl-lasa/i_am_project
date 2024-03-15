@@ -19,6 +19,11 @@ def parse_list(cell):
     # Split the comma-separated values and parse them as a list of floats
     return [float(value) for value in cell.strip("[]").split(",")]
 
+def parse_quat(cell):
+    # Split the space-separated values and parse them as a list of floats
+    return [float(value) for value in cell.strip("[]").split()]
+
+
 def clean_data(df, distance_threshold=0.05, flux_threshold=0.35):
     
     ### Remove low outliers -> due to way of recording and processing
@@ -34,7 +39,7 @@ def clean_data(df, distance_threshold=0.05, flux_threshold=0.35):
     ## maybe : 
     ## double hits (from 14): 202, 221, 250, 409, 791
     ## didnt hit box ?? : 789 to remove for plot_hit_point_on_object
-    idx_to_remove = [789]
+    idx_to_remove = []
     clean_df = clean_df[~clean_df.index.isin(idx_to_remove)]
     clean_df.reset_index(drop=True, inplace=True)   
 
@@ -61,17 +66,27 @@ def test_gmm_torch(df):
     plot_distance_vs_flux(df, with_linear_regression=True, gmm_model=model)
     # plot(data, y)
 
+def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_model=None, use_mplcursors=True):
+    ## use colors input to dtermine color of datapoints
 
-def plot_distance_vs_flux(df, with_linear_regression=True, gmm_model=None, use_mplcursors=True):
-    
     # Plot Flux
     fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
 
     df_iiwa7 = df[df['IiwaNumber']==7].copy()
     df_iiwa14 = df[df['IiwaNumber']==14].copy()
 
-    ax.scatter(df_iiwa7['HittingFlux'], df_iiwa7['DistanceTraveled'], color='red', alpha=0.5, label='Iiwa 7')
-    ax.scatter(df_iiwa14['HittingFlux'], df_iiwa14['DistanceTraveled'], color='blue', alpha=0.5, label='Iiwa 14')
+
+    if colors == "iiwa":
+        ax.scatter(df_iiwa7['HittingFlux'], df_iiwa7['DistanceTraveled'], color='red', alpha=0.5, label='Iiwa 7')
+        ax.scatter(df_iiwa14['HittingFlux'], df_iiwa14['DistanceTraveled'], color='blue', alpha=0.5, label='Iiwa 14')
+
+    elif colors == "orientation":
+        ###TODO : check this is correct ?? 
+        df["OrientationError"] = df.apply(lambda row : np.linalg.norm(np.array(row["HittingOrientation"])-np.array(row["ObjectOrientation"])),axis=1)
+        scatter = ax.scatter(df['HittingFlux'], df['DistanceTraveled'], c=df['OrientationError'], cmap="viridis")
+        
+        cbar = plt.colorbar(scatter)
+        cbar.set_label('Orientation error')
 
     ## Add linear regression
     if with_linear_regression: 
@@ -159,14 +174,14 @@ if __name__== "__main__" :
     processed_data_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+ "/data/airhockey_processed/"
     csv_fn = processed_data_folder+ "all_data_march.csv"
     
-    df = pd.read_csv(csv_fn, index_col="Index", converters={'ObjectPos' : parse_list, 'HittingPos': parse_list})
+    df = pd.read_csv(csv_fn, index_col="Index", converters={'ObjectPos' : parse_list, 'HittingPos': parse_list, 'ObjectOrientation' : parse_quat, 'HittingOrientation': parse_list})
     clean_df = clean_data(df)
 
     # Saving clean df
     clean_df.to_csv(processed_data_folder+"all_data_march_clean.csv",index_label="Index")
 
-    # plot_distance_vs_flux(clean_df, with_linear_regression=True)
-    plot_hit_point_on_object(clean_df, use_mplcursors=False)
+    plot_distance_vs_flux(clean_df, colors="orientation", with_linear_regression=True)
+    # plot_hit_point_on_object(clean_df, use_mplcursors=False)
 
     # test_gmm_torch(clean_data(df))
 

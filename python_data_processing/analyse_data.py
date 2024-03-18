@@ -23,7 +23,7 @@ def parse_quat(cell):
     # Split the space-separated values and parse them as a list of floats
     return [float(value) for value in cell.strip("[]").split()]
 
-
+# CLEANING FUNCTION
 def clean_data(df, distance_threshold=0.05, flux_threshold=0.35):
     
     ### Remove low outliers -> due to way of recording and processing
@@ -39,7 +39,8 @@ def clean_data(df, distance_threshold=0.05, flux_threshold=0.35):
     ## maybe : 
     ## double hits (from 14): 202, 221, 250, 409, 791
     ## didnt hit box ?? : 789 to remove for plot_hit_point_on_object
-    idx_to_remove = []
+    idx_to_remove = [789]
+
     clean_df = clean_df[~clean_df.index.isin(idx_to_remove)]
     clean_df.reset_index(drop=True, inplace=True)   
 
@@ -47,6 +48,7 @@ def clean_data(df, distance_threshold=0.05, flux_threshold=0.35):
  
     return clean_df
 
+# PLOTTING FUNCTIONS
 def test_gmm_torch(df): 
 
     temp_array = np.column_stack((df['HittingFlux'].values, df['DistanceTraveled'].values))
@@ -95,7 +97,7 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
 
         flux_test = np.linspace(0.4,1.2,100).reshape(-1,1)
         distance_pred = lin_model.predict(flux_test)
-        ax.plot(flux_test,distance_pred,color='red', label='Linear Regression')
+        ax.plot(flux_test,distance_pred,color='black', label='Linear Regression')
 
 
     ## Add GMM model
@@ -138,27 +140,55 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
 
     plt.show()
 
-
-def plot_hit_point_on_object(df, use_mplcursors=True):
-
+def plot_hit_position(df, on_object=True, use_mplcursors=True):
+    
     # for each hit, get relative error in x,y,z 
     df["RelPosError"]=df.apply(lambda row : [a-b for a,b in zip(row["HittingPos"],row["ObjectPos"])], axis=1)
     df["RelPosError"] = df["RelPosError"].apply(lambda list : [x*100 for x in list]) # Read as cm
 
-    # plot x,z with y as color 
-    scatter = plt.scatter(df["RelPosError"].apply(lambda x: x[0]),df["RelPosError"].apply(lambda x: x[2]), c=df["RelPosError"].apply(lambda x: abs(x[1])), cmap='viridis')
-    plt.scatter(0,0, c="red", marker="x")
-    
-    # Add box - TODO : define it better
-    rect = Rectangle((-10, -10), 20, 20, linewidth=1, edgecolor='r', facecolor='none')
-    plt.gca().add_patch(rect)
+    df_iiwa7 = df[df['IiwaNumber']==7].copy()
+    df_iiwa14 = df[df['IiwaNumber']==14].copy()
 
-    cbar = plt.colorbar(scatter)
-    cbar.set_label('Y-axis [cm]')
-    # cbar.set_clim(vmin=df["RelPosError"].apply(lambda x: abs(x[1])).min(), vmax=df["RelPosError"].apply(lambda x: abs(x[1])).max())
-    plt.xlabel('X-axis [cm]')
-    plt.ylabel('Z-Axis[cm]')
-    plt.title('Hitting Point shown on object')
+    # Show on object 
+    if on_object:
+        # plot x,z with y as color 
+        scatter = plt.scatter(df_iiwa7["RelPosError"].apply(lambda x: x[0]),df_iiwa7["RelPosError"].apply(lambda x: x[2]), c=df_iiwa7["RelPosError"].apply(lambda x: abs(x[1])), cmap='viridis')
+        plt.scatter(0,0, c="red", marker="x")
+        
+        # Add box - TODO : define it better
+        rect = Rectangle((-10, -10), 20, 20, linewidth=1, edgecolor='r', facecolor='none')
+        plt.gca().add_patch(rect)
+
+        cbar = plt.colorbar(scatter)
+        cbar.set_label('Y-axis [cm]')
+        plt.xlabel('X-axis [cm]')
+        plt.ylabel('Z-Axis[cm]')
+        plt.title('Hitting Point shown on object - IIWA 7')
+
+        ###SECOND FIG FOR IIWA 14
+        plt.figure()
+        # plot x,z with y as color 
+        scatter = plt.scatter(df_iiwa14["RelPosError"].apply(lambda x: x[0]),df_iiwa14["RelPosError"].apply(lambda x: x[2]), c=df_iiwa14["RelPosError"].apply(lambda x: abs(x[1])), cmap='viridis')
+        plt.scatter(0,0, c="red", marker="x")
+        
+        # Add box - TODO : define it better
+        rect = Rectangle((-10, -10), 20, 20, linewidth=1, edgecolor='r', facecolor='none')
+        plt.gca().add_patch(rect)
+
+        cbar = plt.colorbar(scatter)
+        cbar.set_label('Y-axis [cm]')
+        plt.xlabel('X-axis [cm]')
+        plt.ylabel('Z-Axis[cm]')
+        plt.title('Hitting Point shown on object - IIWA 14')
+
+    # Show over flux 
+    else:
+        plt.scatter(df_iiwa7['HittingFlux'],df_iiwa7["RelPosError"].apply(lambda x: np.linalg.norm(x)), color="red", alpha=0.5, label='Iiwa 7')
+        plt.scatter(df_iiwa14['HittingFlux'],df_iiwa14["RelPosError"].apply(lambda x: np.linalg.norm(x)),color="blue", alpha=0.5, label='Iiwa 14')
+        plt.legend()
+        plt.xlabel('Hitting Flux [m/s]')
+        plt.ylabel('Normed Position error [cm]')
+        plt.title('Hitting Position error over Flux')
 
     # Adding info when hovering cursor
     if use_mplcursors:
@@ -167,21 +197,52 @@ def plot_hit_point_on_object(df, use_mplcursors=True):
 
     plt.show()
 
+def flux_hashtable(df, use_mplcursors=True):
+    # Plot Flux
+    fig, ax = plt.subplots(1, 1, figsize=(10, 4), sharex=True)
 
+    df_iiwa7 = df[df['IiwaNumber']==7].copy()
+    df_iiwa14 = df[df['IiwaNumber']==14].copy()
+    ax.scatter(df_iiwa7['DesiredFlux'], df_iiwa7['HittingFlux'], color='red', alpha=0.5, label='Iiwa 7')
+    ax.scatter(df_iiwa14['DesiredFlux'], df_iiwa14['HittingFlux'], color='blue', alpha=0.5, label='Iiwa 14')
+
+    # add line
+    diagonal = np.linspace(df_iiwa7['DesiredFlux'].min(), df_iiwa7['DesiredFlux'].max(), 100)
+    ax.plot(diagonal, diagonal, color='black')
+
+    # Adding info when hovering cursor
+    if use_mplcursors:
+        mplcursors.cursor(hover=True).connect('add', lambda sel: sel.annotation.set_text(
+            f"IDX: {sel.index} Rec:{df['RecSession'][sel.index]}, hit #{df['HitNumber'][sel.index]}, iiwa{df['IiwaNumber'][sel.index]}"))   
+
+    ax.set_xlabel('Desired flux [m/s]')
+    ax.set_ylabel('Hitting Flux [m/s]')
+    ax.grid(True)
+    plt.legend()
+    fig.suptitle(f"Flux Hashtable")
+    fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
+    
+    plt.show()
 
 if __name__== "__main__" :
-   
-    processed_data_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+ "/data/airhockey_processed/"
-    csv_fn = processed_data_folder+ "all_data_march.csv"
     
-    df = pd.read_csv(csv_fn, index_col="Index", converters={'ObjectPos' : parse_list, 'HittingPos': parse_list, 'ObjectOrientation' : parse_quat, 'HittingOrientation': parse_list})
+    processed_data_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+ "/data/airhockey_processed/"
+    
+    ### Datafile to use
+    csv_fn ="data_consistent_march"
+
+
+    ## Reading and cleanign data 
+    df = pd.read_csv(processed_data_folder+csv_fn+".csv", index_col="Index", converters={'ObjectPos' : parse_list, 'HittingPos': parse_list, 'ObjectOrientation' : parse_quat, 'HittingOrientation': parse_list})
     clean_df = clean_data(df)
-
     # Saving clean df
-    clean_df.to_csv(processed_data_folder+"all_data_march_clean.csv",index_label="Index")
+    clean_df.to_csv(processed_data_folder+csv_fn+"_clean.csv",index_label="Index")
 
-    plot_distance_vs_flux(clean_df, colors="orientation", with_linear_regression=True)
-    # plot_hit_point_on_object(clean_df, use_mplcursors=False)
+
+    ### Plot functions
+    plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
+    # plot_hit_position(clean_df, on_object=True, use_mplcursors=True)
+    # flux_hashtable(clean_df)
 
     # test_gmm_torch(clean_data(df))
 

@@ -10,3 +10,4 @@ data/*
 !data/airhockey_processed/
 data/airhockey_processed/*
 !data/airhockey_processed/all_data_march.csv
+!data/airhockey_processed/data_consistent_march.csv

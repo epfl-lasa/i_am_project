@@ -17,6 +17,15 @@ def parse_value(cell):
     # convert string to float 
     return float(cell)
 
+def parse_strip_list_with_commas(cell):
+    # Split the comma-separated values and parse them as a list of floats
+    return [float(value) for value in cell.strip("[]").split(",")]
+
+def parse_strip_list(cell):
+    # Split the space-separated values and parse them as a list of floats
+    return [float(value) for value in cell.strip("[]").split()]
+
+
 def get_robot_data_at_hit(csv_file, hit_time, show_print=False, get_max_values=False):
     ### Returns robot data info at hit time : Flux, inertia, EFF pose
 
@@ -49,6 +58,11 @@ def get_robot_data_at_hit(csv_file, hit_time, show_print=False, get_max_values=F
     pos_at_hit = post_hit_df.iloc[0]['EEF_Position']
     orient_at_hit = post_hit_df.iloc[0]['EEF_Orientation']
 
+    # convert quaternion from W-xyz to xyz-W
+    new_orient_at_hit = orient_at_hit[1:] + [orient_at_hit[0]]
+    r = Rotation.from_quat(new_orient_at_hit) ## normalizes quaternion
+    new_orient_at_hit = r.as_quat()
+
     if get_max_values : 
         # Get max normed vel
         normed_vel = df['EEF_Velocity'].apply(lambda x: np.linalg.norm(x))
@@ -78,8 +92,8 @@ def get_robot_data_at_hit(csv_file, hit_time, show_print=False, get_max_values=F
         return max_flux, max_vel
 
     else: 
-        return flux_at_hit, dir_inertia_at_hit, pos_at_hit, orient_at_hit
-
+        return flux_at_hit, dir_inertia_at_hit, pos_at_hit, new_orient_at_hit
+    
 def get_impact_time_from_object(csv_file, show_print=False, return_indexes=False):    
     # Reads object csv file and returns impact time OR indexes for before_impact, after_impact, stop moving
 
@@ -163,8 +177,11 @@ def get_object_orientation_at_hit(object_csv, hit_time):
     # Define the rotation matrix from camera frame to robot frame
     rotation_mat_optitrack_to_robot = np.array([[0.0, -1.0, 0.0],[1.0, 0.0, 0.0],[0.0, 0.0, 1.0]])
 
+    # convert quaternion from W-xyz to xyz-W
+    new_object_orient_at_hit = object_orient_at_hit[1:] + [object_orient_at_hit[0]]
+
     # Convert the quaternion to a rotation matrix
-    r = Rotation.from_quat(object_orient_at_hit)
+    r = Rotation.from_quat(new_object_orient_at_hit)
     rotation_mat_optitrack = r.as_matrix()
 
     # Multiply the rotation matrix representing the camera-to-robot transformation with the rotation matrix from the quaternion
@@ -262,12 +279,12 @@ if __name__== "__main__" :
    
     ### Processing variables 
     ### UBUNTU
-    # folders_to_process = ["2024-03-05_12_20_48","2024-03-05_12:28:21","2024-03-05_14:04:43","2024-03-05_14:45:46","2024-03-05_15:19:15","2024-03-05_15:58:41",
-    #                        "2024-03-06_12:30:55", "2024-03-06_13:40:26","2024-03-06_13:52:53","2024-03-06_15:03:42" ]
+    folders_to_process = [ "2024-03-05_12:20:48","2024-03-05_12:28:21","2024-03-05_14:04:43","2024-03-05_14:45:46","2024-03-05_15:19:15"] #,"2024-03-05_15:58:41",
+                            # "2024-03-06_12:30:55", "2024-03-06_13:40:26","2024-03-06_13:52:53","2024-03-06_15:03:42"]
 
     ### WINDOWS
-    folders_to_process = ["2024-03-05_12_20_48","2024-03-05_12_28_21","2024-03-05_14_04_43","2024-03-05_14_45_46","2024-03-05_15_19_15"]#,"2024-03-05_15_58_41"]#,
-                        #    "2024-03-06_12_30_55", "2024-03-06_13_40_26","2024-03-06_13_52_53","2024-03-06_15_03_42" ]
+    # folders_to_process = ["2024-03-05_12_20_48","2024-03-05_12_28_21","2024-03-05_14_04_43","2024-03-05_14_45_46","2024-03-05_15_19_15"]#,"2024-03-05_15_58_41"]#,
+    #                     #    "2024-03-06_12_30_55", "2024-03-06_13_40_26","2024-03-06_13_52_53","2024-03-06_15_03_42" ]
 
 
     process_data_to_one_file(folders_to_process, output_filename="data_consistent_march.csv")

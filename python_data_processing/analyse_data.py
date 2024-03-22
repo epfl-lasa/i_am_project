@@ -7,6 +7,7 @@ import time
 from sklearn.linear_model import LinearRegression
 import mplcursors
 from matplotlib.patches import Rectangle
+import pybullet 
 
 import sys
 sys.path.append('/home/maxime/Workspace/i_am_project/python_data_processing/gmm_torch')
@@ -14,14 +15,7 @@ sys.path.append('/home/maxime/Workspace/i_am_project/python_data_processing/gmm_
 # from gmm_torch.example import plot
 import torch
 
-# PARSING FUNCTIONS
-def parse_list(cell):
-    # Split the comma-separated values and parse them as a list of floats
-    return [float(value) for value in cell.strip("[]").split(",")]
-
-def parse_quat(cell):
-    # Split the space-separated values and parse them as a list of floats
-    return [float(value) for value in cell.strip("[]").split()]
+from process_data import parse_value, parse_list, parse_strip_list, parse_strip_list_with_commas
 
 # CLEANING FUNCTION
 def clean_data(df, distance_threshold=0.05, flux_threshold=0.35):
@@ -38,8 +32,8 @@ def clean_data(df, distance_threshold=0.05, flux_threshold=0.35):
     ## REMOVING datapoints manually -> after checking plots with plot_hit_data, these points are badly recorded
     ## maybe : 
     ## double hits (from 14): 202, 221, 250, 409, 791
-    ## didnt hit box ?? : 789 to remove for plot_hit_point_on_object
-    idx_to_remove = [789]
+    ## didnt hit box ?? : 789, 438 to remove for plot_hit_point_on_object
+    idx_to_remove = []
 
     clean_df = clean_df[~clean_df.index.isin(idx_to_remove)]
     clean_df.reset_index(drop=True, inplace=True)   
@@ -140,8 +134,9 @@ def plot_distance_vs_flux(df, colors="iiwa", with_linear_regression=True, gmm_mo
 
     plt.show()
 
-def plot_hit_position(df, on_object=True, use_mplcursors=True):
-    
+def plot_hit_position(df, plot="on object", use_mplcursors=True):
+    # plot choices : "on object" , "flux", "distance"
+
     # for each hit, get relative error in x,y,z 
     df["RelPosError"]=df.apply(lambda row : [a-b for a,b in zip(row["HittingPos"],row["ObjectPos"])], axis=1)
     df["RelPosError"] = df["RelPosError"].apply(lambda list : [x*100 for x in list]) # Read as cm
@@ -150,9 +145,10 @@ def plot_hit_position(df, on_object=True, use_mplcursors=True):
     df_iiwa14 = df[df['IiwaNumber']==14].copy()
 
     # Show on object 
-    if on_object:
+    if plot == "on object":
         # plot x,z with y as color 
-        scatter = plt.scatter(df_iiwa7["RelPosError"].apply(lambda x: x[0]),df_iiwa7["RelPosError"].apply(lambda x: x[2]), c=df_iiwa7["RelPosError"].apply(lambda x: abs(x[1])), cmap='viridis')
+        # scatter = plt.scatter(df_iiwa7["RelPosError"].apply(lambda x: x[0]),df_iiwa7["RelPosError"].apply(lambda x: x[2]), c=df_iiwa7["RelPosError"].apply(lambda x: abs(x[1])), cmap='viridis')
+        scatter = plt.scatter(df_iiwa7["RelPosError"].apply(lambda x: x[0]),df_iiwa7["RelPosError"].apply(lambda x: x[2]), c=df_iiwa7["HittingFlux"], cmap='viridis')
         plt.scatter(0,0, c="red", marker="x")
         
         # Add box - TODO : define it better
@@ -160,7 +156,8 @@ def plot_hit_position(df, on_object=True, use_mplcursors=True):
         plt.gca().add_patch(rect)
 
         cbar = plt.colorbar(scatter)
-        cbar.set_label('Y-axis [cm]')
+        # cbar.set_label('Y-axis [cm]')
+        cbar.set_label('Flux')
         plt.xlabel('X-axis [cm]')
         plt.ylabel('Z-Axis[cm]')
         plt.title('Hitting Point shown on object - IIWA 7')
@@ -168,7 +165,8 @@ def plot_hit_position(df, on_object=True, use_mplcursors=True):
         ###SECOND FIG FOR IIWA 14
         plt.figure()
         # plot x,z with y as color 
-        scatter = plt.scatter(df_iiwa14["RelPosError"].apply(lambda x: x[0]),df_iiwa14["RelPosError"].apply(lambda x: x[2]), c=df_iiwa14["RelPosError"].apply(lambda x: abs(x[1])), cmap='viridis')
+        # scatter = plt.scatter(df_iiwa14["RelPosError"].apply(lambda x: x[0]),df_iiwa14["RelPosError"].apply(lambda x: x[2]), c=df_iiwa14["RelPosError"].apply(lambda x: abs(x[1])), cmap='viridis')
+        scatter = plt.scatter(df_iiwa14["RelPosError"].apply(lambda x: x[0]),df_iiwa14["RelPosError"].apply(lambda x: x[2]), c=df_iiwa14["HittingFlux"], cmap='viridis')
         plt.scatter(0,0, c="red", marker="x")
         
         # Add box - TODO : define it better
@@ -176,13 +174,14 @@ def plot_hit_position(df, on_object=True, use_mplcursors=True):
         plt.gca().add_patch(rect)
 
         cbar = plt.colorbar(scatter)
-        cbar.set_label('Y-axis [cm]')
+        # cbar.set_label('Y-axis [cm]')
+        cbar.set_label('Flux')
         plt.xlabel('X-axis [cm]')
         plt.ylabel('Z-Axis[cm]')
         plt.title('Hitting Point shown on object - IIWA 14')
 
     # Show over flux 
-    else:
+    elif plot == "flux":
         plt.scatter(df_iiwa7['HittingFlux'],df_iiwa7["RelPosError"].apply(lambda x: np.linalg.norm(x)), color="red", alpha=0.5, label='Iiwa 7')
         plt.scatter(df_iiwa14['HittingFlux'],df_iiwa14["RelPosError"].apply(lambda x: np.linalg.norm(x)),color="blue", alpha=0.5, label='Iiwa 14')
         plt.legend()
@@ -190,12 +189,89 @@ def plot_hit_position(df, on_object=True, use_mplcursors=True):
         plt.ylabel('Normed Position error [cm]')
         plt.title('Hitting Position error over Flux')
 
+    elif plot == "distance":
+        plt.scatter(df_iiwa7['DistanceTraveled'],df_iiwa7["RelPosError"].apply(lambda x: np.linalg.norm(x)),color="red", alpha=0.5, label='Iiwa 7')
+        plt.scatter(df_iiwa14['DistanceTraveled'],df_iiwa14["RelPosError"].apply(lambda x: np.linalg.norm(x)), color="blue", alpha=0.5, label='Iiwa 14')
+        plt.legend()
+        plt.ylabel('Normed Position error [cm]')
+        plt.xlabel('Distance travelled [m]')
+        plt.title('Position error at impact over distance traveled')
+
     # Adding info when hovering cursor
     if use_mplcursors:
         mplcursors.cursor(hover=True).connect('add', lambda sel: sel.annotation.set_text(
             f"IDX: {sel.index} Rec:{df['RecSession'][sel.index]}, hit #{df['HitNumber'][sel.index]}, iiwa{df['IiwaNumber'][sel.index]}"))   
 
     plt.show()
+
+def plot_orientation_vs_distance(df, axis="z", use_mplcursors=True):
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
+
+    ## calculate quaternion diff
+    df["OrientationError"] = df.apply(lambda row : pybullet.getEulerFromQuaternion(pybullet.getDifferenceQuaternion(row["ObjectOrientation"],row["HittingOrientation"])),axis=1)
+
+    df_iiwa7 = df[df['IiwaNumber']==7].copy()
+    df_iiwa14 = df[df['IiwaNumber']==14].copy()
+
+    if axis == "x":
+        # scatter = axes.scatter(df['DistanceTraveled'], df['OrientationError'].apply(lambda x : x[0]), c=df['HittingFlux'], cmap="viridis")
+        axes[0].scatter(df_iiwa7['HittingFlux'], df_iiwa7['HittingOrientation'].apply(lambda x : pybullet.getEulerFromQuaternion(x)[0]), c=df_iiwa7['DistanceTraveled'], cmap="viridis")
+        scatter = axes[1].scatter(df_iiwa14['HittingFlux'], df_iiwa14['HittingOrientation'].apply(lambda x : pybullet.getEulerFromQuaternion(x)[0]), c=df_iiwa14['DistanceTraveled'], cmap="viridis")
+        
+        cbar = plt.colorbar(scatter)
+        cbar.set_label('Hitting Flux [m/s]')
+        axes[0].set_ylabel('Orientation in X-axis [rad]')
+
+    if axis == "y":
+        scatter = axes.scatter(df['DistanceTraveled'], df['OrientationError'].apply(lambda x : x[1]), c=df['HittingFlux'], cmap="viridis")
+        
+        cbar = plt.colorbar(scatter)
+        cbar.set_label('Hitting Flux [m/s]')
+        axes.set_ylabel('Orientation Error in Y-axis [rad]')
+
+    if axis == "z":
+        # scatter = ax.scatter(df['DistanceTraveled'], df['OrientationError'].apply(lambda x : x[2]), c=df['HittingFlux'], cmap="viridis")
+        # scatter = axes[0].scatter(df_iiwa7['DistanceTraveled'], df_iiwa7['OrientationError'].apply(lambda x : x[2]), c=df_iiwa7['HittingFlux'], cmap="viridis")
+        # axes[1].scatter(df_iiwa14['DistanceTraveled'], df_iiwa14['OrientationError'].apply(lambda x : x[2]), c=df_iiwa14['HittingFlux'], cmap="viridis")
+
+        scatter = axes[0].scatter(df_iiwa7['HittingFlux'], df_iiwa7['OrientationError'].apply(lambda x : x[2]), c=df_iiwa7['DistanceTraveled'], cmap="viridis")
+        axes[1].scatter(df_iiwa14['HittingFlux'], df_iiwa14['OrientationError'].apply(lambda x : x[2]), c=df_iiwa14['DistanceTraveled'], cmap="viridis")
+
+        # scatter = axes[0].scatter(df_iiwa7['DistanceTraveled'], df_iiwa7['HittingOrientation'].apply(lambda x : pybullet.getEulerFromQuaternion(x)[0]), c=df_iiwa7['HittingFlux'], cmap="viridis")
+        # axes[1].scatter(df_iiwa14['DistanceTraveled'], df_iiwa14['HittingOrientation'].apply(lambda x : pybullet.getEulerFromQuaternion(x)[0]), c=df_iiwa14['HittingFlux'], cmap="viridis")
+
+        # scatter = axes[0].scatter(df_iiwa7['HittingFlux'], df_iiwa7['ObjectOrientation'].apply(lambda x : pybullet.getEulerFromQuaternion(x)[1]), c=df_iiwa7['DistanceTraveled'], cmap="viridis")
+        # axes[1].scatter(df_iiwa14['HittingFlux'], df_iiwa14['ObjectOrientation'].apply(lambda x : pybullet.getEulerFromQuaternion(x)[1]), c=df_iiwa14['DistanceTraveled'], cmap="viridis")
+
+
+        cbar = plt.colorbar(scatter, ax=axes.ravel().tolist())
+        # cbar.set_label('Hitting Flux [m/s]')
+        cbar.set_label('Distance traveled [m]')
+
+        axes[0].set_ylabel('Orientation in Z-axis [rad]')
+    
+
+
+    # Adding info when hovering cursor
+    if use_mplcursors:
+        mplcursors.cursor(hover=True).connect('add', lambda sel: sel.annotation.set_text(
+            f"IDX: {sel.index} Rec:{df['RecSession'][sel.index]}, hit #{df['HitNumber'][sel.index]}, iiwa{df['IiwaNumber'][sel.index]}"))   
+
+    axes[0].set_title("IIWA 7")
+    axes[1].set_title("IIWA 14")
+
+    for ax in axes : 
+        # ax.set_xlabel('Distance Travelled [m]')
+        ax.set_xlabel('Hitting Flux [m/s]')
+        ax.grid(True)
+
+    plt.legend()
+    fig.suptitle(f"Orientation over Flux")
+    # fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
+
+    plt.show()
+
 
 def flux_hashtable(df, use_mplcursors=True):
     # Plot Flux
@@ -224,25 +300,93 @@ def flux_hashtable(df, use_mplcursors=True):
     
     plt.show()
 
+
+def plot_object_trajectory(df, use_mplcursors=True):
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
+
+    df["OrientationError"] = df.apply(lambda row : pybullet.getEulerFromQuaternion(pybullet.getDifferenceQuaternion(row["ObjectOrientation"],row["HittingOrientation"])),axis=1)
+
+    start_pos0 =[] # list for color
+    start_pos1 = []
+
+    for index,row in df.iterrows():
+
+        if row['IiwaNumber']==7 :
+            
+            # get object trajectory from file name
+            data_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+ "/data/airhockey/"
+            obj_fn = data_folder + row["RecSession"] + f"/object_hit_{row['HitNumber']}.csv"
+            
+            df_obj = pd.read_csv(obj_fn, converters={'RosTime' : parse_value, 'Position': parse_list, 'Orientation': parse_list})
+
+            # inverted to adpat to optitrack reference frame
+            axes[0].plot(-df_obj['Position'].apply(lambda x: x[0]), df_obj['Position'].apply(lambda x: x[1]), alpha=0.8)
+            # axes[0].scatter(-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1], c=row['OrientationError'][2], cmap="viridis")
+            start_pos0.append([-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1]])
+
+            axes[0].set_title("IIWA 7")
+
+        if row['IiwaNumber']==14 :
+            
+            # get object trajectory from file name
+            data_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+ "/data/airhockey/"
+            obj_fn = data_folder + row["RecSession"] + f"/object_hit_{row['HitNumber']}.csv"
+            
+            df_obj = pd.read_csv(obj_fn, converters={'RosTime' : parse_value, 'Position': parse_list, 'Orientation': parse_list})
+
+            # inverted to adpat to optitrack reference frame
+            axes[1].plot(-df_obj['Position'].apply(lambda x: x[0]), df_obj['Position'].apply(lambda x: x[1]))
+            # scatter = axes[1].scatter(-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1], c=row['OrientationError'][2], cmap="viridis")
+            start_pos1.append([-df_obj['Position'].iloc[0][0], df_obj['Position'].iloc[0][1]])
+
+            axes[1].set_title("IIWA 14")
+    
+
+    # Adding info when hovering cursor
+    if use_mplcursors:
+        mplcursors.cursor(hover=True).connect('add', lambda sel: sel.annotation.set_text(
+            f"IDX: {sel.index} Rec:{df['RecSession'][sel.index]}, hit #{df['HitNumber'][sel.index]}, iiwa{df['IiwaNumber'][sel.index]}"))   
+
+    # add colors
+    df_iiwa7 = df[df['IiwaNumber']==7].copy()
+    df_iiwa14 = df[df['IiwaNumber']==14].copy()
+    axes[0].scatter(np.array(start_pos0)[:,0],np.array(start_pos0)[:,1], c=df_iiwa7['OrientationError'].apply(lambda x : x[2]), cmap="viridis")
+    scatter = axes[1].scatter(np.array(start_pos1)[:,0],np.array(start_pos1)[:,1], c=df_iiwa14['OrientationError'].apply(lambda x : x[2]), cmap="viridis")
+    cbar = plt.colorbar(scatter, ax=axes.ravel().tolist())
+    cbar.set_label('Orienttion Error in Z-axis [rad]')
+
+    for ax in axes:
+        ax.set_xlabel('Y Axis [m]')
+        ax.set_ylabel('X-axis [m]')
+        ax.grid(True)
+    plt.legend()
+    fig.suptitle(f"Object trajectories")
+    # fig.tight_layout(rect=(0.01,0.01,0.99,0.99))
+    
+    plt.show()
+
 if __name__== "__main__" :
     
     processed_data_folder = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+ "/data/airhockey_processed/"
     
     ### Datafile to use
-    csv_fn ="data_consistent_march"
+    csv_fn = "data_consistent_march" #"data_consistent_march"
 
 
     ## Reading and cleanign data 
-    df = pd.read_csv(processed_data_folder+csv_fn+".csv", index_col="Index", converters={'ObjectPos' : parse_list, 'HittingPos': parse_list, 'ObjectOrientation' : parse_quat, 'HittingOrientation': parse_list})
+    df = pd.read_csv(processed_data_folder+csv_fn+".csv", index_col="Index", converters={'ObjectPos' : parse_strip_list_with_commas, 'HittingPos': parse_strip_list_with_commas, 'ObjectOrientation' : parse_strip_list, 'HittingOrientation': parse_strip_list})
     clean_df = clean_data(df)
     # Saving clean df
     clean_df.to_csv(processed_data_folder+csv_fn+"_clean.csv",index_label="Index")
 
 
     ### Plot functions
-    plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
-    # plot_hit_position(clean_df, on_object=True, use_mplcursors=True)
+    # plot_distance_vs_flux(clean_df, colors="iiwa", with_linear_regression=True)
+    plot_hit_position(clean_df, plot="on object" , use_mplcursors=True)
+    # plot_orientation_vs_distance(clean_df, axis="x")
     # flux_hashtable(clean_df)
+    # plot_object_trajectory(clean_df)
 
     # test_gmm_torch(clean_data(df))
 

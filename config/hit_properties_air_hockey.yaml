@@ -1,12 +1,12 @@
-automatic: False # Autonoumous hitting
+automatic: True # Autonoumous hitting
 
-time_to_wait : 3.0 # time to stay in REST mode (where both robots are in REST, includes returning to position)
+time_to_wait : 2.5 # time to stay in REST mode (where both robots are in REST, includes returning to position)
 # MUST be longer than time_object_record in recorder_properties 
 
-safety_distance: 1.15 # distance at which to PAUSE the robots when running autonomously
+safety_distance: 1.35 # distance at which to PAUSE the robots when running autonomously
 
-fixed_flux: True # Wether to use a fixed flux for each hit (otherwise uses file below in a loop)
-desired_fluxes_filename: "high_fluxes.txt" # This file MUSt be in 'desired_hitting_fluxes' folder
+fixed_flux: False # Wether to use a fixed flux for each hit (otherwise uses file below in a loop) #Hits at flux X once for each robot
+desired_fluxes_filename: "low_fluxes.txt" # This file MUSt be in 'desired_hitting_fluxes' folder
 
 
 iiwa7:
@@ -31,13 +31,13 @@ iiwa7:
 
   return_position:
     x: 0.55
-    y: -0.3
+    y: -0.2
     z: 0.25
 
   object_offset:
-    x : 0.02
-    y : -0.15
-    z : -0.05
+    x : 0.0 #0.02 0.04
+    y : -0.30
+    z : -0.12 #-0.05
 
 
 iiwa14:
@@ -48,25 +48,26 @@ iiwa14:
     z: 0.0
 
   ref_orientation: #[0.734, 0.012, 0.028, 0.0678]
-    w: -0.707
-    x: -0.707
-    y: 0
-    z: 0
+    w: 0.5 # 0.0 # -0.707
+    x: 0.5 #0.0 # -0.707
+    y: -0.5 #-0.707 # 0 
+    z: 0.5 #0.707 # 0
 
   hit_direction:
     x: 0
-    y: -1 
+    y: -1 #-1 
     z: 0
 
   hitting_flux : 1.2
     
   return_position:
-    x: 0.6 
-    y: 0.3  
-    z: 0.25
+    x: 0.55 #0.6 
+    y: 0.25 #0.3  
+    z: 0.25 # 0.2
     
   object_offset:
-    x : 0.05
-    y : 0.15
-    z : -0.07
+    x : 0.0 # 0.05 0.04
+    y : 0.30 #0.015
+    z : -0.10 #-0.07
+    
 

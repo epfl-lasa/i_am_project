@@ -341,6 +341,7 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
             # Plot Normed velocity
             if "Normed Vel" in data_to_plot:
                 ax_norm_vel.plot(df['RosTime'], df['EEF_Velocity'].apply(lambda x: np.linalg.norm(x)))
+                ax_norm_vel.plot(df['RosTime'], df['EEF_DesiredVelocity'].apply(lambda x: np.linalg.norm(x)))
                 ax_norm_vel.set_xlabel('Time [s]')
                 ax_norm_vel.set_ylabel('Normed Velocity [kg.m^2]')
                 ax_norm_vel.grid(True)
@@ -349,12 +350,12 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
             
             if "Joint Vel" in data_to_plot:
                 for i in range(7):
-                    axs_jnt_vel[i].plot(df['RosTime'], df['JointVelocity'].apply(lambda x: x[i]))
+                    axs_jnt_vel[i].plot(df['RosTime'], 57.2958*df['JointPosition'].apply(lambda x: x[i]))
                     axs_jnt_vel[i].set_title(f'Joint{i+1}')
                     # axs_jnt_vel[i].legend(loc='upper left', bbox_to_anchor=(1.01, 1.0))
                     axs_jnt_vel[i].grid(True)
                 axs_jnt_vel[i].set_xlabel('Time [s]')
-                fig_jnt_vel.suptitle(f"Joint Velocity : iiwa {parts[1]}, hit #{hit_numbers[0]}-{hit_numbers[1]}")
+                fig_jnt_vel.suptitle(f"Joint POS : iiwa {parts[1]}, hit #{hit_numbers[0]}-{hit_numbers[1]}")
                 fig_jnt_vel.tight_layout(rect=(0.01,0.01,0.99,0.99))
             
             # Plot Object position
@@ -375,16 +376,18 @@ def plot_all_des_vs_achieved(folder_name, hit_numbers, iiwa_number, inverse_effo
                 fig_obj.suptitle(f"Object data for hit #{hit_numbers[0]}-{hit_numbers[1]}")
                 fig_obj.tight_layout(rect=(0.01,0.01,0.99,0.99)) 
             
+            # Print hit info 
+            max_flux, max_vel = get_flux_at_hit(path_to_robot_hit, show_print=False)
+            y_distance, norm_distance = get_distance_travelled(path_to_object_hit, show_print=False)
+            
+            print(f"Hit #{parts[3]}\n"
+                f" Max Flux: {max_flux:.4f} \n"
+                f" Max velocity (norm): {max_vel:.4f} \n"
+                f" Distance travelled (norm): {norm_distance:.3f} \n")
         else :
             print(f"No iiwa_{iiwa_number} data file for hit #{hit} \n")
 
-        max_flux, max_vel = get_flux_at_hit(path_to_robot_hit, show_print=False)
-        y_distance, norm_distance = get_distance_travelled(path_to_object_hit, show_print=False)
-        
-        print(f"Hit #{parts[3]}\n"
-              f" Max Flux: {max_flux:.4f} \n"
-              f" Max velocity (norm): {max_vel:.4f} \n"
-              f" Distance travelled (norm): {norm_distance:.3f}")
+
         
         
     plt.show()
@@ -564,10 +567,12 @@ if __name__== "__main__" :
     # path_to_data_airhockey = "/home/ros/ros_ws/src/i_am_project/data/airhockey/"
     path_to_data_airhockey = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/data/airhockey/"
     
-    folder_name = "2024-02-21_15:26:34"
-    hit_number = [16,17]
-    iiwa_number = 14
-    plot_this_data = ["Torque", "Vel", "Object", "Joint Vel"]#["Vel", "Inertia", "Flux", "Normed Vel"]
+    folder_name = "2024-03-06_15:03:42"
+    hit_number = [50,60]
+    iiwa_number = 7
+    plot_this_data = ["Object"]#"Torque", "Vel", "Inertia", "Flux",  "Normed Vel", "Joint Vel",["Vel", "Inertia", "Flux", "Normed Vel"]
+    
+    print(f"Plotting data for {folder_name}, hits#{hit_number[0]}-{hit_number[1]}, IIWA {iiwa_number} \n")
     
     plot_all_des_vs_achieved(folder_name, hit_number, iiwa_number, data_to_plot=plot_this_data)
 

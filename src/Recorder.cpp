@@ -9,6 +9,7 @@ bool Recorder::init() {
   if (!nh_.getParam("recording",isRecording_)) { ROS_ERROR("Param recording not found"); }
   if (!nh_.getParam("recorder_folder", recordingFolderPath_)) { ROS_ERROR("Param recorder_path not found"); }
   if (!nh_.getParam("time_object_record", recordingTimeObject_)) { ROS_ERROR("Param recorder_time not found"); }
+  if (!nh_.getParam("post_hit_record", recordingTimeRobot_)) { ROS_ERROR("Param recorder_time not found"); }
 
   if (!nh_.getParam("object_mass", objectMass_)) {ROS_ERROR("Param object_mass not found");}
 
@@ -556,6 +557,7 @@ void Recorder::run() {
   bool manual = false; // only call functin to record hits form here
 
   ros::Duration max_recording_time = ros::Duration(recordingTimeObject_);
+  ros::Duration post_hit_recording_time = ros::Duration(recordingTimeRobot_);
 
   std::cout << "READY TO RECORD " << std::endl;
 
@@ -600,10 +602,10 @@ void Recorder::run() {
         write_once_object = 1;
       }
 
-      // Record object when robots are not in HIT mode logic
+      //// OBJECT RECORDING LOGIC
       // Keep recording object for X seconds after hit (only when robots are at rest to avoid overlap)
       auto time_since_hit = ros::Time::now() - fsmState_.hit_time;
-      if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && time_since_hit < max_recording_time && write_once_object){
+      if(fsmState_.mode_iiwa7 == REST && fsmState_.mode_iiwa14 == REST && time_since_hit <= max_recording_time && write_once_object){
         recordObject(manual);
       }
       // Stop recording object and write to file
@@ -622,13 +624,22 @@ void Recorder::run() {
         recordObjectMovedByHand(hit_count-1);
       }
 
+      //// ROBOT RECORDING LOGIC 
+      // keep recording robot data for X seconds after hit 
+      if(fsmState_.mode_iiwa7 == REST && time_since_hit <= post_hit_recording_time && write_once_7){
+        recordRobot(IIWA_7);
+      }
+      if(fsmState_.mode_iiwa14 == REST && time_since_hit <= post_hit_recording_time && write_once_14){
+        recordRobot(IIWA_14);
+      }
+
       // Writing data logic
-      if(fsmState_.mode_iiwa7 == REST && write_once_7){
+      if(fsmState_.mode_iiwa7 == REST && time_since_hit > post_hit_recording_time && write_once_7){
         writeRobotStatesToFile(IIWA_7, hit_count);
         write_once_7 = 0;
       }
 
-      if(fsmState_.mode_iiwa14 == REST && write_once_14){
+      if(fsmState_.mode_iiwa14 == REST && time_since_hit > post_hit_recording_time && write_once_14){
         writeRobotStatesToFile(IIWA_14, hit_count);
         write_once_14 = 0;
       }

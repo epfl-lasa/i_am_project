@@ -6,7 +6,7 @@
 //|
 //|    Other contributors:
 //|             Elise Jeandupeux (elise.jeandupeux@epfl.ch)
-//|             MAxime Gautier (maxime.gautier@epfl.ch)
+//|             Maxime Gautier (maxime.gautier@epfl.ch)
 //|
 //|    website: lasa.epfl.ch
 //|

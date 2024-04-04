@@ -231,4 +231,6 @@ Can modify the IP adress of the robot in iiwa_driver/config/iiwa.yaml
 
 Use 'sudo chmod 777 -R .' when having trouble saving files inside container 
 
+Use 'git config core.fileMode false' to avoid pushing chmod changes to github
+
 
